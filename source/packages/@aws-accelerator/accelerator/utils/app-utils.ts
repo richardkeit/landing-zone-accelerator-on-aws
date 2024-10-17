@@ -134,7 +134,11 @@ export interface AcceleratorEnvironment {
   /**
    * Location of the LZA configuration files
    */
-  configRepositoryLocation: 'codecommit' | 's3';
+  configRepositoryLocation: string;
+  /**
+   * Optional CodeConnection ARN to specify a 3rd-party configuration repository
+   */
+  codeconnectionArn: string;
   /**
    * Accelerator configuration repository name
    */
@@ -145,6 +149,10 @@ export interface AcceleratorEnvironment {
    * @default 'main'
    */
   configRepositoryBranchName: string;
+  /**
+   * Accelerator configuration repository owner (CodeConnection only)
+   */
+  configRepositoryOwner: string;
   /**
    * Whether or not Control Tower is enabled in the accelerator environment
    */
@@ -171,6 +179,18 @@ export interface AcceleratorEnvironment {
    * Source code repository branch name
    */
   sourceBranchName: string;
+  /**
+   * Source code repository bucket name
+   */
+  sourceBucketName: string;
+  /**
+   * Source code repository bucket object name
+   */
+  sourceBucketObject: string;
+  /**
+   * Source code repository bucket encryption key ARN
+   */
+  sourceBucketKmsKeyArn?: string;
   /**
    * Source code repository location
    *
@@ -353,7 +373,9 @@ export function setAcceleratorEnvironment(
     auditAccountEmail: env['AUDIT_ACCOUNT_EMAIL'] ?? '',
     configRepositoryName,
     configRepositoryBranchName: env['EXISTING_CONFIG_REPOSITORY_BRANCH_NAME'] ?? 'main',
-    configRepositoryLocation: env['CONFIG_REPOSITORY_LOCATION'] === 's3' ? 's3' : 'codecommit',
+    configRepositoryLocation: env['CONFIG_REPOSITORY_LOCATION'] ?? 'codecommit',
+    configRepositoryOwner: env['EXISTING_CONFIG_REPOSITORY_OWNER'] ?? '',
+    codeconnectionArn: env['CODECONNECTION_ARN'] ?? '',
     controlTowerEnabled: env['CONTROL_TOWER_ENABLED'] ?? '',
     enableApprovalStage: env['ACCELERATOR_ENABLE_APPROVAL_STAGE']
       ? env['ACCELERATOR_ENABLE_APPROVAL_STAGE'] === 'Yes'
@@ -362,6 +384,9 @@ export function setAcceleratorEnvironment(
     logArchiveAccountEmail: env['LOG_ARCHIVE_ACCOUNT_EMAIL'] ?? '',
     managementAccountEmail: env['MANAGEMENT_ACCOUNT_EMAIL'] ?? '',
     sourceBranchName: env['ACCELERATOR_REPOSITORY_BRANCH_NAME'] ?? '',
+    sourceBucketName: env['ACCELERATOR_REPOSITORY_BUCKET_NAME'] ?? '',
+    sourceBucketKmsKeyArn: env['ACCELERATOR_REPOSITORY_BUCKET_KMS_KEY_ARN'],
+    sourceBucketObject: env['ACCELERATOR_REPOSITORY_BUCKET_OBJECT'] ?? '',
     sourceRepository: env['ACCELERATOR_REPOSITORY_SOURCE'] ?? 'github',
     sourceRepositoryName: env['ACCELERATOR_REPOSITORY_NAME'] ?? 'landing-zone-accelerator-on-aws',
     sourceRepositoryOwner: env['ACCELERATOR_REPOSITORY_OWNER'] ?? 'awslabs',

@@ -38,6 +38,9 @@ export interface AcceleratorPipelineProps {
   readonly sourceRepositoryOwner: string;
   readonly sourceRepositoryName: string;
   readonly sourceBranchName: string;
+  readonly sourceBucketName: string;
+  readonly sourceBucketObject: string;
+  readonly sourceBucketKmsKeyArn?: string;
   readonly enableApprovalStage: boolean;
   readonly qualifier?: string;
   readonly managementAccountId?: string;
@@ -55,7 +58,11 @@ export interface AcceleratorPipelineProps {
   /**
    * Indicates location of the LZA configuration files
    */
-  readonly configRepositoryLocation: 'codecommit' | 's3';
+  readonly configRepositoryLocation: string;
+  /**
+   * Optional CodeConnection ARN to specify a 3rd-party configuration repository
+   */
+  readonly codeconnectionArn: string;
   /**
    * Flag indicating installer using existing CodeCommit repository
    */
@@ -68,6 +75,10 @@ export interface AcceleratorPipelineProps {
    * User defined pre-existing config repository branch name
    */
   readonly configRepositoryBranchName: string;
+  /**
+   * Accelerator configuration repository owner (CodeConnection only)
+   */
+  readonly configRepositoryOwner: string;
   /**
    * Accelerator resource name prefixes
    */
@@ -258,6 +269,19 @@ export class AcceleratorPipeline extends Construct {
       assumedBy: new iam.ServicePrincipal('codepipeline.amazonaws.com'),
     });
 
+    /**
+     * Optional context flag "s3-source-kms-key-arn" for encrypted S3 buckets containing LZA source code
+     * requires pipeline roles to have additional KMS key access permissions
+     */
+    if (this.props.sourceBucketKmsKeyArn) {
+      this.pipelineRole.addToPolicy(
+        new cdk.aws_iam.PolicyStatement({
+          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+          resources: [this.props.sourceBucketKmsKeyArn],
+        }),
+      );
+    }
+
     this.pipeline = new codepipeline.Pipeline(this, 'Resource', {
       pipelineName: pipelineName,
       artifactBucket: bucket.getS3Bucket(),
@@ -269,6 +293,7 @@ export class AcceleratorPipeline extends Construct {
 
     let sourceAction:
       | cdk.aws_codepipeline_actions.CodeCommitSourceAction
+      | cdk.aws_codepipeline_actions.S3SourceAction
       | cdk.aws_codepipeline_actions.GitHubSourceAction;
 
     if (this.props.sourceRepository === 'codecommit') {
@@ -278,6 +303,23 @@ export class AcceleratorPipeline extends Construct {
         branch: this.props.sourceBranchName,
         output: this.acceleratorRepoArtifact,
         trigger: codepipeline_actions.CodeCommitTrigger.NONE,
+      });
+    } else if (this.props.sourceBucketName && this.props.sourceBucketName.length > 0) {
+      // hidden parameter to use S3 for source code via cdk context
+      const bucket = cdk.aws_s3.Bucket.fromBucketAttributes(this, 'ExistingBucket', {
+        bucketName: this.props.sourceBucketName,
+        ...(this.props.sourceBucketKmsKeyArn && {
+          encryptionKey: cdk.aws_kms.Key.fromKeyArn(this, 'S3SourceKmsKey', this.props.sourceBucketKmsKeyArn),
+        }),
+      });
+
+      sourceAction = new codepipeline_actions.S3SourceAction({
+        actionName: 'Source',
+        bucket: bucket,
+        bucketKey: this.props.sourceBucketObject,
+        output: this.acceleratorRepoArtifact,
+        trigger: codepipeline_actions.S3Trigger.NONE,
+        role: this.pipelineRole,
       });
     } else {
       sourceAction = new cdk.aws_codepipeline_actions.GitHubSourceAction({
@@ -303,6 +345,22 @@ export class AcceleratorPipeline extends Construct {
             bucketKey: 'zipped/aws-accelerator-config.zip',
             output: this.configRepoArtifact,
             trigger: codepipeline_actions.S3Trigger.NONE,
+            variablesNamespace: 'Config-Vars',
+          }),
+        ],
+      });
+    } else if (this.props.configRepositoryLocation === 'codeconnection' && this.props.codeconnectionArn !== '') {
+      this.pipeline.addStage({
+        stageName: 'Source',
+        actions: [
+          sourceAction,
+          new codepipeline_actions.CodeStarConnectionsSourceAction({
+            actionName: 'Configuration',
+            branch: this.props.configRepositoryBranchName,
+            connectionArn: this.props.codeconnectionArn,
+            owner: this.props.configRepositoryOwner,
+            repo: this.props.configRepositoryName,
+            output: this.configRepoArtifact,
             variablesNamespace: 'Config-Vars',
           }),
         ],
@@ -400,7 +458,7 @@ export class AcceleratorPipeline extends Construct {
           pre_build: {
             commands: [
               `export PACKAGE_VERSION=$(cat source/package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[",]//g' | tr -d '[:space:]')`,
-              `if [ "$ACCELERATOR_CHECK_VERSION" = "yes" ]; then 
+              `if [ "$ACCELERATOR_CHECK_VERSION" = "yes" ]; then
                 if [ "$PACKAGE_VERSION" != "$ACCELERATOR_PIPELINE_VERSION" ]; then
                   echo "ERROR: Accelerator package version in Source does not match currently installed LZA version. Please ensure that the Installer stack has been updated prior to updating the Source code in CodePipeline."
                   exit 1
@@ -416,7 +474,7 @@ export class AcceleratorPipeline extends Construct {
                   sed -i "s#registry.yarnpkg.com#registry.npmmirror.com#g" yarn.lock;
                   yarn config set registry https://registry.npmmirror.com
                fi`,
-              'yarn install',
+              'if [ -f .yarnrc ]; then yarn install --use-yarnrc .yarnrc; else yarn install; fi',
               'yarn build',
               'yarn validate-config $CODEBUILD_SRC_DIR_Config',
             ],
@@ -434,7 +492,7 @@ export class AcceleratorPipeline extends Construct {
         environmentVariables: {
           NODE_OPTIONS: {
             type: codebuild.BuildEnvironmentVariableType.PLAINTEXT,
-            value: '--max_old_space_size=12288',
+            value: '--max_old_space_size=12288 --no-warnings',
           },
           PARTITION: {
             type: codebuild.BuildEnvironmentVariableType.PLAINTEXT,
@@ -494,13 +552,13 @@ export class AcceleratorPipeline extends Construct {
               'cd source',
               `if [ "prepare" = "\${ACCELERATOR_STAGE}" ]; then set -e && LOG_LEVEL=${
                 BuildLogLevel.INFO
-              } yarn run ts-node packages/@aws-accelerator/modules/bin/runner.ts --module control-tower --partition ${
+              } yarn run ts-node packages/@aws-accelerator/lza-modules/bin/runner.ts --module control-tower --partition ${
                 cdk.Aws.PARTITION
               } --use-existing-role ${
                 this.props.useExistingRoles ? 'Yes' : 'No'
               } --config-dir $CODEBUILD_SRC_DIR_Config && if [ -z "\${ACCELERATOR_NO_ORG_MODULE}" ]; then LOG_LEVEL=${
                 BuildLogLevel.INFO
-              } yarn run ts-node packages/@aws-accelerator/modules/bin/runner.ts --module aws-organizations --partition  ${
+              } yarn run ts-node packages/@aws-accelerator/lza-modules/bin/runner.ts --module aws-organizations --partition  ${
                 cdk.Aws.PARTITION
               } --use-existing-role ${
                 this.props.useExistingRoles ? 'Yes' : 'No'
@@ -531,7 +589,7 @@ export class AcceleratorPipeline extends Construct {
           },
           NODE_OPTIONS: {
             type: codebuild.BuildEnvironmentVariableType.PLAINTEXT,
-            value: '--max_old_space_size=12288',
+            value: '--max_old_space_size=12288 --no-warnings',
           },
           CDK_METHOD: {
             type: codebuild.BuildEnvironmentVariableType.PLAINTEXT,

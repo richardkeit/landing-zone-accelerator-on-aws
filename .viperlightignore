@@ -56,9 +56,6 @@ development
 
 # ELB Root Account References https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html#attach-bucket-policy
 
-source/packages/@aws-accelerator/utils/lib/regions.ts:64
-source/packages/@aws-accelerator/utils/lib/regions.ts:65
-source/packages/@aws-accelerator/utils/lib/regions.ts:66
 source/packages/@aws-accelerator/utils/lib/regions.ts:67
 source/packages/@aws-accelerator/utils/lib/regions.ts:68
 source/packages/@aws-accelerator/utils/lib/regions.ts:69
@@ -92,18 +89,26 @@ source/packages/@aws-accelerator/utils/lib/regions.ts:96
 source/packages/@aws-accelerator/utils/lib/regions.ts:97
 source/packages/@aws-accelerator/utils/lib/regions.ts:98
 source/packages/@aws-accelerator/utils/lib/regions.ts:99
+source/packages/@aws-accelerator/utils/lib/regions.ts:100
+source/packages/@aws-accelerator/utils/lib/regions.ts:101
+source/packages/@aws-accelerator/utils/lib/regions.ts:102
+source/packages/@aws-accelerator/utils/lib/regions.ts:103
+source/packages/@aws-accelerator/utils/lib/regions.ts:104
+source/packages/@aws-accelerator/utils/lib/regions.ts:105
+source/packages/@aws-accelerator/utils/lib/regions.ts:106
+source/packages/@aws-accelerator/utils/lib/regions.ts:107
 
 # Accelerator specific assume role declaration
 
-source/packages/@aws-accelerator/accelerator/lib/accelerator.ts:399
 source/packages/@aws-accelerator/accelerator/lib/accelerator.ts:400
-source/packages/@aws-accelerator/accelerator/lib/accelerator.ts:1312
-source/packages/@aws-accelerator/accelerator/lib/accelerator.ts:1313
+source/packages/@aws-accelerator/accelerator/lib/accelerator.ts:401
+source/packages/@aws-accelerator/accelerator/lib/accelerator.ts:1288
+source/packages/@aws-accelerator/accelerator/lib/accelerator.ts:1289
 
 # Accelerator specific assume role declaration
 
-source/packages/@aws-accelerator/config/lib/global-config.ts:1008
 source/packages/@aws-accelerator/config/lib/global-config.ts:1009
+source/packages/@aws-accelerator/config/lib/global-config.ts:1010
 
 # Accelerator specific assume role declaration
 
@@ -133,43 +138,24 @@ source/packages/@aws-accelerator/constructs/lib/aws-ssm/put-param-value/index.ts
 
 # Accelerator specific assume role declaration
 
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1281
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1282
-
-# Accelerator specific assume role declaration
-
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1290
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1291
-
-# Accelerator specific assume role declaration
-
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1300
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1301
-
-# Accelerator specific assume role declaration
-
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1309
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1310
-
-# Accelerator specific assume role declaration
-
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1318
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1319
-
-# Accelerator specific assume role declaration
-
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1327
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1328
-
-# Accelerator specific assume role declaration
-
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1948
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1949
-
-# Accelerator specific assume role declaration
-
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:2031
-source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:2032
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1380
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1381
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1479
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1488
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1497
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1506
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1515
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1523
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1524
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:2172
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:2173
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:2255
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:2256
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1478
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1487
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1496
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1505
+source/packages/@aws-accelerator/tools/lib/classes/accelerator-tool.ts:1514
 
 # Sample configuration READMEs
 
@@ -214,8 +200,8 @@ source/packages/@aws-accelerator/constructs/test/aws-iam/password-policy.test.ts
 
 # Assume role declaration for cross account
 
-source/packages/@aws-accelerator/utils/lib/get-template.ts:73
 source/packages/@aws-accelerator/utils/lib/get-template.ts:74
+source/packages/@aws-accelerator/utils/lib/get-template.ts:75
 
 # Masked email address
 
@@ -226,8 +212,8 @@ source/packages/@aws-accelerator/accelerator/lib/lambdas/diagnostic-pack/resourc
 
 # Assume role declaration for cross account
 
-source/packages/@aws-accelerator/utils/lib/evaluate-limits.ts:100
-source/packages/@aws-accelerator/utils/lib/evaluate-limits.ts:101
+source/packages/@aws-accelerator/utils/lib/evaluate-limits.ts:106
+source/packages/@aws-accelerator/utils/lib/evaluate-limits.ts:107
 
 # Assume role declaration for cross account
 source/packages/@aws-accelerator/constructs/lib/aws-servicecatalog/propagate-portfolio-associations/index.ts:268

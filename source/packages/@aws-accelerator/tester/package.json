@@ -21,17 +21,17 @@
   },
   "dependencies": {
     "@types/fs-extra": "11.0.1",
-    "aws-cdk": "2.148.0",
-    "aws-cdk-lib": "2.148.0",
+    "aws-cdk": "2.158.0",
+    "aws-cdk-lib": "2.158.0",
     "ts-node": "10.9.1"
   },
   "devDependencies": {
-    "@types/jest": "29.4.0",
+    "@types/jest": "29.5.12",
     "@types/node": "18.14.0",
     "@typescript-eslint/eslint-plugin": "5.53.0",
     "@typescript-eslint/parser": "5.53.0",
-    "aws-cdk": "2.148.0",
-    "aws-cdk-lib": "2.148.0",
+    "aws-cdk": "2.158.0",
+    "aws-cdk-lib": "2.158.0",
     "constructs": "10.0.12",
     "eslint": "8.34.0",
     "eslint-config-prettier": "8.6.0",

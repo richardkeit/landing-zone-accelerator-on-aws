@@ -183,7 +183,7 @@ export interface AcceleratorStackProps extends cdk.StackProps {
   readonly replacementsConfig: ReplacementsConfig;
   readonly partition: string;
   readonly configRepositoryName: string;
-  readonly configRepositoryLocation: 's3' | 'codecommit';
+  readonly configRepositoryLocation: string;
   readonly qualifier?: string;
   readonly configCommitId?: string;
   readonly globalRegion: string;
@@ -399,13 +399,39 @@ export abstract class AcceleratorStack extends cdk.Stack {
    * Function to get Central Log bucket name
    * @returns
    */
-  private getCentralLogBucketName(): string {
+  public getCentralLogBucketName(): string {
     if (this.props.globalConfig.logging.centralLogBucket?.importedBucket) {
       return this.getBucketNameReplacement(this.props.globalConfig.logging.centralLogBucket.importedBucket.name);
     }
     return `${
       this.acceleratorResourceNames.bucketPrefixes.centralLogs
     }-${this.props.accountsConfig.getLogArchiveAccountId()}-${this.props.centralizedLoggingRegion}`;
+  }
+
+  /**
+   * Function to get ELB Access Log bucket name
+   * @returns
+   */
+  public getElbAccessLogBucketName(): string {
+    if (this.props.globalConfig.logging.elbLogBucket?.importedBucket) {
+      return this.getBucketNameReplacement(this.props.globalConfig.logging.elbLogBucket.importedBucket.name);
+    }
+    return `${
+      this.acceleratorResourceNames.bucketPrefixes.elbLogs
+    }-${this.props.accountsConfig.getLogArchiveAccountId()}-${cdk.Stack.of(this).region}`;
+  }
+
+  /**
+   * Function to get Asset bucket name
+   * @returns
+   */
+  public getAssetBucketName(): string {
+    if (this.props.globalConfig.logging.assetBucket?.importedBucket) {
+      return this.getBucketNameReplacement(this.props.globalConfig.logging.assetBucket.importedBucket.name);
+    }
+    return `${
+      this.acceleratorResourceNames.bucketPrefixes.assets
+    }-${this.props.accountsConfig.getManagementAccountId()}-${this.props.globalConfig.homeRegion}`;
   }
 
   /**

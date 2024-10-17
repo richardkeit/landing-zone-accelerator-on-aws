@@ -80,7 +80,7 @@ export class SsmSessionManagerPolicy extends Construct {
 
     // Create an EC2 role that can be used for Session Manager
     const sessionManagerEC2Role = new cdk.aws_iam.Role(this, 'SessionManagerEC2Role', {
-      assumedBy: new cdk.aws_iam.ServicePrincipal(`ec2.${cdk.Stack.of(this).urlSuffix}`),
+      assumedBy: new cdk.aws_iam.ServicePrincipal('ec2.amazonaws.com'),
       description: 'IAM Role for an EC2 configured for Session Manager Logging',
       managedPolicies: [sessionManagerEC2ManagedPolicy],
       roleName: `${props.prefixes.accelerator}-SessionManagerEC2Role`,
@@ -176,9 +176,9 @@ export class SsmSessionManagerPolicy extends Construct {
       new cdk.aws_iam.PolicyStatement({
         effect: cdk.aws_iam.Effect.ALLOW,
         actions: ['kms:Decrypt'],
-        resources: [
-          `arn:${cdk.Stack.of(this).partition}:kms:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:key/*`,
-        ],
+        resources: props.enabledRegions.map(
+          region => `arn:${cdk.Stack.of(this).partition}:kms:${region}:${cdk.Stack.of(this).account}:key/*`,
+        ),
         conditions: {
           Null: {
             'kms:ResourceAliases': 'false',

@@ -28,6 +28,9 @@ const stack = new PipelineStack(app, 'PipelineStack', {
   sourceRepositoryOwner: 'awslabs',
   sourceRepositoryName: 'accelerator-source',
   sourceBranchName: 'main',
+  sourceBucketName: 'my-accelerator-source-bucket',
+  sourceBucketObject: 'release/v9.8.7.zip',
+  sourceBucketKmsKeyArn: 'arn:aws:kms:us-east-1:000000000000:key/aaaaaaaa-1111-bbbb-2222-cccccc333333',
   enableApprovalStage: true,
   qualifier: 'aws-accelerator',
   managementAccountId: app.account,
@@ -45,6 +48,7 @@ const stack = new PipelineStack(app, 'PipelineStack', {
   configRepositoryLocation: 'codecommit',
   configRepositoryName: 'aws-accelerator-config',
   configRepositoryBranchName: 'main',
+  configRepositoryOwner: '',
   prefixes: {
     accelerator: 'AWSAccelerator',
     kmsAlias: 'alias/accelerator',
@@ -59,6 +63,7 @@ const stack = new PipelineStack(app, 'PipelineStack', {
   enableSingleAccountMode: false,
   pipelineAccountId: '000000000000',
   useExistingRoles: false,
+  codeconnectionArn: '',
   // installerStackName: 'InstallerStack',
 });
 

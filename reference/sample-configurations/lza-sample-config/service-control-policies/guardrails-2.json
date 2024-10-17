@@ -8,6 +8,7 @@
         "iam:DeleteAccountPasswordPolicy",
         "iam:UpdateAccountPasswordPolicy",
         "iam:CreateAccountAlias",
+        "iam:CreateUser",
         "iam:DeleteAccountAlias"
       ],
       "Resource": "*",
@@ -51,6 +52,7 @@
         "guardduty:StopMonitoringMembers",
         "guardduty:Disassociate*",
         "securityhub:BatchDisableStandards",
+        "securityhub:DisableImportFindingsForProduct",
         "securityhub:DisableSecurityHub",
         "securityhub:DeleteMembers",
         "securityhub:Disassociate*"
@@ -137,6 +139,24 @@
         "cloudtrail:CreateTrail"
       ],
       "Resource": "arn:${PARTITION}:cloudtrail:*:*:trail/${ACCELERATOR_PREFIX}-*",
+      "Condition": {
+        "ArnNotLike": {
+          "aws:PrincipalARN": [
+            "arn:${PARTITION}:iam::*:role/${ACCELERATOR_PREFIX}-*",
+            "arn:${PARTITION}:iam::*:role/${MANAGEMENT_ACCOUNT_ACCESS_ROLE}",
+            "arn:${PARTITION}:iam::*:role/cdk-accel-*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "PreventS3Modification",
+      "Effect": "Deny",
+      "Action": [
+        "s3:PutEncryptionConfiguration",
+        "s3:PutBucketVersioning"
+      ],
+      "Resource": "arn:aws:s3:::aws-accelerator-*",
       "Condition": {
         "ArnNotLike": {
           "aws:PrincipalARN": [

@@ -365,6 +365,21 @@ export interface ITargetGroupItem {
 export type NlbProtocolEnum = 'TCP' | 'UDP' | 'TLS' | 'TCP_UDP';
 export type AlpnPolicyEnum = 'HTTP1Only' | 'HTTP2Only' | 'HTTP2Optional' | 'HTTP2Preferred' | 'None';
 export type SslPolicyNlbEnum =
+  | 'ELBSecurityPolicy-TLS13-1-2-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-2-Res-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-2-Ext1-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-2-Ext2-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-1-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-0-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-3-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-2-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-2-Res-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-2-Ext0-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-2-Ext1-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-2-Ext2-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-1-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-0-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-3-FIPS-2023-04'
   | 'ELBSecurityPolicy-TLS-1-0-2015-04'
   | 'ELBSecurityPolicy-TLS-1-1-2017-01'
   | 'ELBSecurityPolicy-TLS-1-2-2017-01'
@@ -902,6 +917,21 @@ export interface IAlbRoutingHttpConfig {
 export type AlbListenerProtocolEnum = 'HTTP' | 'HTTPS';
 export type AlbListenerTypeEnum = 'fixed-response' | 'forward' | 'redirect';
 export type SslPolicyAlbEnum =
+  | 'ELBSecurityPolicy-TLS13-1-2-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-2-Res-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-2-Ext1-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-2-Ext2-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-1-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-0-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-3-2021-06'
+  | 'ELBSecurityPolicy-TLS13-1-2-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-2-Res-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-2-Ext0-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-2-Ext1-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-2-Ext2-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-1-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-0-FIPS-2023-04'
+  | 'ELBSecurityPolicy-TLS13-1-3-FIPS-2023-04'
   | 'ELBSecurityPolicy-TLS-1-0-2015-04'
   | 'ELBSecurityPolicy-TLS-1-1-2017-01'
   | 'ELBSecurityPolicy-TLS-1-2-2017-01'
@@ -1553,6 +1583,12 @@ export interface ICloudFormationStackSet {
    * The parameters to be passed to the stackset.
    */
   readonly parameters?: t.ICfnParameter[];
+  /**
+   * The other StackSets this StackSet depends on.
+   * For stackset names you define here, a CloudFormation DependsOn attribute will be added between the resources.
+   * Please note this does not guarantee the deployment order of the stack instances within the StackSet.
+   */
+  readonly dependsOn?: string[];
 }
 
 export type PortfolioAssociationType = 'User' | 'Group' | 'Role' | 'PermissionSet';

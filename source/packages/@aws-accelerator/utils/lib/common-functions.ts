@@ -88,6 +88,10 @@ export function getStsEndpoint(partition: string, region: string): string {
     return `https://sts.${region}.sc2s.sgov.gov`;
   } else if (partition === 'aws-cn') {
     return `https://sts.${region}.amazonaws.com.cn`;
+  } else if (partition === 'aws-iso-f') {
+    return `https://sts.${region}.csp.hci.ic.gov`;
+  } else if (partition === 'aws-iso-e') {
+    return `https://sts.${region}.cloud.adc-e.uk`;
   }
   // both commercial and govCloud return this pattern
   return `https://sts.${region}.amazonaws.com`;
@@ -178,6 +182,10 @@ export function getGlobalRegion(partition: string): string {
   switch (partition) {
     case 'aws-us-gov':
       return 'us-gov-west-1';
+    case 'aws-iso-e':
+      return 'eu-isoe-west-1';
+    case 'aws-iso-f':
+      return 'us-isof-south-1';
     case 'aws-iso-b':
       return 'us-isob-east-1';
     case 'aws-iso':

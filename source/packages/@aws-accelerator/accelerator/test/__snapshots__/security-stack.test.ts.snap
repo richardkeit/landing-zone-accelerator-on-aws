@@ -1069,17 +1069,7 @@ exports[`SecurityStack Construct(SecurityStack):  Snapshot Test 1`] = `
               "Condition": {
                 "StringEquals": {
                   "kms:CallerAccount": "111111111111",
-                  "kms:ViaService": {
-                    "Fn::Join": [
-                      "",
-                      [
-                        "ec2.us-east-1.",
-                        {
-                          "Ref": "AWS::URLSuffix",
-                        },
-                      ],
-                    ],
-                  },
+                  "kms:ViaService": "ec2.us-east-1.amazonaws.com",
                 },
               },
               "Effect": "Allow",
@@ -1284,7 +1274,7 @@ exports[`SecurityStack Construct(SecurityStack):  Snapshot Test 1`] = `
       "Properties": {
         "Name": "/accelerator/AWSAccelerator-SecurityStack-111111111111-us-east-1/version",
         "Type": "String",
-        "Value": "1.9.2",
+        "Value": "1.10.0",
       },
       "Type": "AWS::SSM::Parameter",
     },
@@ -2396,7 +2386,7 @@ exports[`delegatedAdminStack Construct(SecurityStack):  Snapshot Test 1`] = `
       "Properties": {
         "Name": "/accelerator/AWSAccelerator-SecurityStack-111111111111-us-east-1/version",
         "Type": "String",
-        "Value": "1.9.2",
+        "Value": "1.10.0",
       },
       "Type": "AWS::SSM::Parameter",
     },

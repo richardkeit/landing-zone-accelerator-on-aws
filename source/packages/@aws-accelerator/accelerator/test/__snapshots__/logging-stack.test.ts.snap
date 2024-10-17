@@ -739,17 +739,7 @@ exports[`LoggingStack Construct(LoggingStack):  Snapshot Test 1`] = `
               },
               "Effect": "Allow",
               "Principal": {
-                "Service": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "logs.us-east-1.",
-                      {
-                        "Ref": "AWS::URLSuffix",
-                      },
-                    ],
-                  ],
-                },
+                "Service": "logs.us-east-1.amazonaws.com",
               },
               "Resource": "*",
               "Sid": "Allow Cloudwatch logs to use the encryption key",
@@ -3508,17 +3498,7 @@ exports[`LoggingStack Construct(LoggingStack):  Snapshot Test 1`] = `
               "Action": "sts:AssumeRole",
               "Effect": "Allow",
               "Principal": {
-                "Service": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "logs.us-east-1.",
-                      {
-                        "Ref": "AWS::URLSuffix",
-                      },
-                    ],
-                  ],
-                },
+                "Service": "logs.us-east-1.amazonaws.com",
               },
             },
           ],
@@ -3757,6 +3737,7 @@ exports[`LoggingStack Construct(LoggingStack):  Snapshot Test 1`] = `
         },
         "Environment": {
           "Variables": {
+            "AcceleratorPrefix": "AWSAccelerator",
             "LogDestination": "arn:aws:logs:us-east-1:333333333333:destination:AWSAcceleratorCloudWatchToS3",
             "LogExclusion": "{"account":"333333333333","region":"us-east-1","logGroupNames":["test1/*","/aws/lambda/AWSAccelerator-FirehoseRecordsProcessor"]}",
             "LogKmsKeyArn": {
@@ -4031,7 +4012,7 @@ exports[`LoggingStack Construct(LoggingStack):  Snapshot Test 1`] = `
       "Properties": {
         "Name": "/accelerator/AWSAccelerator-LoggingStack-333333333333-us-east-1/version",
         "Type": "String",
-        "Value": "1.9.2",
+        "Value": "1.10.0",
       },
       "Type": "AWS::SSM::Parameter",
     },
@@ -4063,17 +4044,7 @@ exports[`LoggingStack Construct(LoggingStack):  Snapshot Test 1`] = `
               "Action": "sts:AssumeRole",
               "Effect": "Allow",
               "Principal": {
-                "Service": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "logs.us-east-1.",
-                      {
-                        "Ref": "AWS::URLSuffix",
-                      },
-                    ],
-                  ],
-                },
+                "Service": "logs.us-east-1.amazonaws.com",
               },
             },
           ],
@@ -7916,17 +7887,7 @@ exports[`LoggingStack Construct(LoggingStack):  Snapshot Test 2`] = `
               "Action": "sts:AssumeRole",
               "Effect": "Allow",
               "Principal": {
-                "Service": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "logs.us-west-2.",
-                      {
-                        "Ref": "AWS::URLSuffix",
-                      },
-                    ],
-                  ],
-                },
+                "Service": "logs.us-west-2.amazonaws.com",
               },
             },
           ],
@@ -8159,6 +8120,7 @@ exports[`LoggingStack Construct(LoggingStack):  Snapshot Test 2`] = `
         },
         "Environment": {
           "Variables": {
+            "AcceleratorPrefix": "AWSAccelerator",
             "LogDestination": "arn:aws:logs:us-west-2:333333333333:destination:AWSAcceleratorCloudWatchToS3",
             "LogExclusion": "{"account":"333333333333","region":"us-west-2","logGroupNames":["test1/*","/aws/lambda/AWSAccelerator-FirehoseRecordsProcessor"]}",
             "LogRetention": "3653",
@@ -8434,7 +8396,7 @@ exports[`LoggingStack Construct(LoggingStack):  Snapshot Test 2`] = `
       "Properties": {
         "Name": "/accelerator/AWSAccelerator-LoggingStack-333333333333-us-west-2/version",
         "Type": "String",
-        "Value": "1.9.2",
+        "Value": "1.10.0",
       },
       "Type": "AWS::SSM::Parameter",
     },
@@ -8466,17 +8428,7 @@ exports[`LoggingStack Construct(LoggingStack):  Snapshot Test 2`] = `
               "Action": "sts:AssumeRole",
               "Effect": "Allow",
               "Principal": {
-                "Service": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "logs.us-west-2.",
-                      {
-                        "Ref": "AWS::URLSuffix",
-                      },
-                    ],
-                  ],
-                },
+                "Service": "logs.us-west-2.amazonaws.com",
               },
             },
           ],
@@ -9791,17 +9743,7 @@ exports[`LoggingStackOuTargets Construct(LoggingStackOuTargets):  Snapshot Test 
               },
               "Effect": "Allow",
               "Principal": {
-                "Service": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "logs.us-east-1.",
-                      {
-                        "Ref": "AWS::URLSuffix",
-                      },
-                    ],
-                  ],
-                },
+                "Service": "logs.us-east-1.amazonaws.com",
               },
               "Resource": "*",
               "Sid": "Allow Cloudwatch logs to use the encryption key",
@@ -12416,17 +12358,7 @@ exports[`LoggingStackOuTargets Construct(LoggingStackOuTargets):  Snapshot Test 
               "Action": "sts:AssumeRole",
               "Effect": "Allow",
               "Principal": {
-                "Service": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "logs.us-east-1.",
-                      {
-                        "Ref": "AWS::URLSuffix",
-                      },
-                    ],
-                  ],
-                },
+                "Service": "logs.us-east-1.amazonaws.com",
               },
             },
           ],
@@ -12664,6 +12596,7 @@ exports[`LoggingStackOuTargets Construct(LoggingStackOuTargets):  Snapshot Test 
         },
         "Environment": {
           "Variables": {
+            "AcceleratorPrefix": "AWSAccelerator",
             "LogDestination": "arn:aws:logs:us-east-1:333333333333:destination:AWSAcceleratorCloudWatchToS3",
             "LogExclusion": "{"account":"333333333333","region":"us-east-1","logGroupNames":["/aws/lambda/AWSAccelerator-FirehoseRecordsProcessor"]}",
             "LogKmsKeyArn": {
@@ -12938,7 +12871,7 @@ exports[`LoggingStackOuTargets Construct(LoggingStackOuTargets):  Snapshot Test 
       "Properties": {
         "Name": "/accelerator/AWSAccelerator-LoggingStack-333333333333-us-east-1/version",
         "Type": "String",
-        "Value": "1.9.2",
+        "Value": "1.10.0",
       },
       "Type": "AWS::SSM::Parameter",
     },
@@ -12970,17 +12903,7 @@ exports[`LoggingStackOuTargets Construct(LoggingStackOuTargets):  Snapshot Test 
               "Action": "sts:AssumeRole",
               "Effect": "Allow",
               "Principal": {
-                "Service": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "logs.us-east-1.",
-                      {
-                        "Ref": "AWS::URLSuffix",
-                      },
-                    ],
-                  ],
-                },
+                "Service": "logs.us-east-1.amazonaws.com",
               },
             },
           ],

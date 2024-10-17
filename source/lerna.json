@@ -11,7 +11,7 @@
     "packages/@aws-accelerator/installer",
     "packages/@aws-accelerator/govcloud-account-vending",
     "packages/@aws-accelerator/govcloud-account-vending/lib/lambdas/*",
-    "packages/@aws-accelerator/modules",
+    "packages/@aws-accelerator/lza-modules",
     "packages/@aws-accelerator/tester",
     "packages/@aws-accelerator/tester/lambdas",
     "packages/@aws-accelerator/tools",
@@ -19,6 +19,5 @@
     "packages/@aws-cdk-extensions/cdk-extensions",
     "packages/@aws-cdk-extensions/cdk-plugin-assume-role"
   ],
-  "npmClient": "yarn",
-  "useNx": true
+  "npmClient": "yarn"
 }
