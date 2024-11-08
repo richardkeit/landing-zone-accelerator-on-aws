@@ -1,0 +1,60 @@
+site_name: Versent Brownfields to GreenFields
+repo_name: Versent/aws-lza-brownfields-to-greenfields
+repo_url: https://github.com/Versent/aws-lza-brownfields-to-greenfields
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - content.code.select
+    - content.code.copy
+    - content.action.edit
+  palette:
+    primary: green
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - abbr
+  - attr_list
+  - pymdownx.snippets
+  - md_in_html
+  - admonition
+  - pymdownx.details
+
+nav:
+  - Getting started:
+    - getting_started/index.md
+  - Tooling:
+    - Cloudtrail: 
+        - getting_started/cloudtrail/index.md
+        - getting_started/cloudtrail/deployment.md
+        - getting_started/cloudtrail/dashboard.md
+    - Assessment of AWS Account: 
+        - getting_started/account-assessment/index.md
+        - getting_started/account-assessment/deployment.md
+  - Process:  
+    - process/index.md
+    - Common Steps:
+      - process/pre-req/index.md
+      - process/migrate-account/index.md
+    - Source Environment: 
+      - Standalone - No AWS Organisation:
+        - process/standalone-no-org/index.md
+        - process/standalone-no-org/steps.md
+
+  - Design Patterns:
+    - design-patterns.md
+  - Changelog:
+    - changelog/index.md
+
+  - Glossary: glossary/index.md
