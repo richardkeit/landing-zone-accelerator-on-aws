@@ -1689,6 +1689,7 @@ vpcs:
         private: true
     routeTables:
       - name: Network-Inspection-A
+        enableRoutePropagation: true
         routes:
           - name: TgwRoute
             destination: 0.0.0.0/0
@@ -1701,6 +1702,7 @@ vpcs:
             type: gatewayEndpoint
             target: dynamodb
       - name: Network-Inspection-B
+        enableRoutePropagation: true
         routes:
           - name: TgwRoute
             destination: 0.0.0.0/0

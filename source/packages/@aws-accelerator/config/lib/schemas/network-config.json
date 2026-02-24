@@ -3054,6 +3054,10 @@
       "additionalProperties": false,
       "description": "Use this configuration to define custom route tables for your VPC.\nRoute tables contain a set of rules, called routes, to determine where network traffic from a subnet or gateway is directed.",
       "properties": {
+        "enableRoutePropagation": {
+          "description": "(OPTIONAL) Enable VPN Gateway route propagation for this route table.",
+          "type": "boolean"
+        },
         "gatewayAssociation": {
           "$ref": "#/definitions/GatewayRouteTableType",
           "description": "Designate a gateway to associate this route table with."

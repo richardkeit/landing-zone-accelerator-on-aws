@@ -25,6 +25,7 @@ import {
   NfwFirewallConfig,
   PrefixListSourceConfig,
   ResolverRuleConfig,
+  RouteTableConfig,
   RouteTableEntryConfig,
   SecurityGroupConfig,
   SecurityGroupRuleConfig,
@@ -235,6 +236,10 @@ export class VpcValidator {
     this.validateRouteTableNames(vpcItem, helpers, errors);
     // Validate route entries
     this.validateRouteTableEntries(values, vpcItem, helpers, errors);
+    // Validate route propagation for each route table
+    vpcItem.routeTables?.forEach(routeTable => {
+      this.validateRoutePropagation(routeTable, vpcItem, errors);
+    });
   }
 
   /**
@@ -421,6 +426,24 @@ export class VpcValidator {
     if (!vpcItem.virtualPrivateGateway) {
       errors.push(
         `[Route table ${routeTableName} for VPC ${vpcItem.name}]: route entry ${routeTableEntryItem.name} is targeting an VGW, but no VGW is attached to the VPC`,
+      );
+    }
+  }
+
+  /**
+   * Validate enableRoutePropagation requires virtualPrivateGateway to be defined on the VPC
+   * @param routeTableItem
+   * @param vpcItem
+   * @param errors
+   */
+  private validateRoutePropagation(
+    routeTableItem: RouteTableConfig,
+    vpcItem: VpcConfig | VpcTemplatesConfig,
+    errors: string[],
+  ) {
+    if (routeTableItem.enableRoutePropagation && !vpcItem.virtualPrivateGateway) {
+      errors.push(
+        `[Route table ${routeTableItem.name} for VPC ${vpcItem.name}]: enableRoutePropagation is set to true, but no virtualPrivateGateway is defined for the VPC`,
       );
     }
   }

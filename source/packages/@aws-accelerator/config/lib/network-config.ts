@@ -192,6 +192,7 @@ export class RouteTableConfig implements i.IRouteTableConfig {
   readonly gatewayAssociation: i.GatewayRouteTableType | undefined = undefined;
   readonly routes: RouteTableEntryConfig[] | undefined = undefined;
   readonly tags: t.Tag[] | undefined = undefined;
+  readonly enableRoutePropagation: boolean | undefined = undefined;
 }
 
 export class SubnetPrivateDnsConfig implements i.ISubnetPrivateDnsConfig {

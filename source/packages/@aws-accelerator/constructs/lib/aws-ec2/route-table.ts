@@ -294,6 +294,7 @@ export abstract class RouteTableBase extends cdk.Resource implements IRouteTable
     // the network (vpc)
     // To avoid explicit dependency setting, create addVirtualPrivateGatewayRoute in VPC similar to how CDK implements
     this.vpc.addVirtualPrivateGatewayDependent(route);
+
     return route;
   }
 

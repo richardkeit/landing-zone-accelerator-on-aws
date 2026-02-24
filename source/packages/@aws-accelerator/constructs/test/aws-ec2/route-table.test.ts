@@ -88,6 +88,7 @@ rt.addEgressOnlyIgwRoute('testEigwRoute3', undefined, undefined, '::1', key, 10)
 rt.addVirtualPrivateGatewayRoute('testVgwRoute', '10.0.30./24', undefined, undefined, key, 10);
 rt.addVirtualPrivateGatewayRoute('testVgw2Route', undefined, 'pl-1234', undefined, key, 10);
 rt.addVirtualPrivateGatewayRoute('testVgw3Route', undefined, undefined, '::1', key, 10);
+rt.addVirtualPrivateGatewayRoute('testVgw4RouteWithPropagation', '10.0.40.0/24', undefined, undefined, key, 10, true);
 rt.addGatewayAssociation('internetGateway', { test: '123' });
 rt.addGatewayAssociation('virtualPrivateGateway', { test: '234' });
 /**

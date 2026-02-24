@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Added
+- feat(networking): added support for VPN route propagation on route table
+
 ### Changed
 
 ## [1.15.1] - 

@@ -59,6 +59,11 @@ export class VpcRouteTablesBaseStack extends AcceleratorStack {
     this.createRouteTables();
 
     //
+    // Create VPN Gateway route propagation
+    //
+    this.createRoutePropagation();
+
+    //
     // Create SSM Parameters
     //
     this.createSsmParameters();
@@ -135,6 +140,58 @@ export class VpcRouteTablesBaseStack extends AcceleratorStack {
 
       this.manageGateWayAssociation(routeTableItem, routeTableId, routeTableDetails);
     }
+  }
+
+  /**
+   * Function to get route table IDs that have route propagation enabled
+   * @returns Set of route table IDs with propagation enabled
+   */
+  private getRoutePropagationRouteTableIds(): string[] {
+    const routeTableIds = new Set<string>();
+
+    for (const routeTableItem of this.vpcDetails.routeTables ?? []) {
+      if (routeTableItem.enableRoutePropagation) {
+        const routeTableId = cdk.aws_ssm.StringParameter.valueForStringParameter(
+          this,
+          this.getSsmPath(SsmResourceType.ROUTE_TABLE, [this.vpcDetails.name, routeTableItem.name]),
+        );
+        routeTableIds.add(routeTableId);
+      }
+    }
+
+    return [...routeTableIds];
+  }
+
+  /**
+   * Function to create VPN Gateway route propagation for all enabled route tables
+   */
+  private createRoutePropagation(): void {
+    const routeTableIds = this.getRoutePropagationRouteTableIds();
+
+    if (routeTableIds.length === 0) {
+      return;
+    }
+
+    if (!this.vpcDetails.virtualPrivateGateway) {
+      this.logger.warn(
+        `Route tables have enableRoutePropagation set to true, but no VPN Gateway is defined for VPC ${this.vpcDetails.name}. Skipping route propagation.`,
+      );
+      return;
+    }
+
+    this.logger.info(
+      `Creating VPN Gateway route propagation for ${routeTableIds.length} route table(s) in VPC ${this.vpcDetails.name}`,
+    );
+
+    const vpnGatewayId = cdk.aws_ssm.StringParameter.valueForStringParameter(
+      this,
+      this.getSsmPath(SsmResourceType.VPN_GW, [this.vpcDetails.name]),
+    );
+
+    new cdk.aws_ec2.CfnVPNGatewayRoutePropagation(this, `RoutePropagation`, {
+      routeTableIds: Array.from(routeTableIds),
+      vpnGatewayId: vpnGatewayId,
+    });
   }
 
   /**

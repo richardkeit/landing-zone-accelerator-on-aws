@@ -211,7 +211,6 @@ export class VpcRouteEntriesBaseStack extends AcceleratorStack {
                 this,
                 this.getSsmPath(SsmResourceType.VPN_GW, [this.vpcDetails.name]),
               );
-
               this.addVirtualPrivateGatewayRoute(routeProps, metadata);
               break;
             case 'localGateway':

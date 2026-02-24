@@ -355,6 +355,21 @@ exports[`RouteTable > Construct(RouteTable):  Snapshot Test 1`] = `
       },
       "Type": "AWS::EC2::Route",
     },
+    "RouteTabletestVgw4RouteWithPropagation32F9938F": {
+      "DependsOn": [
+        "TestVpcVirtualPrivateGatewayAttachment5D655F8D",
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "10.0.40.0/24",
+        "GatewayId": {
+          "Ref": "TestVpcVirtualPrivateGateway56B5C340",
+        },
+        "RouteTableId": {
+          "Ref": "RouteTable82FB8FA6",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
     "RouteTabletestVgwRoute717D63D3": {
       "DependsOn": [
         "TestVpcVirtualPrivateGatewayAttachment5D655F8D",

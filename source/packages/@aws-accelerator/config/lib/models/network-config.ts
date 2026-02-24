@@ -1492,6 +1492,18 @@ export interface IRouteTableConfig {
    * (OPTIONAL) An array of tag objects for the VPC route table.
    */
   readonly tags?: t.ITag[];
+  /**
+   * (OPTIONAL) Enable VPN Gateway route propagation for this route table.
+   *
+   * @remarks
+   * When set to `true`, routes learned via BGP from the VPN Gateway will be automatically
+   * propagated to this route table. This requires a Virtual Private Gateway to be defined for the VPC.
+   *
+   * **Note:** This feature requires v2 stacks to be enabled in your configuration.
+   *
+   * @see {@link https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2.CfnVPNGatewayRoutePropagation.html | CfnVPNGatewayRoutePropagation}
+   */
+  readonly enableRoutePropagation?: boolean;
 }
 
 /**
