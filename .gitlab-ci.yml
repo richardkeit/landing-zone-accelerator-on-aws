@@ -126,6 +126,7 @@ include:
 stages:
   - pipeline
   - mirror
+  - security
 
 accelerator:scan-sensitive-content:
   stage: pipeline
@@ -147,6 +148,27 @@ accelerator:scan-sensitive-content:
       when: never
     - when: always
 
+accelerator:daily-vulnerability-scan:
+  stage: security
+  tags:
+    - arch:amd64
+    - size:large
+  script:
+    - chmod +x .gitlab/scripts/vulnerability-scan.sh
+    - chmod +x .gitlab/scripts/issue-manager.sh
+    - ./.gitlab/scripts/vulnerability-scan.sh
+    - ./.gitlab/scripts/issue-manager.sh
+  artifacts:
+    name: vulnerability-scan-results
+    when: always
+    paths:
+      - software-dependency-findings.json
+      - filtered-findings.json
+    expire_in: 30 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_PIPELINE_SCHEDULE_DESCRIPTION == "Daily Vulnerability Scan" && $CI_COMMIT_BRANCH == "integ"
+      when: always
+    - when: never
 accelerator:build:
   stage: pipeline
   tags:
