@@ -210,10 +210,44 @@
       ],
       "type": "object"
     },
+    "IAssumeRoleConditionConfig": {
+      "additionalProperties": false,
+      "description": "Defines an IAM Condition entry applied to a specific assumedBy principal in an IAM role trust policy statement.",
+      "properties": {
+        "key": {
+          "$ref": "#/definitions/NonEmptyString",
+          "description": "The IAM condition key (e.g., sts:ExternalId, aws:PrincipalArn)."
+        },
+        "type": {
+          "$ref": "#/definitions/NonEmptyString",
+          "description": "The IAM condition operator (e.g., StringEquals, StringLike, ArnLike, IpAddress)."
+        },
+        "values": {
+          "description": "One or more values for the condition key.",
+          "items": {
+            "$ref": "#/definitions/NonEmptyString"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "key",
+        "values"
+      ],
+      "type": "object"
+    },
     "IAssumedByConfig": {
       "additionalProperties": false,
       "description": "Defines the trust relationship for an IAM role by specifying which principals (entities)\ncan assume the role. The trust relationship is a key component of IAM roles that determines\nwho or what can use the role to access AWS resources.\n\nThis configuration creates the trust policy (assume role policy) that gets attached to the\nIAM role, allowing the specified principals to call the AWS Security Token Service (STS)\nAssumeRole API operation.",
       "properties": {
+        "conditions": {
+          "description": "Optional conditions applied to this principal in the role trust policy.",
+          "items": {
+            "$ref": "#/definitions/IAssumeRoleConditionConfig"
+          },
+          "type": "array"
+        },
         "principal": {
           "$ref": "#/definitions/NonEmptyString",
           "description": "The principal identifier that can assume this role. The format depends on the type specified."

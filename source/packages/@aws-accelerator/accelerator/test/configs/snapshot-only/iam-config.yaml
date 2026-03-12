@@ -40,6 +40,15 @@ roleSets:
           awsManaged:
             - service-role/AWSBackupServiceRolePolicyForBackup
             - service-role/AWSBackupServiceRolePolicyForRestores
+      - name: LzaAssumeCondTestRole
+        assumedBy:
+          - type: account
+            principal: "222222222222"
+            conditions:
+              - type: StringEquals
+                key: sts:ExternalId
+                values:
+                  - "my-test-external-id"
   - deploymentTargets:
       organizationalUnits:
         - Root

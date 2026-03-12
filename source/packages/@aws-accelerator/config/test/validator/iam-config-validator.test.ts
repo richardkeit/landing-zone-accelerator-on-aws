@@ -174,4 +174,109 @@ describe('IamConfigValidator', () => {
       expect(errors).toHaveLength(0);
     });
   });
+
+  describe('validateAssumedByConditionsForIamRoles', () => {
+    test('returns an error when duplicate operator+key condition entries exist for a single assumedBy principal', () => {
+      const iamConfig = {
+        roleSets: [
+          {
+            deploymentTargets: {
+              accounts: ['Management'],
+              organizationalUnits: [],
+              excludedAccounts: [],
+              excludedRegions: [],
+            },
+            roles: [
+              {
+                name: 'TestRole-DuplicateConditions',
+                assumedBy: [
+                  {
+                    type: 'account',
+                    principal: '111111111111',
+                    conditions: [
+                      { type: 'StringEquals', key: 'sts:ExternalId', values: ['id-1'] },
+                      { type: 'StringEquals', key: 'sts:ExternalId', values: ['id-2'] }, // duplicate type+key
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const validator = createValidatorWithConfig(iamConfig);
+      const errors = validator['validateAssumedByConditionsForIamRoles']();
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toContain('Duplicate AssumedBy condition');
+    });
+
+    test('returns an error when a condition has an empty values array', () => {
+      const iamConfig = {
+        roleSets: [
+          {
+            deploymentTargets: {
+              accounts: ['Management'],
+              organizationalUnits: [],
+              excludedAccounts: [],
+              excludedRegions: [],
+            },
+            roles: [
+              {
+                name: 'TestRole-EmptyValues',
+                assumedBy: [
+                  {
+                    type: 'account',
+                    principal: '111111111111',
+                    conditions: [{ type: 'StringEquals', key: 'aws:PrincipalArn', values: [] }], // invalid
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const validator = createValidatorWithConfig(iamConfig);
+      const errors = validator['validateAssumedByConditionsForIamRoles']();
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toContain('must include at least one value');
+    });
+
+    test('returns an error when sts:ExternalId is used for a non-account/non-principalArn assumedBy type', () => {
+      const iamConfig = {
+        roleSets: [
+          {
+            deploymentTargets: {
+              accounts: ['Management'],
+              organizationalUnits: [],
+              excludedAccounts: [],
+              excludedRegions: [],
+            },
+            roles: [
+              {
+                name: 'TestRole-ExternalIdWrongType',
+                assumedBy: [
+                  {
+                    type: 'service',
+                    principal: 'ec2.amazonaws.com',
+                    conditions: [{ type: 'StringEquals', key: 'sts:ExternalId', values: ['ext-123'] }], // invalid for service principal
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const validator = createValidatorWithConfig(iamConfig);
+      const errors = validator['validateAssumedByConditionsForIamRoles']();
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toContain('sts:ExternalId');
+      expect(errors[0]).toContain('only supported');
+    });
+  });
 });

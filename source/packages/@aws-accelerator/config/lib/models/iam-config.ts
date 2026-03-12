@@ -780,6 +780,36 @@ export interface IAssumedByConfig {
    *
    */
   readonly principal?: t.NonEmptyString;
+
+  /**
+   * Optional conditions applied to this principal in the role trust policy.
+   *
+   * @remarks
+   * Each entry becomes part of the IAM trust policy statement's `Condition` block
+   * for this principal (e.g., enforce sts:ExternalId, aws:PrincipalArn patterns, IP ranges).
+   */
+  readonly conditions?: IAssumeRoleConditionConfig[];
+}
+
+/**
+ * Defines an IAM Condition entry applied to a specific assumedBy principal
+ * in an IAM role trust policy statement.
+ */
+export interface IAssumeRoleConditionConfig {
+  /**
+   * The IAM condition operator (e.g., StringEquals, StringLike, ArnLike, IpAddress).
+   */
+  readonly type: t.NonEmptyString;
+
+  /**
+   * The IAM condition key (e.g., sts:ExternalId, aws:PrincipalArn).
+   */
+  readonly key: t.NonEmptyString;
+
+  /**
+   * One or more values for the condition key.
+   */
+  readonly values: t.NonEmptyString[];
 }
 
 /**

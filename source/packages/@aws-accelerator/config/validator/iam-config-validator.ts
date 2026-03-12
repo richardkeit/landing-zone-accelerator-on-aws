@@ -833,6 +833,56 @@ export class IamConfigValidator {
   }
 
   /**
+   * Validate assumedBy conditions for IAM role trust policies.
+   *
+   * This validation is semantic (beyond JSON schema) and ensures:
+   * - Duplicate condition operator+key pairs are not defined for the same assumedBy principal
+   * - Each condition entry contains at least one value
+   * - sts:ExternalId is only used with principals that support external IDs (account / principalArn)
+   *
+   * @returns Array of validation errors
+   */
+  private validateAssumedByConditionsForIamRoles(): string[] {
+    const errors: string[] = [];
+    for (const roleSetItem of this.iamConfig.roleSets ?? []) {
+      for (const roleItem of roleSetItem.roles ?? []) {
+        for (const assumedByItem of roleItem.assumedBy ?? []) {
+          const conditions = assumedByItem.conditions ?? [];
+          if (conditions.length === 0) {
+            continue;
+          }
+          // Detect duplicate operator+key pairs for the same principal
+          const conditionTypeKeys = conditions.map(c => `${c.type}::${c.key}`);
+          if (hasDuplicates(conditionTypeKeys)) {
+            errors.push(
+              `Duplicate AssumedBy condition operator + key for same principal defined [${conditionTypeKeys}].`,
+            );
+          }
+          for (const conditionItem of conditions) {
+            // Validate values exist (schema enforces string type but not array length)
+            if (!conditionItem.values || conditionItem.values.length === 0) {
+              errors.push(
+                `Role ${roleItem.name} assumedBy ${assumedByItem.type} principal ${assumedByItem.principal} condition ${conditionItem.type}:${conditionItem.key} must include at least one value`,
+              );
+            }
+
+            // sts:ExternalId is only valid for AssumeRole (not service principals) and is intended for AWS/account principals
+            if (
+              conditionItem.key === 'sts:ExternalId' &&
+              !(assumedByItem.type === 'account' || assumedByItem.type === 'principalArn')
+            ) {
+              errors.push(
+                `Role ${roleItem.name} assumedBy ${assumedByItem.type} principal ${assumedByItem.principal} uses sts:ExternalId condition but ExternalId is only supported for assumedBy types account or principalArn`,
+              );
+            }
+          }
+        }
+      }
+    }
+    return errors;
+  }
+
+  /**
    * Function to validate existence of Assignment deployment target OUs
    * Make sure deployment target OUs are part of Organization config file
    * @param ouIdNames - Array of valid OU names
@@ -967,6 +1017,9 @@ export class IamConfigValidator {
     // Validate IAM principal assignments for roles
     //
     errors.push(...this.validateAssignmentPrincipalsForIamRoles(accountNames));
+
+    // Validate assumedBy role conditions
+    errors.push(...this.validateAssumedByConditionsForIamRoles());
     return errors;
   }
 
