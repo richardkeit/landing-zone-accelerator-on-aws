@@ -17,7 +17,7 @@ import { Bucket, BucketEncryptionType } from '@aws-accelerator/constructs';
 import { GlobalConfig } from '@aws-accelerator/config';
 import { S3LifeCycleRule } from './bucket';
 import { BucketPrefixProps } from './bucket-prefix';
-import { AwsPrincipalAccessesType, BucketAccessType } from '@aws-accelerator/utils';
+import { AwsPrincipalAccessesType, BucketAccessType, isRegionalServicePrincipal } from '@aws-accelerator/utils';
 
 export interface CentralLogsBucketProps {
   s3BucketName: string;
@@ -172,6 +172,7 @@ export class CentralLogsBucket extends Construct {
     // Allow bucket encryption key for given aws principals
     awsPrincipalAccesses
       .filter(item => item.accessType !== BucketAccessType.NO_ACCESS)
+      .filter(item => !isRegionalServicePrincipal(item.principal))
       .forEach(item => {
         this.bucket.getS3Bucket().encryptionKey?.addToResourcePolicy(
           new cdk.aws_iam.PolicyStatement({
@@ -182,6 +183,30 @@ export class CentralLogsBucket extends Construct {
           }),
         );
       });
+
+    // Add condition-based KMS statements for regional service principals grouped by service
+    const regionalByService = new Map<string, string[]>();
+    awsPrincipalAccesses
+      .filter(item => item.accessType !== BucketAccessType.NO_ACCESS)
+      .filter(item => isRegionalServicePrincipal(item.principal))
+      .forEach(item => {
+        const serviceName = item.principal.split('.')[0];
+        const existing = regionalByService.get(serviceName) ?? [];
+        existing.push(item.principal);
+        regionalByService.set(serviceName, existing);
+      });
+
+    for (const [serviceName, principals] of regionalByService) {
+      this.bucket.getS3Bucket().encryptionKey?.addToResourcePolicy(
+        new cdk.aws_iam.PolicyStatement({
+          sid: `Allow ${serviceName} regional services to use the encryption key`,
+          principals: [new cdk.aws_iam.StarPrincipal()],
+          actions: ['kms:Encrypt', 'kms:Decrypt', 'kms:ReEncrypt*', 'kms:GenerateDataKey*', 'kms:DescribeKey'],
+          resources: ['*'],
+          conditions: { StringEquals: { 'aws:PrincipalServiceName': principals } },
+        }),
+      );
+    }
 
     props.awsPrincipalAccesses?.forEach(item => {
       if (item.name === 'SessionManager') {

@@ -38,6 +38,7 @@ const regionsInfo: Record<string, RegionInfo> = {
   'ap-southeast-3': { azId: 'apse3-az', elbAccount: '589379963580', optIn: true },
   'ap-southeast-4': { azId: 'apse4-az', elbAccount: undefined, optIn: true },
   'ap-southeast-5': { azId: 'apse5-az', elbAccount: undefined, optIn: true },
+  'ap-southeast-6': { azId: 'apse6-az', elbAccount: undefined, optIn: true },
   'ap-southeast-7': { azId: 'apse7-az', elbAccount: undefined, optIn: true },
   'ca-central-1': { azId: 'cac1-az', elbAccount: '985666609251', optIn: false },
   'ca-west-1': { azId: 'caw1-az', elbAccount: undefined, optIn: true },
@@ -52,6 +53,7 @@ const regionsInfo: Record<string, RegionInfo> = {
   'eu-west-2': { azId: 'euw2-az', elbAccount: '652711504416', optIn: false },
   'eu-west-3': { azId: 'euw3-az', elbAccount: '009996457667', optIn: false },
   'eu-isoe-west-1': { azId: undefined, elbAccount: undefined, optIn: false },
+  'eusc-de-east-1': { azId: undefined, elbAccount: undefined, optIn: false },
   'il-central-1': { azId: 'ilc1-az', elbAccount: undefined, optIn: true },
   'me-central-1': { azId: 'mec1-az', elbAccount: undefined, optIn: true },
   'me-south-1': { azId: 'mes1-az', elbAccount: '076674570225', optIn: true },
@@ -83,6 +85,9 @@ export const OptInRegions = Object.entries(regionsInfo)
   .map(([region]) => region);
 
 export const Regions = Object.keys(regionsInfo);
+export function isRegionalServicePrincipal(principal: string): boolean {
+  return OptInRegions.some(region => principal.includes(`.${region}.amazonaws.com`));
+}
 
 export function getAvailabilityZoneMap(region: string) {
   const availabilityZoneIdMap = new Map<string, string>(

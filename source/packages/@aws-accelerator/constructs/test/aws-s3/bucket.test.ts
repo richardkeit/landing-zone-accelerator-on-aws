@@ -316,5 +316,80 @@ describe('Bucket', () => {
     });
   });
 
+  it('test regional service principals use per-service consolidated condition-based policy', () => {
+    const regionalStack = new cdk.Stack();
+    new Bucket(regionalStack, 'BucketRegionalCondition', {
+      encryptionType: BucketEncryptionType.SSE_KMS,
+      awsPrincipalAccesses: [
+        {
+          name: 'Macie',
+          principal: 'macie.ap-southeast-4.amazonaws.com',
+          accessType: BucketAccessType.READWRITE,
+        },
+        {
+          name: 'Guardduty',
+          principal: 'guardduty.ap-southeast-4.amazonaws.com',
+          accessType: BucketAccessType.READWRITE,
+        },
+      ],
+      s3BucketName: 'test-regional-condition',
+      serverAccessLogsBucketName: 'test-access-logs',
+    });
+    const template = cdk.assertions.Template.fromStack(regionalStack);
+    // Separate consolidated statement per service
+    template.hasResourceProperties('AWS::KMS::Key', {
+      KeyPolicy: {
+        Statement: cdk.assertions.Match.arrayWith([
+          cdk.assertions.Match.objectLike({
+            Sid: 'Allow macie regional services to use the encryption key',
+            Principal: '*',
+            Condition: { StringEquals: { 'aws:PrincipalServiceName': ['macie.ap-southeast-4.amazonaws.com'] } },
+          }),
+          cdk.assertions.Match.objectLike({
+            Sid: 'Allow guardduty regional services to use the encryption key',
+            Principal: '*',
+            Condition: { StringEquals: { 'aws:PrincipalServiceName': ['guardduty.ap-southeast-4.amazonaws.com'] } },
+          }),
+        ]),
+      },
+    });
+    // Should NOT have explicit ServicePrincipal for regional principals
+    template.hasResourceProperties('AWS::KMS::Key', {
+      KeyPolicy: {
+        Statement: cdk.assertions.Match.not(
+          cdk.assertions.Match.arrayWith([
+            cdk.assertions.Match.objectLike({
+              Principal: { Service: 'macie.ap-southeast-4.amazonaws.com' },
+            }),
+          ]),
+        ),
+      },
+    });
+  });
+
+  it('test non-regional principal gets KMS policy via CDK grants', () => {
+    const nonRegionalStack = new cdk.Stack();
+    new Bucket(nonRegionalStack, 'BucketNonRegional', {
+      encryptionType: BucketEncryptionType.SSE_KMS,
+      awsPrincipalAccesses: [
+        { name: 'Macie', principal: 'macie.amazonaws.com', accessType: BucketAccessType.READONLY },
+      ],
+      s3BucketName: 'test-non-regional',
+      serverAccessLogsBucketName: 'test-access-logs',
+    });
+    const template = cdk.assertions.Template.fromStack(nonRegionalStack);
+    // Non-regional principals use CDK grant methods which add KMS statements
+    template.hasResourceProperties('AWS::KMS::Key', {
+      KeyPolicy: {
+        Statement: cdk.assertions.Match.arrayWith([
+          cdk.assertions.Match.objectLike({
+            Action: ['kms:Decrypt', 'kms:DescribeKey'],
+            Principal: { Service: 'macie.amazonaws.com' },
+          }),
+        ]),
+      },
+    });
+  });
+
   snapShotTest(testNamePrefix, stack);
 });

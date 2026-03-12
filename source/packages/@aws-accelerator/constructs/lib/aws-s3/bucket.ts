@@ -20,7 +20,7 @@ import { BucketReplication, BucketReplicationProps } from './bucket-replication'
 import { BucketPrefix, BucketPrefixProps } from './bucket-prefix';
 import { Construct } from 'constructs';
 import { pascalCase } from 'change-case';
-import { BucketAccessType } from '@aws-accelerator/utils';
+import { BucketAccessType, isRegionalServicePrincipal } from '@aws-accelerator/utils';
 
 export enum BucketEncryptionType {
   SSE_S3 = 'sse-s3',
@@ -212,24 +212,35 @@ export class Bucket extends Construct {
     );
 
     // Add access policy for input AWS principal to the bucket
+    const regionalPrincipalsByService = new Map<string, string[]>();
     props.awsPrincipalAccesses?.forEach(input => {
+      if (isRegionalServicePrincipal(input.principal)) {
+        const serviceName = input.principal.split('.')[0];
+        const existing = regionalPrincipalsByService.get(serviceName) ?? [];
+        existing.push(input.principal);
+        regionalPrincipalsByService.set(serviceName, existing);
+        return;
+      }
       switch (input.accessType) {
         case BucketAccessType.READONLY:
           this.bucket.grantRead(new iam.ServicePrincipal(input.principal));
-          cdk.Tags.of(this.bucket).add(`aws-cdk:auto-${input.name.toLowerCase()}-access-bucket`, 'true');
           break;
         case BucketAccessType.WRITEONLY:
           this.bucket.grantWrite(new iam.ServicePrincipal(input.principal));
-          cdk.Tags.of(this.bucket).add(`aws-cdk:auto-${input.name.toLowerCase()}-access-bucket`, 'true');
           break;
         case BucketAccessType.READWRITE:
           this.bucket.grantReadWrite(new iam.ServicePrincipal(input.principal));
-          cdk.Tags.of(this.bucket).add(`aws-cdk:auto-${input.name.toLowerCase()}-access-bucket`, 'true');
           break;
         default:
           throw new Error(`Invalid Access Type ${input.accessType} for ${input.principal} principal.`);
       }
+      cdk.Tags.of(this.bucket).add(`aws-cdk:auto-${input.name.toLowerCase()}-access-bucket`, 'true');
     });
+
+    // Add consolidated condition-based policies grouped by service
+    for (const [serviceName, principals] of regionalPrincipalsByService) {
+      this.addConsolidatedRegionalAccess(serviceName, principals);
+    }
 
     // Configure replication
     if (props.replicationProps) {
@@ -323,6 +334,51 @@ export class Bucket extends Construct {
     }
     if (this.props.serverAccessLogsBucketName && this.props.serverAccessLogsBucket) {
       throw new Error('serverAccessLogsBucketName or serverAccessLogsBucket (only one property) should be defined.');
+    }
+  }
+
+  /**
+   * Add consolidated S3 bucket and KMS key policies for opt-in region service
+   * principals grouped by service. Uses a single statement per service with an
+   * array in the aws:PrincipalServiceName condition to avoid KMS key policy
+   * size limits. KMS and S3 APIs reject regional service principals when used
+   * directly in the Principal element, so condition-based policies are used.
+   */
+  private addConsolidatedRegionalAccess(serviceName: string, principals: string[]) {
+    const condition = { StringEquals: { 'aws:PrincipalServiceName': principals } };
+    const s3Actions = [
+      's3:GetObject*',
+      's3:GetBucket*',
+      's3:List*',
+      's3:DeleteObject*',
+      's3:PutObject',
+      's3:PutObjectLegalHold',
+      's3:PutObjectRetention',
+      's3:PutObjectTagging',
+      's3:PutObjectVersionTagging',
+      's3:Abort*',
+    ];
+
+    this.bucket.addToResourcePolicy(
+      new iam.PolicyStatement({
+        sid: `Allow ${serviceName} regional services access`,
+        actions: s3Actions,
+        principals: [new iam.StarPrincipal()],
+        resources: [this.bucket.bucketArn, this.bucket.arnForObjects('*')],
+        conditions: condition,
+      }),
+    );
+
+    if (this.cmk) {
+      this.cmk.addToResourcePolicy(
+        new iam.PolicyStatement({
+          sid: `Allow ${serviceName} regional services to use the encryption key`,
+          actions: ['kms:Encrypt', 'kms:Decrypt', 'kms:ReEncrypt*', 'kms:GenerateDataKey*', 'kms:DescribeKey'],
+          principals: [new iam.StarPrincipal()],
+          resources: ['*'],
+          conditions: condition,
+        }),
+      );
     }
   }
 

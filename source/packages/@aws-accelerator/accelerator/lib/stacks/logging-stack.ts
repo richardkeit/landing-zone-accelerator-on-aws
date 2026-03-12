@@ -59,6 +59,7 @@ import {
   BucketAccessType,
   OptInRegions,
   PrincipalOrgIdConditionType,
+  isRegionalServicePrincipal,
 } from '@aws-accelerator/utils';
 
 import { StreamMode } from 'aws-cdk-lib/aws-kinesis';
@@ -1833,6 +1834,7 @@ export class LoggingStack extends AcceleratorStack {
         // Allow bucket encryption key for given aws principals
         awsPrincipalAccesses
           .filter(item => item.accessType !== BucketAccessType.NO_ACCESS)
+          .filter(item => !isRegionalServicePrincipal(item.principal))
           .forEach(item => {
             policyStatements.push(
               new cdk.aws_iam.PolicyStatement({
@@ -1843,6 +1845,30 @@ export class LoggingStack extends AcceleratorStack {
               }),
             );
           });
+
+        // Add condition-based KMS statements for regional service principals grouped by service
+        const regionalByService = new Map<string, string[]>();
+        awsPrincipalAccesses
+          .filter(item => item.accessType !== BucketAccessType.NO_ACCESS)
+          .filter(item => isRegionalServicePrincipal(item.principal))
+          .forEach(item => {
+            const serviceName = item.principal.split('.')[0];
+            const existing = regionalByService.get(serviceName) ?? [];
+            existing.push(item.principal);
+            regionalByService.set(serviceName, existing);
+          });
+
+        for (const [serviceName, principals] of regionalByService) {
+          policyStatements.push(
+            new cdk.aws_iam.PolicyStatement({
+              sid: `Allow ${serviceName} regional services to use the encryption key`,
+              principals: [new cdk.aws_iam.StarPrincipal()],
+              actions: ['kms:Encrypt', 'kms:Decrypt', 'kms:ReEncrypt*', 'kms:GenerateDataKey*', 'kms:DescribeKey'],
+              resources: ['*'],
+              conditions: { StringEquals: { 'aws:PrincipalServiceName': principals } },
+            }),
+          );
+        }
       }
     }
 
