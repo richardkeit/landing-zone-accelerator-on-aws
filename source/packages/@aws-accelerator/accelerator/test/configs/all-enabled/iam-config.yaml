@@ -46,7 +46,7 @@ roleSets:
       - name: LzaAssumeCondTestRole
         assumedBy:
           - type: account
-            principal: "222222222222"
+            principal: "{{account Audit}}"
             conditions:
               - type: StringEquals
                 key: sts:ExternalId
