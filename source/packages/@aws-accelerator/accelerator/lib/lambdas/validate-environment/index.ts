@@ -38,6 +38,7 @@ import {
 import { throttlingBackOff } from '@aws-accelerator/utils/lib/throttle';
 import { CloudFormationCustomResourceEvent } from '@aws-accelerator/utils/lib/common-types';
 import { getGlobalRegion, setRetryStrategy } from '@aws-accelerator/utils/lib/common-functions';
+import { IIpamAllocationConfig } from '@aws-accelerator/config';
 
 type scpTargetType = 'ou' | 'account';
 
@@ -46,6 +47,12 @@ type serviceControlPolicyType = {
   targetType: scpTargetType;
   strategy: string;
   targets: { name: string; id: string }[];
+};
+type IpamAllocationConfig = {
+  vpcName: string;
+  ipamAllocations: IIpamAllocationConfig[];
+  logicalId: string;
+  parameterName: string;
 };
 
 const marshallOptions = {
@@ -125,6 +132,7 @@ export async function handler(event: CloudFormationCustomResourceEvent): Promise
   const maxOuAttachedScps = event.ResourceProperties['maxOuAttachedScps'] ?? 5;
   const maxAccountAttachedScps = event.ResourceProperties['maxAccountAttachedScps'] ?? 5;
   const vpcCidrs = event.ResourceProperties['vpcCidrs'];
+  const vpcIpamAllocations = event.ResourceProperties['vpcIpamAllocations'];
   const transitGateways = event.ResourceProperties['transitGateways'];
   const solutionId = process.env['SOLUTION_ID'];
   const useV2StacksValue = event.ResourceProperties['useV2StacksValue'];
@@ -182,7 +190,15 @@ export async function handler(event: CloudFormationCustomResourceEvent): Promise
       } else {
         console.log('No vpcCidrs provided', vpcCidrs);
       }
-
+      const ipamStart = Date.now();
+      if (isIpamAllocationConfigArray(vpcIpamAllocations)) {
+        await validateIpamAllocationAppendOnly(vpcIpamAllocations, validationErrors);
+      } else {
+        console.log('No vpcIpamAllocations provided', vpcIpamAllocations);
+      }
+      console.log(
+        `validateIpamAllocationAppendOnly: vpcs=${vpcIpamAllocations.length}, elapsedMs=${Date.now() - ipamStart}`,
+      );
       const useV2StacksErrors = await validateUseV2StacksFlag(useV2StacksValue, v2StacksParamName);
       validationErrors.push(...useV2StacksErrors);
 
@@ -881,6 +897,28 @@ function isArrayOfType<TItem>(value: unknown, guard: (value: unknown) => value i
 }
 
 const isString = (value: unknown): value is string => typeof value === 'string';
+export function isIpamAllocationConfigArray(value: unknown): value is IpamAllocationConfig[] {
+  return isArrayOfType(value, isIpamAllocationConfig);
+}
+export function isIpamAllocationConfig(value: unknown): value is IpamAllocationConfig {
+  return (
+    typeof value === 'object' &&
+    typeof (value as IpamAllocationConfig).vpcName === 'string' &&
+    typeof (value as IpamAllocationConfig).logicalId === 'string' &&
+    typeof (value as IpamAllocationConfig).parameterName === 'string' &&
+    isArrayOfType((value as IpamAllocationConfig).ipamAllocations, isIpamAllocation)
+  );
+}
+
+export function isIpamAllocation(value: unknown): value is IIpamAllocationConfig {
+  return (
+    typeof value === 'object' &&
+    typeof (value as IIpamAllocationConfig).ipamPoolName === 'string' &&
+    (typeof (value as IIpamAllocationConfig).netmaskLength === 'number' ||
+      typeof (value as IIpamAllocationConfig).netmaskLength === 'string')
+  );
+}
+
 export function isCIDRConfigArray(value: unknown): value is CIDRConfig[] {
   return isArrayOfType(value, isCIDRConfig);
 }
@@ -903,6 +941,39 @@ async function validateCidrOrder(existingCidrs: CIDRConfig[], errors: string[]) 
     console.log(`CIDRS: ${deployedCidrs?.join(',') ?? '-'} -> ${config.cidrs.join(',')}`);
     if (!isCidrOrderValid(config.vpcName, deployedCidrs, currentCidrs)) {
       const message = `Configuration of VPC ${config.vpcName} changes the order of already deployed CIDRs. This will cause a recreation of said resources!`;
+      console.log(message);
+      errors.push(message);
+    }
+  }
+}
+
+async function validateIpamAllocationAppendOnly(existingIpamAllocations: IpamAllocationConfig[], errors: string[]) {
+  console.log('Validating IPAM allocation changes (append-only)', existingIpamAllocations);
+
+  for (const config of existingIpamAllocations) {
+    console.log(`Validating IPAM allocations for vpc ${config.vpcName}`);
+
+    const currentIpamAllocationsNormalised = ipamAllocationsToKeys(config.ipamAllocations);
+    const deployedIpamAllocationKeysNormalised = await getLastDeployedIpamAllocationsFor(config);
+
+    console.log(`IPAM_ALLOCATIONS: ${deployedIpamAllocationKeysNormalised?.join(',') ?? '-'} 
+    -> ${currentIpamAllocationsNormalised.join(',')}`);
+
+    if (
+      !isIpamAllocationsAppendOnlyValid(
+        config.vpcName,
+        deployedIpamAllocationKeysNormalised,
+        currentIpamAllocationsNormalised,
+      )
+    ) {
+      const message =
+        `Configuration of VPC ${config.vpcName} changes already deployed VPC IPAM allocations` +
+        `LZA supports only appending new allocations to the end of vpc.ipamAllocations. ` +
+        `Changing, removing, reordering, or inserting allocations can be destructive: it may require replacing the VPC ` +
+        `and/or it can change associated CIDR blocks, which can impact existing subnets and IP assignments. ` +
+        `To proceed safely, either append a new allocation, or recreate the VPC via the pipeline ` +
+        `(remove the VPC from the config and deploy to delete it, then add it back with the new allocations and deploy again), ` +
+        `or create a new VPC (new name) with the desired allocations and migrate workloads.`;
       console.log(message);
       errors.push(message);
     }
@@ -942,6 +1013,36 @@ export function isCidrOrderValid(vpcName: string, deployedCidrs: string[], toBeD
   return true;
 }
 
+export function isIpamAllocationsAppendOnlyValid(
+  vpcName: string,
+  deployedIpamAllocationsNormalised: string[],
+  toBeDeployedIpamAllocationsNormalised: string[],
+) {
+  if (!deployedIpamAllocationsNormalised?.length) {
+    console.log(`There is no information on former deployments of IPAM allocations for vpc ${vpcName}.`);
+    return true;
+  }
+
+  if (areArrayContentsEqual(toBeDeployedIpamAllocationsNormalised, deployedIpamAllocationsNormalised)) {
+    console.log('There is no change in the IPAM allocations configuration.');
+    return true;
+  }
+
+  // No deletions allowed
+  if (toBeDeployedIpamAllocationsNormalised.length < deployedIpamAllocationsNormalised.length) {
+    return false;
+  }
+
+  // deployed list must be an exact prefix of current list
+  for (let i = 0; i < deployedIpamAllocationsNormalised.length; i++) {
+    if (deployedIpamAllocationsNormalised[i] !== toBeDeployedIpamAllocationsNormalised[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 async function getLastDeployedCIDRsFor(config: CIDRConfig): Promise<string[]> {
   try {
     const cidrsString = await throttlingBackOff(() =>
@@ -957,6 +1058,21 @@ async function getLastDeployedCIDRsFor(config: CIDRConfig): Promise<string[]> {
     console.error('Unabled to load ssm parameter with deployed cidr config', error);
     return [];
   }
+}
+
+async function getLastDeployedIpamAllocationsFor(config: IpamAllocationConfig): Promise<string[]> {
+  try {
+    const resp = await throttlingBackOff(() => ssmClient.send(new GetParameterCommand({ Name: config.parameterName })));
+
+    return resp.Parameter?.Value?.split(',') ?? [];
+  } catch (error) {
+    console.error('Unabled to load ssm parameter with deployed IPAM allocation config', error);
+    return [];
+  }
+}
+
+function ipamAllocationsToKeys(ipamAllocation: IIpamAllocationConfig[]): string[] {
+  return ipamAllocation.map(allocation => `${allocation.ipamPoolName}|${allocation.netmaskLength}`);
 }
 
 type CIDRConfig = {

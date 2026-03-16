@@ -383,6 +383,14 @@ export class PrepareStack extends AcceleratorStack {
         parameterName: this.getSsmPath(SsmResourceType.VALIDATION_VPC_CIDRS, [vpc.account, vpc.name]),
         logicalId: pascalCase(`SsmParam${pascalCase(vpc.account)}Vpc${pascalCase(vpc.name)}DeployedCidrs`),
       }));
+    const vpcsIpamAllocations = this.props.networkConfig.vpcs
+      ?.filter(vpc => vpc.ipamAllocations?.length)
+      .map(vpc => ({
+        vpcName: `${vpc.account}/${vpc.name}`,
+        ipamAllocations: vpc.ipamAllocations || [],
+        parameterName: this.getSsmPath(SsmResourceType.VALIDATION_VPC_IPAM_ALLOCATIONS, [vpc.account, vpc.name]),
+        logicalId: pascalCase(`SsmParam${pascalCase(vpc.account)}Vpc${pascalCase(vpc.name)}DeployedIpamAllocations`),
+      }));
 
     // Define the Transit Gateways from the network-config to pass for validation
     const transitGateways = this.props.networkConfig.transitGateways
@@ -411,6 +419,7 @@ export class PrepareStack extends AcceleratorStack {
       prefixes: this.props.prefixes,
       vpcsCidrs,
       transitGateways,
+      vpcsIpamAllocations,
       useV2StacksValue: this.props.globalConfig.useV2Stacks ?? false,
       v2StacksParamName: this.getSsmPath(SsmResourceType.USE_V2_STACKS_FLAG, ['network-stacks']),
     });
@@ -421,6 +430,17 @@ export class PrepareStack extends AcceleratorStack {
       const parameter = new StringParameter(this, vpcCidrs.logicalId, {
         parameterName: vpcCidrs.parameterName,
         stringValue: vpcCidrs.cidrs.join(','),
+      });
+      parameter.node.addDependency(validation);
+    }
+    for (const vpcIpamAllocation of vpcsIpamAllocations) {
+      const ipamAllocationsNormalised = vpcIpamAllocation.ipamAllocations.map(
+        allocation => `${allocation.ipamPoolName}|${allocation.netmaskLength}`,
+      );
+
+      const parameter = new StringParameter(this, vpcIpamAllocation.logicalId, {
+        parameterName: vpcIpamAllocation.parameterName,
+        stringValue: ipamAllocationsNormalised.join(','),
       });
       parameter.node.addDependency(validation);
     }

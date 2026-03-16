@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(iam): add support for IAM role trust policy conditions in iam-config.yaml
 
 ### Fixed
+- fix(networking): add validation for modifying IPAM allocations at VPC level
 
 ### Changed
 

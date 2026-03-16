@@ -147,6 +147,13 @@ export enum SsmResourceType {
    */
   VALIDATION_VPC_CIDRS = '/validation/${0}/network/vpc/${1}/deployedCidrs',
   /**
+   * IPAM allocations that have been deployed in a VPC.
+   *
+   * `${0}` is replaced with the account name
+   * `${1}` is replaced with the vpc name
+   */
+  VALIDATION_VPC_IPAM_ALLOCATIONS = '/validation/${0}/network/vpc/${1}/deployedIpamAllocations',
+  /**
    * TGWs that have been deployed.
    *
    * `${0}` is replaced with the account name

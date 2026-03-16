@@ -2387,6 +2387,24 @@ exports[`PrepareStack > Construct(PrepareStack):  Snapshot Test 1`] = `
       },
       "Type": "AWS::SSM::Parameter",
     },
+    "SsmParamNetworkVpcNetworkEndpointsDeployedIpamAllocationsE689E2D0": {
+      "DependsOn": [
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRoleDefaultPolicyA669E020",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRole675155BD",
+        "ValidateEnvironmentConfigValidateEnvironmentFunction13F94F77",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRoleDefaultPolicy9ACA86A8",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRole09865D4C",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionLogGroup632317CC",
+        "ValidateEnvironmentConfigValidateEnvironmentResourceD10DC179",
+      ],
+      "Properties": {
+        "Name": "/accelerator/validation/Network/network/vpc/Network-Endpoints/deployedIpamAllocations",
+        "Type": "String",
+        "Value": "home-region-prod-pool|25,home-region-prod-pool|25,home-region-prod-pool|25,home-region-prod-pool|25",
+      },
+      "Type": "AWS::SSM::Parameter",
+    },
     "SsmParamNetworkVpcNetworkInspectionDeployedCidrs81BCF58C": {
       "DependsOn": [
         "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
@@ -2402,6 +2420,60 @@ exports[`PrepareStack > Construct(PrepareStack):  Snapshot Test 1`] = `
         "Name": "/accelerator/validation/Network/network/vpc/Network-Inspection/deployedCidrs",
         "Type": "String",
         "Value": "10.2.0.0/22,10.3.0.0/16",
+      },
+      "Type": "AWS::SSM::Parameter",
+    },
+    "SsmParamNetworkVpcNetworkIpamWestDeployedIpamAllocations95E2D3E8": {
+      "DependsOn": [
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRoleDefaultPolicyA669E020",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRole675155BD",
+        "ValidateEnvironmentConfigValidateEnvironmentFunction13F94F77",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRoleDefaultPolicy9ACA86A8",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRole09865D4C",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionLogGroup632317CC",
+        "ValidateEnvironmentConfigValidateEnvironmentResourceD10DC179",
+      ],
+      "Properties": {
+        "Name": "/accelerator/validation/Network/network/vpc/Network-Ipam-West/deployedIpamAllocations",
+        "Type": "String",
+        "Value": "west-region-pool|25",
+      },
+      "Type": "AWS::SSM::Parameter",
+    },
+    "SsmParamNetworkVpcNetworkNonTemplateIpamCentralDeployedIpamAllocationsE7CC2290": {
+      "DependsOn": [
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRoleDefaultPolicyA669E020",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRole675155BD",
+        "ValidateEnvironmentConfigValidateEnvironmentFunction13F94F77",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRoleDefaultPolicy9ACA86A8",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRole09865D4C",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionLogGroup632317CC",
+        "ValidateEnvironmentConfigValidateEnvironmentResourceD10DC179",
+      ],
+      "Properties": {
+        "Name": "/accelerator/validation/Network/network/vpc/Network-NonTemplate-Ipam-Central/deployedIpamAllocations",
+        "Type": "String",
+        "Value": "home-region-pool|24",
+      },
+      "Type": "AWS::SSM::Parameter",
+    },
+    "SsmParamNetworkVpcNetworkNonTemplateIpamWestDeployedIpamAllocationsA6D4470C": {
+      "DependsOn": [
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRoleDefaultPolicyA669E020",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRole675155BD",
+        "ValidateEnvironmentConfigValidateEnvironmentFunction13F94F77",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRoleDefaultPolicy9ACA86A8",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRole09865D4C",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionLogGroup632317CC",
+        "ValidateEnvironmentConfigValidateEnvironmentResourceD10DC179",
+      ],
+      "Properties": {
+        "Name": "/accelerator/validation/Network/network/vpc/Network-NonTemplate-Ipam-West/deployedIpamAllocations",
+        "Type": "String",
+        "Value": "west-region-pool|24",
       },
       "Type": "AWS::SSM::Parameter",
     },
@@ -2441,6 +2513,24 @@ exports[`PrepareStack > Construct(PrepareStack):  Snapshot Test 1`] = `
       },
       "Type": "AWS::SSM::Parameter",
     },
+    "SsmParamNetworkVpcNetworkSecondaryDeployedIpamAllocations2209AC9E": {
+      "DependsOn": [
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRoleDefaultPolicyA669E020",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRole675155BD",
+        "ValidateEnvironmentConfigValidateEnvironmentFunction13F94F77",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRoleDefaultPolicy9ACA86A8",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRole09865D4C",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionLogGroup632317CC",
+        "ValidateEnvironmentConfigValidateEnvironmentResourceD10DC179",
+      ],
+      "Properties": {
+        "Name": "/accelerator/validation/Network/network/vpc/Network-Secondary/deployedIpamAllocations",
+        "Type": "String",
+        "Value": "home-region-prod-pool|25",
+      },
+      "Type": "AWS::SSM::Parameter",
+    },
     "SsmParamSharedServicesVpcSharedServicesAppVpcDeployedCidrs7BF2BF03": {
       "DependsOn": [
         "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
@@ -2459,6 +2549,42 @@ exports[`PrepareStack > Construct(PrepareStack):  Snapshot Test 1`] = `
       },
       "Type": "AWS::SSM::Parameter",
     },
+    "SsmParamSharedServicesVpcSharedServicesIpamEastDeployedIpamAllocationsDF518371": {
+      "DependsOn": [
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRoleDefaultPolicyA669E020",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRole675155BD",
+        "ValidateEnvironmentConfigValidateEnvironmentFunction13F94F77",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRoleDefaultPolicy9ACA86A8",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRole09865D4C",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionLogGroup632317CC",
+        "ValidateEnvironmentConfigValidateEnvironmentResourceD10DC179",
+      ],
+      "Properties": {
+        "Name": "/accelerator/validation/SharedServices/network/vpc/SharedServices-Ipam-East/deployedIpamAllocations",
+        "Type": "String",
+        "Value": "home-region-pool|25",
+      },
+      "Type": "AWS::SSM::Parameter",
+    },
+    "SsmParamSharedServicesVpcSharedServicesIpamWestDeployedIpamAllocations41E52C9A": {
+      "DependsOn": [
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRoleDefaultPolicyA669E020",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRole675155BD",
+        "ValidateEnvironmentConfigValidateEnvironmentFunction13F94F77",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRoleDefaultPolicy9ACA86A8",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRole09865D4C",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionLogGroup632317CC",
+        "ValidateEnvironmentConfigValidateEnvironmentResourceD10DC179",
+      ],
+      "Properties": {
+        "Name": "/accelerator/validation/SharedServices/network/vpc/SharedServices-Ipam-West/deployedIpamAllocations",
+        "Type": "String",
+        "Value": "west-region-pool|25",
+      },
+      "Type": "AWS::SSM::Parameter",
+    },
     "SsmParamSharedServicesVpcSharedServicesMainDeployedCidrs0F5DC317": {
       "DependsOn": [
         "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
@@ -2474,6 +2600,60 @@ exports[`PrepareStack > Construct(PrepareStack):  Snapshot Test 1`] = `
         "Name": "/accelerator/validation/SharedServices/network/vpc/SharedServices-Main/deployedCidrs",
         "Type": "String",
         "Value": "10.4.0.0/16",
+      },
+      "Type": "AWS::SSM::Parameter",
+    },
+    "SsmParamSharedServicesVpcSharedServicesNonTemplateIpamCentral2DeployedIpamAllocations59416A1E": {
+      "DependsOn": [
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRoleDefaultPolicyA669E020",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRole675155BD",
+        "ValidateEnvironmentConfigValidateEnvironmentFunction13F94F77",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRoleDefaultPolicy9ACA86A8",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRole09865D4C",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionLogGroup632317CC",
+        "ValidateEnvironmentConfigValidateEnvironmentResourceD10DC179",
+      ],
+      "Properties": {
+        "Name": "/accelerator/validation/SharedServices/network/vpc/SharedServices-NonTemplate-Ipam-Central-2/deployedIpamAllocations",
+        "Type": "String",
+        "Value": "home-region-pool|24",
+      },
+      "Type": "AWS::SSM::Parameter",
+    },
+    "SsmParamSharedServicesVpcSharedServicesNonTemplateIpamCentralDeployedIpamAllocations43FDE137": {
+      "DependsOn": [
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRoleDefaultPolicyA669E020",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRole675155BD",
+        "ValidateEnvironmentConfigValidateEnvironmentFunction13F94F77",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRoleDefaultPolicy9ACA86A8",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRole09865D4C",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionLogGroup632317CC",
+        "ValidateEnvironmentConfigValidateEnvironmentResourceD10DC179",
+      ],
+      "Properties": {
+        "Name": "/accelerator/validation/SharedServices/network/vpc/SharedServices-NonTemplate-Ipam-Central/deployedIpamAllocations",
+        "Type": "String",
+        "Value": "home-region-pool|24",
+      },
+      "Type": "AWS::SSM::Parameter",
+    },
+    "SsmParamSharedServicesVpcSharedServicesNonTemplateIpamWestDeployedIpamAllocationsFE56D420": {
+      "DependsOn": [
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEvent4F574CF7",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRoleDefaultPolicyA669E020",
+        "ValidateEnvironmentConfigCustomValidateEnvironmentConfigurationframeworkonEventServiceRole675155BD",
+        "ValidateEnvironmentConfigValidateEnvironmentFunction13F94F77",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRoleDefaultPolicy9ACA86A8",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionServiceRole09865D4C",
+        "ValidateEnvironmentConfigValidateEnvironmentFunctionLogGroup632317CC",
+        "ValidateEnvironmentConfigValidateEnvironmentResourceD10DC179",
+      ],
+      "Properties": {
+        "Name": "/accelerator/validation/SharedServices/network/vpc/SharedServices-NonTemplate-Ipam-West/deployedIpamAllocations",
+        "Type": "String",
+        "Value": "west-region-pool|24",
       },
       "Type": "AWS::SSM::Parameter",
     },
@@ -2861,6 +3041,7 @@ exports[`PrepareStack > Construct(PrepareStack):  Snapshot Test 1`] = `
               "Effect": "Allow",
               "Resource": [
                 "arn:aws:ssm:us-east-1:111111111111:parameter/accelerator/validation/*/network/vpc/*/deployedCidrs",
+                "arn:aws:ssm:us-east-1:111111111111:parameter/accelerator/validation/*/network/vpc/*/deployedIpamAllocations",
                 "arn:aws:ssm:us-east-1:111111111111:parameter/accelerator/network-stacks/useV2Stacks",
                 "arn:aws:ssm:us-east-1:111111111111:parameter/accelerator/validation/*/network/tgw/*/multicastSupport",
               ],
@@ -3062,6 +3243,130 @@ exports[`PrepareStack > Construct(PrepareStack):  Snapshot Test 1`] = `
             "logicalId": "SsmParamSharedServicesVpcSharedServicesNonTemplateStaticWestDeployedCidrs",
             "parameterName": "/accelerator/validation/SharedServices/network/vpc/SharedServices-NonTemplate-Static-West/deployedCidrs",
             "vpcName": "SharedServices/SharedServices-NonTemplate-Static-West",
+          },
+        ],
+        "vpcIpamAllocations": [
+          {
+            "ipamAllocations": [
+              {
+                "ipamPoolName": "home-region-pool",
+                "netmaskLength": 25,
+              },
+            ],
+            "logicalId": "SsmParamSharedServicesVpcSharedServicesIpamEastDeployedIpamAllocations",
+            "parameterName": "/accelerator/validation/SharedServices/network/vpc/SharedServices-Ipam-East/deployedIpamAllocations",
+            "vpcName": "SharedServices/SharedServices-Ipam-East",
+          },
+          {
+            "ipamAllocations": [
+              {
+                "ipamPoolName": "west-region-pool",
+                "netmaskLength": 25,
+              },
+            ],
+            "logicalId": "SsmParamSharedServicesVpcSharedServicesIpamWestDeployedIpamAllocations",
+            "parameterName": "/accelerator/validation/SharedServices/network/vpc/SharedServices-Ipam-West/deployedIpamAllocations",
+            "vpcName": "SharedServices/SharedServices-Ipam-West",
+          },
+          {
+            "ipamAllocations": [
+              {
+                "ipamPoolName": "west-region-pool",
+                "netmaskLength": 25,
+              },
+            ],
+            "logicalId": "SsmParamNetworkVpcNetworkIpamWestDeployedIpamAllocations",
+            "parameterName": "/accelerator/validation/Network/network/vpc/Network-Ipam-West/deployedIpamAllocations",
+            "vpcName": "Network/Network-Ipam-West",
+          },
+          {
+            "ipamAllocations": [
+              {
+                "ipamPoolName": "home-region-prod-pool",
+                "netmaskLength": 25,
+              },
+            ],
+            "logicalId": "SsmParamNetworkVpcNetworkSecondaryDeployedIpamAllocations",
+            "parameterName": "/accelerator/validation/Network/network/vpc/Network-Secondary/deployedIpamAllocations",
+            "vpcName": "Network/Network-Secondary",
+          },
+          {
+            "ipamAllocations": [
+              {
+                "ipamPoolName": "home-region-prod-pool",
+                "netmaskLength": 25,
+              },
+              {
+                "ipamPoolName": "home-region-prod-pool",
+                "netmaskLength": 25,
+              },
+              {
+                "ipamPoolName": "home-region-prod-pool",
+                "netmaskLength": 25,
+              },
+              {
+                "ipamPoolName": "home-region-prod-pool",
+                "netmaskLength": 25,
+              },
+            ],
+            "logicalId": "SsmParamNetworkVpcNetworkEndpointsDeployedIpamAllocations",
+            "parameterName": "/accelerator/validation/Network/network/vpc/Network-Endpoints/deployedIpamAllocations",
+            "vpcName": "Network/Network-Endpoints",
+          },
+          {
+            "ipamAllocations": [
+              {
+                "ipamPoolName": "home-region-pool",
+                "netmaskLength": 24,
+              },
+            ],
+            "logicalId": "SsmParamNetworkVpcNetworkNonTemplateIpamCentralDeployedIpamAllocations",
+            "parameterName": "/accelerator/validation/Network/network/vpc/Network-NonTemplate-Ipam-Central/deployedIpamAllocations",
+            "vpcName": "Network/Network-NonTemplate-Ipam-Central",
+          },
+          {
+            "ipamAllocations": [
+              {
+                "ipamPoolName": "west-region-pool",
+                "netmaskLength": 24,
+              },
+            ],
+            "logicalId": "SsmParamNetworkVpcNetworkNonTemplateIpamWestDeployedIpamAllocations",
+            "parameterName": "/accelerator/validation/Network/network/vpc/Network-NonTemplate-Ipam-West/deployedIpamAllocations",
+            "vpcName": "Network/Network-NonTemplate-Ipam-West",
+          },
+          {
+            "ipamAllocations": [
+              {
+                "ipamPoolName": "home-region-pool",
+                "netmaskLength": 24,
+              },
+            ],
+            "logicalId": "SsmParamSharedServicesVpcSharedServicesNonTemplateIpamCentralDeployedIpamAllocations",
+            "parameterName": "/accelerator/validation/SharedServices/network/vpc/SharedServices-NonTemplate-Ipam-Central/deployedIpamAllocations",
+            "vpcName": "SharedServices/SharedServices-NonTemplate-Ipam-Central",
+          },
+          {
+            "ipamAllocations": [
+              {
+                "ipamPoolName": "home-region-pool",
+                "netmaskLength": 24,
+              },
+            ],
+            "logicalId": "SsmParamSharedServicesVpcSharedServicesNonTemplateIpamCentral_2DeployedIpamAllocations",
+            "parameterName": "/accelerator/validation/SharedServices/network/vpc/SharedServices-NonTemplate-Ipam-Central-2/deployedIpamAllocations",
+            "vpcName": "SharedServices/SharedServices-NonTemplate-Ipam-Central-2",
+          },
+          {
+            "ipamAllocations": [
+              {
+                "ipamPoolName": "west-region-pool",
+                "netmaskLength": 24,
+              },
+            ],
+            "logicalId": "SsmParamSharedServicesVpcSharedServicesNonTemplateIpamWestDeployedIpamAllocations",
+            "parameterName": "/accelerator/validation/SharedServices/network/vpc/SharedServices-NonTemplate-Ipam-West/deployedIpamAllocations",
+            "vpcName": "SharedServices/SharedServices-NonTemplate-Ipam-West",
           },
         ],
       },
