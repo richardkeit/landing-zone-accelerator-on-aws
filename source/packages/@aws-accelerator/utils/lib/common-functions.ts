@@ -8,6 +8,7 @@ import {
 } from '@aws-sdk/client-sts';
 import { throttlingBackOff } from './throttle';
 import { ConfiguredRetryStrategy } from '@aws-sdk/util-retry';
+import { AwsCredentialIdentity } from '@aws-sdk/types';
 import { createLogger } from './logger';
 import { glob } from 'glob';
 import { dirname } from 'path';
@@ -147,6 +148,18 @@ export async function getManagementAccountCredentials(partition: string): Promis
   }
 }
 
+export function getEnvironmentCredentials(credentials: Credentials | undefined): AwsCredentialIdentity | undefined {
+  if (!credentials || !credentials.AccessKeyId || !credentials.SecretAccessKey) {
+    return undefined;
+  }
+
+  return {
+    accessKeyId: credentials.AccessKeyId,
+    secretAccessKey: credentials.SecretAccessKey,
+    sessionToken: credentials.SessionToken,
+  };
+}
+
 export function setEnvironmentCredentials(credentials: Credentials | undefined) {
   if (!credentials) {
     return;
@@ -156,6 +169,32 @@ export function setEnvironmentCredentials(credentials: Credentials | undefined) 
   process.env['AWS_SECRET_KEY'] = credentials.SecretAccessKey;
   process.env['AWS_SECRET_ACCESS_KEY'] = credentials.SecretAccessKey;
   process.env['AWS_SESSION_TOKEN'] = credentials.SessionToken;
+}
+
+export async function getExternalManagementAccountCredentials(
+  partition: string,
+  region: string,
+): Promise<AwsCredentialIdentity | undefined> {
+  if (!process.env['PIPELINE_ACCOUNT_ID'] || !process.env['MANAGEMENT_ACCOUNT_ID']) {
+    logger.debug('skipping because required environment variables are not set');
+    return undefined;
+  }
+
+  const currentAccountId = await getCurrentAccountId(partition, region);
+  logger.debug(`current account id: ${currentAccountId}`);
+
+  if (
+    currentAccountId === process.env['PIPELINE_ACCOUNT_ID'] &&
+    process.env['MANAGEMENT_ACCOUNT_ID'] !== process.env['PIPELINE_ACCOUNT_ID']
+  ) {
+    logger.debug(`assuming management role into account ${process.env['MANAGEMENT_ACCOUNT_ID']}`);
+    const credentials = await getManagementAccountCredentials(partition);
+    logger.debug('management account credentials retrieved');
+    return getEnvironmentCredentials(credentials);
+  }
+
+  logger.debug('skipping assume role path');
+  return undefined;
 }
 
 export async function setExternalManagementAccountCredentials(

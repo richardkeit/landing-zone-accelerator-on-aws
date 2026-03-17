@@ -24,6 +24,8 @@ import {
   directoryExists,
   getAllFilesInPattern,
   checkDiffFiles,
+  getEnvironmentCredentials,
+  getExternalManagementAccountCredentials,
 } from '../lib/common-functions';
 import { config } from '../../../../package.json';
 import { mockClient, AwsClientStub } from 'aws-sdk-client-mock';
@@ -435,5 +437,186 @@ describe('File Pattern Functions', () => {
         'Number of template files 4 does not match number of diff files 3 in directory',
       );
     });
+  });
+});
+
+describe('getEnvironmentCredentials', () => {
+  it('should return undefined when credentials are undefined', () => {
+    const response = getEnvironmentCredentials(undefined);
+    expect(response).toBeUndefined();
+  });
+
+  it('should return undefined when AccessKeyId is missing', () => {
+    const response = getEnvironmentCredentials({
+      SecretAccessKey: 'secret',
+      SessionToken: 'token',
+      AccessKeyId: undefined,
+      Expiration: new Date(),
+    });
+    expect(response).toBeUndefined();
+  });
+
+  it('should return undefined when SecretAccessKey is missing', () => {
+    const response = getEnvironmentCredentials({
+      AccessKeyId: 'access-key',
+      SessionToken: 'token',
+      SecretAccessKey: undefined,
+      Expiration: new Date(),
+    });
+    expect(response).toBeUndefined();
+  });
+
+  it('should map STS Credentials to AwsCredentialIdentity', () => {
+    const response = getEnvironmentCredentials({
+      AccessKeyId: 'access-key',
+      SecretAccessKey: 'secret-key',
+      SessionToken: 'session-token',
+      Expiration: new Date(),
+    });
+
+    expect(response).toEqual({
+      accessKeyId: 'access-key',
+      secretAccessKey: 'secret-key',
+      sessionToken: 'session-token',
+    });
+  });
+});
+
+describe('getExternalManagementAccountCredentials', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    process.env = { ...originalEnv };
+    delete process.env['PIPELINE_ACCOUNT_ID'];
+    delete process.env['MANAGEMENT_ACCOUNT_ID'];
+    delete process.env['MANAGEMENT_ACCOUNT_ROLE_NAME'];
+    delete process.env['AWS_REGION'];
+    delete process.env['ACCELERATOR_PREFIX'];
+    delete process.env['AWS_ACCESS_KEY_ID'];
+    delete process.env['AWS_SECRET_ACCESS_KEY'];
+    delete process.env['AWS_SESSION_TOKEN'];
+    stsMock.reset();
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
+  it('should return undefined when PIPELINE_ACCOUNT_ID is not set', async () => {
+    process.env['MANAGEMENT_ACCOUNT_ID'] = '111111111111';
+
+    const response = await getExternalManagementAccountCredentials('aws', 'us-east-1');
+
+    expect(response).toBeUndefined();
+    expect(stsMock.commandCalls(GetCallerIdentityCommand).length).toBe(0);
+    expect(stsMock.commandCalls(AssumeRoleCommand).length).toBe(0);
+  });
+
+  it('should return undefined when MANAGEMENT_ACCOUNT_ID is not set', async () => {
+    process.env['PIPELINE_ACCOUNT_ID'] = '222222222222';
+
+    const response = await getExternalManagementAccountCredentials('aws', 'us-east-1');
+
+    expect(response).toBeUndefined();
+    expect(stsMock.commandCalls(GetCallerIdentityCommand).length).toBe(0);
+    expect(stsMock.commandCalls(AssumeRoleCommand).length).toBe(0);
+  });
+
+  it('should return undefined when current account is not the pipeline account', async () => {
+    process.env['PIPELINE_ACCOUNT_ID'] = '222222222222';
+    process.env['MANAGEMENT_ACCOUNT_ID'] = '111111111111';
+
+    stsMock.on(GetCallerIdentityCommand).resolves({
+      Account: '333333333333',
+    });
+
+    const response = await getExternalManagementAccountCredentials('aws', 'us-east-1');
+
+    expect(response).toBeUndefined();
+    expect(stsMock.commandCalls(GetCallerIdentityCommand).length).toBe(1);
+    expect(stsMock.commandCalls(AssumeRoleCommand).length).toBe(0);
+  });
+
+  it('should return undefined when management account and pipeline account are the same', async () => {
+    process.env['PIPELINE_ACCOUNT_ID'] = '111111111111';
+    process.env['MANAGEMENT_ACCOUNT_ID'] = '111111111111';
+
+    stsMock.on(GetCallerIdentityCommand).resolves({
+      Account: '111111111111',
+    });
+
+    const response = await getExternalManagementAccountCredentials('aws', 'us-east-1');
+
+    expect(response).toBeUndefined();
+    expect(stsMock.commandCalls(GetCallerIdentityCommand).length).toBe(1);
+    expect(stsMock.commandCalls(AssumeRoleCommand).length).toBe(0);
+  });
+
+  it('should return AwsCredentialIdentity when running in the external pipeline account', async () => {
+    process.env['PIPELINE_ACCOUNT_ID'] = '222222222222';
+    process.env['MANAGEMENT_ACCOUNT_ID'] = '111111111111';
+    process.env['MANAGEMENT_ACCOUNT_ROLE_NAME'] = 'AcceleratorPipelineDeploymentRole';
+    process.env['AWS_REGION'] = 'us-east-1';
+
+    stsMock
+      .on(GetCallerIdentityCommand)
+      .resolvesOnce({
+        Account: '222222222222',
+      })
+      .resolvesOnce({
+        Account: '222222222222',
+      });
+
+    stsMock
+      .on(AssumeRoleCommand)
+      .resolvesOnce({
+        Credentials: {
+          AccessKeyId: 'management-access-key-id',
+          SecretAccessKey: 'management-secret',
+          SessionToken: 'management-token',
+          Expiration: new Date(),
+        },
+      })
+      .resolvesOnce({
+        Credentials: {
+          AccessKeyId: 'lza-access-key-id',
+          SecretAccessKey: 'lza-secret',
+          SessionToken: 'lza-token',
+          Expiration: new Date(),
+        },
+      });
+
+    const response = await getExternalManagementAccountCredentials('aws', 'us-east-1');
+
+    expect(response).toEqual({
+      accessKeyId: 'lza-access-key-id',
+      secretAccessKey: 'lza-secret',
+      sessionToken: 'lza-token',
+    });
+
+    expect(stsMock.commandCalls(GetCallerIdentityCommand).length).toBe(2);
+    expect(stsMock.commandCalls(AssumeRoleCommand).length).toBe(2);
+  });
+
+  it('should return undefined when management account credentials resolve to undefined', async () => {
+    process.env['PIPELINE_ACCOUNT_ID'] = '222222222222';
+    process.env['MANAGEMENT_ACCOUNT_ID'] = '111111111111';
+    process.env['MANAGEMENT_ACCOUNT_ROLE_NAME'] = 'AcceleratorPipelineDeploymentRole';
+    process.env['AWS_REGION'] = 'us-east-1';
+
+    stsMock
+      .on(GetCallerIdentityCommand)
+      .resolvesOnce({
+        Account: '222222222222',
+      })
+      .resolvesOnce({
+        Account: '111111111111',
+      });
+
+    const response = await getExternalManagementAccountCredentials('aws', 'us-east-1');
+
+    expect(response).toBeUndefined();
+    expect(stsMock.commandCalls(GetCallerIdentityCommand).length).toBe(2);
+    expect(stsMock.commandCalls(AssumeRoleCommand).length).toBe(0);
   });
 });

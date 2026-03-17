@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - fix(networking): add validation for modifying IPAM allocations at VPC level
+- fix(config): external pipeline deployment config validation to use passed mgmt creds
 
 ### Changed
 
