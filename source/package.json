@@ -125,7 +125,7 @@
     "diff": "5.2.2",
     "ts-node/diff": "4.0.4",
     "@aws-cdk/cloudformation-diff/diff": "8.0.3",
-    "fast-xml-parser": "5.5.6",
+    "fast-xml-parser": "5.3.8",
     "@isaacs/brace-expansion": "5.0.1",
     "js-yaml": "4.1.1",
     "axios": "1.13.5",
