@@ -31,8 +31,7 @@ import {
   SecurityConfigValidator,
   ReplacementsConfigValidator,
 } from '@aws-accelerator/config';
-import { createLogger, getExternalManagementAccountCredentials } from '@aws-accelerator/utils';
-import { AwsCredentialIdentity } from '@aws-sdk/types';
+import { createLogger, setExternalManagementAccountCredentials } from '@aws-accelerator/utils';
 
 const logger = createLogger(['config-validator']);
 const configDirPath = process.argv[2];
@@ -125,9 +124,8 @@ async function validateConfig(props: {
   stage: string | undefined;
 }) {
   let orgsEnabled: boolean;
-  let managementAccountCredentials: AwsCredentialIdentity | undefined;
   try {
-    managementAccountCredentials = await getExternalManagementAccountCredentials(props.partition, homeRegion);
+    await setExternalManagementAccountCredentials(props.partition, homeRegion);
     orgsEnabled = OrganizationConfig.loadRawOrganizationsConfig(configDirPath).enable;
   } catch (e) {
     logger.error('Failure in validationConfig', e);
@@ -136,13 +134,7 @@ async function validateConfig(props: {
   let accountsConfig: AccountsConfig | undefined = undefined;
   try {
     accountsConfig = AccountsConfig.load(configDirPath);
-    await accountsConfig.loadAccountIds(
-      props.partition,
-      props.enableSingleAccountMode,
-      orgsEnabled!,
-      accountsConfig,
-      managementAccountCredentials,
-    );
+    await accountsConfig.loadAccountIds(props.partition, props.enableSingleAccountMode, orgsEnabled!, accountsConfig);
   } catch (e) {
     initErrors.push({ file: AccountsConfig.FILENAME, message: e });
   }
