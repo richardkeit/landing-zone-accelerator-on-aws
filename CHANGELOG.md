@@ -25,10 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - feat(iam): add support for IAM role trust policy conditions in iam-config.yaml
+- feat(uninstaller): add support for container deployment
 
 ### Fixed
 - fix(networking): add validation for modifying IPAM allocations at VPC level
 - fix(config): external pipeline deployment config validation to use passed mgmt creds
+- fix(uninstaller): add support for accounts and OUs that are ignored
 
 ### Changed
 
