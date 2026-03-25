@@ -205,3 +205,149 @@ describe('ACCOUNT_ID lookup test ', () => {
     expect(result).toBe('["10.0.1.0/24","10.0.2.0/24"]');
   });
 });
+
+describe('ACCOUNT_ID lookup in SCP policy content', () => {
+  it('should replace single account lookup in a valid SCP JSON structure', () => {
+    const content = [
+      '{',
+      '  "Version": "2012-10-17",',
+      '  "Statement": [{',
+      '    "Effect": "Deny",',
+      '    "Action": "s3:DeleteBucket",',
+      '    "Resource": "*",',
+      '    "Condition": {',
+      '      "StringNotEquals": {',
+      '        "aws:PrincipalAccount": [',
+      '          ${ACCEL_LOOKUP::ACCOUNT_ID:ACCOUNT:Network}',
+      '        ]',
+      '      }',
+      '    }',
+      '  }]',
+      '}',
+    ].join('\n');
+
+    const result = policyReplacements({
+      content,
+      acceleratorPrefix,
+      managementAccountAccessRole,
+      partition,
+      additionalReplacements,
+      acceleratorName,
+      accountsConfig,
+    });
+
+    const parsed = JSON.parse(result);
+    expect(parsed.Statement[0].Condition.StringNotEquals['aws:PrincipalAccount']).toEqual(['555555555555']);
+  });
+
+  it('should replace multiple account lookups in a single SCP condition', () => {
+    // Note: ACCOUNT_ID lookups produce quoted values, so they should not be wrapped in JSON quotes
+    const content = [
+      '{',
+      '  "Version": "2012-10-17",',
+      '  "Statement": [{',
+      '    "Effect": "Deny",',
+      '    "Action": "s3:DeleteBucket",',
+      '    "Resource": "*",',
+      '    "Condition": {',
+      '      "StringNotEquals": {',
+      '        "aws:PrincipalAccount": [',
+      '          ${ACCEL_LOOKUP::ACCOUNT_ID:ACCOUNT:SharedServices},',
+      '          ${ACCEL_LOOKUP::ACCOUNT_ID:ACCOUNT:Network}',
+      '        ]',
+      '      }',
+      '    }',
+      '  }]',
+      '}',
+    ].join('\n');
+
+    const result = policyReplacements({
+      content,
+      acceleratorPrefix,
+      managementAccountAccessRole,
+      partition,
+      additionalReplacements,
+      acceleratorName,
+      accountsConfig,
+    });
+
+    const parsed = JSON.parse(result);
+    expect(parsed.Statement[0].Condition.StringNotEquals['aws:PrincipalAccount']).toEqual([
+      '444444444444',
+      '555555555555',
+    ]);
+  });
+
+  it('should replace OU-scoped account lookup in SCP policy content', () => {
+    const content = [
+      '{',
+      '  "Version": "2012-10-17",',
+      '  "Statement": [{',
+      '    "Effect": "Deny",',
+      '    "Action": "ec2:RunInstances",',
+      '    "Resource": "*",',
+      '    "Condition": {',
+      '      "StringNotEquals": {',
+      '        "aws:PrincipalAccount": [',
+      '          ${ACCEL_LOOKUP::ACCOUNT_ID:OU:Infrastructure}',
+      '        ]',
+      '      }',
+      '    }',
+      '  }]',
+      '}',
+    ].join('\n');
+
+    const result = policyReplacements({
+      content,
+      acceleratorPrefix,
+      managementAccountAccessRole,
+      partition,
+      additionalReplacements,
+      acceleratorName,
+      accountsConfig,
+    });
+
+    const parsed = JSON.parse(result);
+    expect(parsed.Statement[0].Condition.StringNotEquals['aws:PrincipalAccount']).toEqual([
+      '444444444444',
+      '555555555555',
+    ]);
+  });
+
+  it('should replace ACCOUNT_ID lookup alongside built-in variables', () => {
+    const content = [
+      '{',
+      '  "Version": "2012-10-17",',
+      '  "Statement": [{',
+      '    "Effect": "Deny",',
+      '    "Action": "*",',
+      '    "Resource": "*",',
+      '    "Condition": {',
+      '      "StringNotEquals": {',
+      '        "aws:PrincipalAccount": [${ACCEL_LOOKUP::ACCOUNT_ID:ACCOUNT:Network}]',
+      '      },',
+      '      "ArnNotLike": {',
+      '        "aws:PrincipalARN": ["arn:${PARTITION}:iam::*:role/${ACCELERATOR_PREFIX}*"]',
+      '      }',
+      '    }',
+      '  }]',
+      '}',
+    ].join('\n');
+
+    const result = policyReplacements({
+      content,
+      acceleratorPrefix,
+      managementAccountAccessRole,
+      partition,
+      additionalReplacements,
+      acceleratorName,
+      accountsConfig,
+    });
+
+    const parsed = JSON.parse(result);
+    expect(parsed.Statement[0].Condition.StringNotEquals['aws:PrincipalAccount']).toEqual(['555555555555']);
+    expect(parsed.Statement[0].Condition.ArnNotLike['aws:PrincipalARN']).toEqual([
+      'arn:aws:iam::*:role/aws-accelerator*',
+    ]);
+  });
+});

@@ -149,7 +149,35 @@ To preview the resulting files with the processed replacements you can use the [
 yarn config-replacement /path/to/aws-accelerator-config/
 ```
 
-## Using Global Replacements in policy files
+## Policy file replacements
+
+Policy files (SCPs, IAM policies, KMS key policies, VPC endpoint policies, etc.) use a different replacement syntax than YAML configuration files. The `{{variable}}` and `{{account Name}}` Handlebars syntax used in YAML configuration files is **not** processed in policy files. Instead, policy files support the `${VARIABLE}` and `${ACCEL_LOOKUP::...}` syntax described below.
+
+### Built-in policy replacement variables
+
+The following built-in variables are available in all policy files:
+
+| Variable | Description |
+|---|---|
+| `${ACCELERATOR_DEFAULT_PREFIX_SHORTHAND}` | Short version of the accelerator prefix (first four letters, capitalized) |
+| `${ACCELERATOR_PREFIX_ND}` | Accelerator prefix without dashes |
+| `${ACCELERATOR_PREFIX_LND}` | Accelerator prefix in lowercase without dashes |
+| `${ACCELERATOR_PREFIX}` | Prefix applied to solution-provisioned resources |
+| `${ACCELERATOR_SSM_PREFIX}` | Prefix applied to solution-provisioned SSM parameters (includes leading `/`) |
+| `${ACCELERATOR_CENTRAL_LOGS_BUCKET_NAME}` | Central Log bucket name |
+| `${ACCELERATOR_NAME}` | Name of the accelerator |
+| `${ACCOUNT_ID}` | Account ID the policy is deployed to |
+| `${ACCOUNT_NAME}` | Name of the account the policy is deployed to |
+| `${AUDIT_ACCOUNT_ID}` | Account ID of the Audit account |
+| `${HOME_REGION}` | Home region of the solution |
+| `${LOGARCHIVE_ACCOUNT_ID}` | Account ID of the Log Archive account |
+| `${MANAGEMENT_ACCOUNT_ACCESS_ROLE}` | Cross-account access role name |
+| `${MANAGEMENT_ACCOUNT_ID}` | Account ID of the Management account |
+| `${ORG_ID}` | The ID of the AWS Organization |
+| `${PARTITION}` | AWS partition the policy is deployed to |
+| `${REGION}` | AWS Region the policy is deployed to |
+
+### Using Global Replacements in policy files
 
 Global replacement variables defined in `replacements-config.yaml` can also be referenced from policy files using the `${ACCEL_LOOKUP::CUSTOM:VARIABLE_NAME}` syntax.
 
@@ -207,6 +235,113 @@ This will deploy the following policy once replacements are processed:
     - String variables value will be rendered as is. You should enclose their usage in quotes.
     - StringList variables will render an array (i.e. `["us-east-1", "us-east-2"]`), their usage should not be enclosed by quotes or brackets.
 
+### Dynamic account ID lookups in policy files
+
+Policy files support dynamic account ID lookups using the `${ACCEL_LOOKUP::ACCOUNT_ID:...}` syntax. This allows you to reference account IDs by name, organizational unit, or across the entire organization directly in your policy JSON files without needing to define them in `replacements-config.yaml`.
+
+!!! note
+    The `{{account AccountName}}` syntax used in YAML configuration files does **not** work in policy files. Use the `${ACCEL_LOOKUP::ACCOUNT_ID:...}` syntax described below instead.
+
+The following scopes are supported:
+
+| Syntax | Description |
+|---|---|
+| `${ACCEL_LOOKUP::ACCOUNT_ID:ACCOUNT:AccountName}` | Resolves to the account ID for a single account by its name as defined in `accounts-config.yaml` |
+| `${ACCEL_LOOKUP::ACCOUNT_ID:OU:OUName}` | Resolves to all account IDs within the specified organizational unit |
+| `${ACCEL_LOOKUP::ACCOUNT_ID:ORG}` | Resolves to all account IDs in the organization |
+
+Each account ID is rendered as a quoted string (e.g. `"123456789012"`). When multiple accounts are returned (OU or ORG scope), they are rendered as a comma-separated list of quoted strings (e.g. `"111111111111","222222222222"`).
+
+#### Example: Excluding specific accounts from an SCP
+
+To exclude specific accounts from an SCP restriction, reference them by name:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Action": "s3:DeleteBucket",
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:PrincipalAccount": [
+            ${ACCEL_LOOKUP::ACCOUNT_ID:ACCOUNT:SharedServices},
+            ${ACCEL_LOOKUP::ACCOUNT_ID:ACCOUNT:Network}
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+Once replacements are processed, this deploys the following policy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Action": "s3:DeleteBucket",
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:PrincipalAccount": [
+            "444444444444",
+            "555555555555"
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+#### Example: Restricting access to accounts in an OU
+
+To restrict access to all accounts within an organizational unit:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Action": "ec2:RunInstances",
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:PrincipalAccount": [
+            ${ACCEL_LOOKUP::ACCOUNT_ID:OU:Infrastructure}
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+!!! warning "Important"
+    - Do **not** wrap the `${ACCEL_LOOKUP::ACCOUNT_ID:...}` tokens in quotes. The replacement already produces quoted values.
+    - Account names must match exactly as defined in `accounts-config.yaml`.
+
+### Dynamic VPC and VPC endpoint ID lookups in policy files
+
+Policy files also support dynamic lookups for VPC IDs and VPC endpoint IDs using a similar syntax:
+
+| Syntax | Description |
+|---|---|
+| `${ACCEL_LOOKUP::VPC_ID:ACCOUNT:AccountName}` | Resolves to all VPC IDs in the specified account |
+| `${ACCEL_LOOKUP::VPC_ID:OU:OUName}` | Resolves to all VPC IDs across accounts in the specified OU |
+| `${ACCEL_LOOKUP::VPC_ID:ORG}` | Resolves to all VPC IDs across the organization |
+| `${ACCEL_LOOKUP::VPCE_ID:ACCOUNT:AccountName}` | Resolves to all VPC endpoint IDs in the specified account |
+| `${ACCEL_LOOKUP::VPCE_ID:OU:OUName}` | Resolves to all VPC endpoint IDs across accounts in the specified OU |
+| `${ACCEL_LOOKUP::VPCE_ID:ORG}` | Resolves to all VPC endpoint IDs across the organization |
+
+These are useful for VPC endpoint policies and SCPs that restrict access based on network boundaries.
 
 !!! note "See also"
     See the [Policy replacements variables](https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/working-with-solution-specific-variables.html#policy-replacement-variables) section in the Implementation Guide for more accelerator provided replacements variables that can be used in policy files.
