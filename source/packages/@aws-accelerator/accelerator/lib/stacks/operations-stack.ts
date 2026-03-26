@@ -549,6 +549,7 @@ export class OperationsStack extends AcceleratorStack {
       managedPolicies,
       path: roleSetItem.path,
       permissionsBoundary: this.policies[roleItem.boundaryPolicy],
+      maxSessionDuration: roleItem.maxSessionDuration ? cdk.Duration.seconds(roleItem.maxSessionDuration) : undefined,
     });
 
     // Append remaining principals as separate policy statements (supports per-principal conditions)
