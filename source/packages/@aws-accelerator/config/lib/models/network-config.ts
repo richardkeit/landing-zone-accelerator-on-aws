@@ -7174,6 +7174,22 @@ export interface IGwlbConfig {
    * (OPTIONAL) An array of CloudFormation tag objects.
    */
   readonly tags?: t.ITag[];
+  /**
+   * (OPTIONAL) The TCP idle timeout value for the Gateway Load Balancer, in seconds.
+   *
+   * @remarks
+   * This value can be set between 60 and 6000 seconds. If not specified,
+   * the GWLB default of 350 seconds is used. Aligning this value with your
+   * target appliance's TCP idle timeout helps prevent traffic disruptions
+   * for long-lived idle connections.
+   *
+   * @minimum 60
+   * @maximum 6000
+   * @asType integer
+   *
+   * @see {@link https://docs.aws.amazon.com/elasticloadbalancing/latest/gateway/gateway-load-balancers.html#idle-timeout}
+   */
+  readonly tcpIdleTimeout?: number;
 }
 
 /**

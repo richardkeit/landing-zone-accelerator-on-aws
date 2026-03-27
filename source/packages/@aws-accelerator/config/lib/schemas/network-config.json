@@ -1069,6 +1069,12 @@
           "$ref": "#/definitions/NonEmptyString",
           "description": "(OPTIONAL) The friendly name of a target group to forward traffic to"
         },
+        "tcpIdleTimeout": {
+          "description": "(OPTIONAL) The TCP idle timeout value for the Gateway Load Balancer, in seconds.",
+          "maximum": 6000,
+          "minimum": 60,
+          "type": "integer"
+        },
         "vpc": {
           "$ref": "#/definitions/NonEmptyString",
           "description": "The friendly name of the VPC to deploy the Gateway Load Balancer to."

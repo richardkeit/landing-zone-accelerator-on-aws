@@ -191,6 +191,7 @@ centralNetworkServices:
         - Network-Inspection-B
       vpc: Network-Inspection
       deletionProtection: true
+      tcpIdleTimeout: 3600
       targetGroup: instance-target
       endpoints:
         - name: Endpoint-A

@@ -50,6 +50,8 @@ import {
 import { ReplacementsConfig } from '../lib/replacements-config';
 
 import { VpcFlowLogsConfig } from '../lib/common/types';
+import { isNetworkType } from '../lib/common';
+import { IGwlbConfig } from '../lib/models/network-config';
 
 import { describe, it, expect } from 'vitest';
 import * as path from 'path';
@@ -186,6 +188,50 @@ describe('NetworkConfig', () => {
 
       const vpcTemplatesConfig = new VpcTemplatesConfig();
       expect(vpcTemplatesConfig.name).toEqual('');
+    });
+  });
+
+  describe('GWLB tcpIdleTimeout schema validation', () => {
+    const baseGwlbConfig = {
+      name: 'test-gwlb',
+      endpoints: [{ name: 'test-endpoint', account: 'test-account', subnet: 'test-subnet', vpc: 'test-vpc' }],
+      subnets: ['test-subnet'],
+      vpc: 'test-vpc',
+    };
+
+    it('should accept a valid mid-range tcpIdleTimeout (350)', () => {
+      const content = { ...baseGwlbConfig, tcpIdleTimeout: 350 };
+      expect(isNetworkType<IGwlbConfig>('IGwlbConfig', content)).toBe(true);
+    });
+
+    it('should accept the lower boundary tcpIdleTimeout (60)', () => {
+      const content = { ...baseGwlbConfig, tcpIdleTimeout: 60 };
+      expect(isNetworkType<IGwlbConfig>('IGwlbConfig', content)).toBe(true);
+    });
+
+    it('should accept the upper boundary tcpIdleTimeout (6000)', () => {
+      const content = { ...baseGwlbConfig, tcpIdleTimeout: 6000 };
+      expect(isNetworkType<IGwlbConfig>('IGwlbConfig', content)).toBe(true);
+    });
+
+    it('should reject tcpIdleTimeout below minimum (59)', () => {
+      const content = { ...baseGwlbConfig, tcpIdleTimeout: 59 };
+      expect(isNetworkType<IGwlbConfig>('IGwlbConfig', content)).toBe(false);
+    });
+
+    it('should reject tcpIdleTimeout above maximum (6001)', () => {
+      const content = { ...baseGwlbConfig, tcpIdleTimeout: 6001 };
+      expect(isNetworkType<IGwlbConfig>('IGwlbConfig', content)).toBe(false);
+    });
+
+    it('should reject non-integer tcpIdleTimeout (350.5)', () => {
+      const content = { ...baseGwlbConfig, tcpIdleTimeout: 350.5 };
+      expect(isNetworkType<IGwlbConfig>('IGwlbConfig', content)).toBe(false);
+    });
+
+    it('should accept when tcpIdleTimeout is omitted', () => {
+      const content = { ...baseGwlbConfig };
+      expect(isNetworkType<IGwlbConfig>('IGwlbConfig', content)).toBe(true);
     });
   });
 });

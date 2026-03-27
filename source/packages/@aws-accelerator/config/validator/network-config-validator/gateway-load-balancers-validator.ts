@@ -119,6 +119,8 @@ export class GatewayLoadBalancersValidator {
       if (gwlb.targetGroup) {
         this.validateGwlbTargetGroup(gwlb, errors, customizationsConfig);
       }
+      // Validate tcpIdleTimeout range
+      this.validateTcpIdleTimeout(gwlb, errors);
     }
   }
 
@@ -311,6 +313,21 @@ export class GatewayLoadBalancersValidator {
       if (asg && asg.vpc !== gwlb.vpc) {
         errors.push(
           `[Gateway Load Balancer ${gwlb.name} target group ${targetGroup.name}]: targets do not exist in the same VPC as the load balancer`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Validate tcpIdleTimeout is an integer within the AWS-mandated range [60, 6000]
+   * @param gwlb
+   * @param errors
+   */
+  private validateTcpIdleTimeout(gwlb: GwlbConfig, errors: string[]) {
+    if (gwlb.tcpIdleTimeout !== undefined) {
+      if (!Number.isInteger(gwlb.tcpIdleTimeout) || gwlb.tcpIdleTimeout < 60 || gwlb.tcpIdleTimeout > 6000) {
+        errors.push(
+          `[Gateway Load Balancer ${gwlb.name}]: tcpIdleTimeout value ${gwlb.tcpIdleTimeout} is invalid. Value must be an integer between 60 and 6000 seconds.`,
         );
       }
     }

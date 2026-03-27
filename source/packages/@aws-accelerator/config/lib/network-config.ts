@@ -827,6 +827,7 @@ export class GwlbConfig implements i.IGwlbConfig {
   readonly deletionProtection: boolean | undefined = undefined;
   readonly targetGroup: string | undefined = undefined;
   readonly tags: t.Tag[] | undefined = undefined;
+  readonly tcpIdleTimeout: number | undefined = undefined;
 }
 
 export class CentralNetworkServicesConfig implements i.ICentralNetworkServicesConfig {
