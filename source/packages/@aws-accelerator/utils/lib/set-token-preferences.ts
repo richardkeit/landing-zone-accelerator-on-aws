@@ -13,12 +13,12 @@
 
 import { IAMClient, SetSecurityTokenServicePreferencesCommand, GetAccountSummaryCommand } from '@aws-sdk/client-iam';
 import { throttlingBackOff } from './throttle';
-import { setRetryStrategy } from './common-functions';
 import { createLogger } from './logger';
+import { AwsClientFactory } from './aws-client-factory';
 const logger = createLogger(['utils-set-token-preferences']);
 
 export async function setStsTokenPreferences(account: string, globalRegion: string) {
-  const iamClient = new IAMClient({ retryStrategy: setRetryStrategy(), region: globalRegion });
+  const iamClient = AwsClientFactory.create(IAMClient, { region: globalRegion, logger });
   try {
     const getAccountSummary = await throttlingBackOff(() => iamClient.send(new GetAccountSummaryCommand({})));
     if (getAccountSummary.SummaryMap!['GlobalEndpointTokenVersion'] !== 2) {

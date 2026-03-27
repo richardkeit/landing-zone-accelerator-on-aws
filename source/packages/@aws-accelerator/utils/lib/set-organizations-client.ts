@@ -11,8 +11,9 @@
  *  and limitations under the License.
  */
 
-import { getGlobalRegion, setRetryStrategy } from './common-functions';
+import { getGlobalRegion } from './common-functions';
 import { OrganizationsClient } from '@aws-sdk/client-organizations';
+import { AwsClientFactory } from './aws-client-factory';
 
 /**
  * Sets an SDKv3 Organizations client based on partition
@@ -21,9 +22,8 @@ import { OrganizationsClient } from '@aws-sdk/client-organizations';
  * @returns OrganizationsClient
  */
 export function setOrganizationsClient(partition: string, solutionId?: string): OrganizationsClient {
-  return new OrganizationsClient({
+  return AwsClientFactory.create(OrganizationsClient, {
     region: getGlobalRegion(partition),
-    customUserAgent: solutionId,
-    retryStrategy: setRetryStrategy(),
+    ...(solutionId && { customUserAgent: solutionId }),
   });
 }

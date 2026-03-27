@@ -23,8 +23,8 @@ import {
   getGlobalRegion,
   getSSMParameterValue,
   queryConfigTable,
-  setRetryStrategy,
   throttlingBackOff,
+  AwsClientFactory,
 } from '@aws-accelerator/utils';
 import { createSchema, DeploymentTargets, parseAccountsConfig } from './common';
 import * as i from './models/accounts-config';
@@ -431,10 +431,10 @@ export class AccountsConfig implements i.IAccountsConfig {
   }
 
   private async _loadAccountIdsForSingleAccountMode(): Promise<void> {
-    const stsClient = new STSClient({
+    const stsClient = AwsClientFactory.create(STSClient, {
       region: this.awsRegion,
       customUserAgent: this.solutionId,
-      retryStrategy: setRetryStrategy(),
+      enableLogging: false,
     });
     const stsCallerIdentity = (await throttlingBackOff(() =>
       stsClient.send(new GetCallerIdentityCommand({})),
@@ -491,13 +491,11 @@ export class AccountsConfig implements i.IAccountsConfig {
   ): Promise<void> {
     logger.debug(`Orgs is enabled, solution will query from AWS Organizations API`);
 
-    const retryStrategy = setRetryStrategy();
-
-    const organizationsClient = new OrganizationsClient({
+    const organizationsClient = AwsClientFactory.create(OrganizationsClient, {
       region: getGlobalRegion(partition),
-      credentials: credentials,
+      ...(credentials && { credentials }),
       customUserAgent: this.solutionId,
-      retryStrategy,
+      enableLogging: false,
     });
 
     let nextToken: string | undefined = undefined;

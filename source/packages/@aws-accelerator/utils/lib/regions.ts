@@ -13,8 +13,8 @@
 
 import { EC2Client, DescribeRegionsCommand } from '@aws-sdk/client-ec2';
 import { createLogger } from './logger';
-import { setRetryStrategy } from './common-functions';
 import { throttlingBackOff } from './throttle';
+import { AwsClientFactory } from './aws-client-factory';
 
 const logger = createLogger(['regions']);
 
@@ -108,11 +108,7 @@ export function getAvailabilityZoneMap(region: string) {
  * @returns string[]
  */
 export async function getRegionList(region: string): Promise<string[]> {
-  const ec2Client = new EC2Client({
-    region,
-    customUserAgent: process.env['SOLUTION_ID'] ?? '',
-    retryStrategy: setRetryStrategy(),
-  });
+  const ec2Client = AwsClientFactory.create(EC2Client, { region, logger });
   const describeRegionsCommand = new DescribeRegionsCommand({ AllRegions: true });
 
   const response = await throttlingBackOff(() => ec2Client.send(describeRegionsCommand));

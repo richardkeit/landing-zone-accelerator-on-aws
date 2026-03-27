@@ -13,8 +13,8 @@
 import { SSMClient, GetParameterCommand, GetParameterCommandInput, SSMServiceException } from '@aws-sdk/client-ssm';
 import { Credentials } from '@aws-sdk/types';
 import { createLogger } from './logger';
-import { setRetryStrategy } from './common-functions';
 import { throttlingBackOff } from './throttle';
+import { AwsClientFactory } from './aws-client-factory';
 import * as path from 'path';
 
 // Create a logger instance for this module
@@ -44,11 +44,10 @@ export class SSMOperationError extends Error {
  */
 export async function getSSMParameterValue(parameterName: string, credentials?: Credentials): Promise<string> {
   // Initialize SSM client with optional credentials
-  const clientOptions = credentials
-    ? { credentials, retryStrategy: setRetryStrategy() }
-    : { retryStrategy: setRetryStrategy() };
-
-  const client = new SSMClient(clientOptions);
+  const client = AwsClientFactory.create(SSMClient, {
+    ...(credentials && { credentials }),
+    logger,
+  });
 
   // Define parameters for GetParameterCommand
   const params: GetParameterCommandInput = {

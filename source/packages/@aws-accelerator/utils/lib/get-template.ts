@@ -5,9 +5,9 @@ import {
   CloudFormationServiceException,
   TemplateStage,
 } from '@aws-sdk/client-cloudformation';
-import { ConfiguredRetryStrategy } from '@aws-sdk/util-retry';
-import { getCrossAccountCredentials, getCurrentAccountId, setRetryStrategy } from './common-functions';
+import { getCrossAccountCredentials, getCurrentAccountId } from './common-functions';
 import { throttlingBackOff } from './throttle';
+import { AwsClientFactory } from './aws-client-factory';
 import * as fs from 'fs';
 import * as path from 'path';
 import { createLogger } from './logger';
@@ -24,14 +24,7 @@ export async function getCloudFormationTemplate(
 ) {
   try {
     const currentAccountId = await getCurrentAccountId(partition, region);
-    const client = await getCloudFormationClient(
-      setRetryStrategy(),
-      region,
-      accountId,
-      partition,
-      roleName,
-      currentAccountId,
-    );
+    const client = await getCloudFormationClient(region, accountId, partition, roleName, currentAccountId);
 
     let template = await getTemplate(client, stackName);
 
@@ -56,7 +49,6 @@ export async function getCloudFormationTemplate(
   }
 }
 async function getCloudFormationClient(
-  retryStrategy: ConfiguredRetryStrategy,
   region: string,
   accountId: string,
   partition: string,
@@ -64,17 +56,17 @@ async function getCloudFormationClient(
   currentAccountId: string,
 ): Promise<CloudFormationClient> {
   if (currentAccountId === accountId || currentAccountId === process.env['MANAGEMENT_ACCOUNT_ID']) {
-    return new CloudFormationClient({ retryStrategy, region });
+    return AwsClientFactory.create(CloudFormationClient, { region, enableLogging: false });
   } else {
     const crossAccountCredentials = await getCrossAccountCredentials(accountId, region, partition, roleName);
-    return new CloudFormationClient({
-      retryStrategy,
+    return AwsClientFactory.create(CloudFormationClient, {
       region,
       credentials: {
         accessKeyId: crossAccountCredentials.Credentials!.AccessKeyId!,
         secretAccessKey: crossAccountCredentials.Credentials!.SecretAccessKey!,
         sessionToken: crossAccountCredentials.Credentials!.SessionToken!,
       },
+      logger,
     });
   }
 }

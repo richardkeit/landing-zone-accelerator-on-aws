@@ -837,6 +837,7 @@ describe('accounts-config', () => {
         expect(STSClient).toHaveBeenCalledWith(
           expect.objectContaining({
             customUserAgent: 'test-solution-123',
+            region: TEST_ENV_VALUES.REGION,
           }),
         );
       });
@@ -855,7 +856,7 @@ describe('accounts-config', () => {
 
         expect(STSClient).toHaveBeenCalledWith(
           expect.objectContaining({
-            customUserAgent: '',
+            region: TEST_ENV_VALUES.REGION,
           }),
         );
       });
@@ -1342,10 +1343,10 @@ describe('accounts-config', () => {
 
         await config.loadAccountIds('aws', true, false, config);
 
+        // When region and customUserAgent are empty strings, buildConfig omits them
         expect(STSClient).toHaveBeenCalledWith(
           expect.objectContaining({
-            region: '',
-            customUserAgent: '',
+            retryStrategy: expect.anything(),
           }),
         );
       });

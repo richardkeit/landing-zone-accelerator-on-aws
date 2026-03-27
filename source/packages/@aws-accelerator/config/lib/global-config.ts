@@ -25,7 +25,7 @@ import {
   directoryExists,
   fileExists,
   getCrossAccountCredentials,
-  setRetryStrategy,
+  AwsClientFactory,
 } from '@aws-accelerator/utils';
 
 import * as t from './common';
@@ -772,10 +772,9 @@ export class GlobalConfig implements i.IGlobalConfig {
     if (!directoryExists('asea-assets')) {
       throw new Error(`Could not create temp directory ${aseaAssetPath} for asea assets`);
     }
-    const s3Client = new S3Client({
+    const s3Client = AwsClientFactory.create(S3Client, {
       region: this.homeRegion,
-      customUserAgent: process.env['SOLUTION_ID'] ?? '',
-      retryStrategy: setRetryStrategy(),
+      enableLogging: false,
     });
     const mappingFile = await this.downloadFile({
       relativePath: 'mapping.json',
@@ -987,7 +986,7 @@ export class GlobalConfig implements i.IGlobalConfig {
       [key: string]: string;
     };
   }> {
-    let ssmClient = new SSMClient({ region });
+    let ssmClient = AwsClientFactory.create(SSMClient, { region, enableLogging: false });
     if (account !== managementAccountId) {
       const crossAccountCredentials = await getCrossAccountCredentials(
         account,
@@ -1088,10 +1087,9 @@ export class GlobalConfig implements i.IGlobalConfig {
   }): Promise<{ body: string; path: string } | undefined> {
     let s3Client = props.s3Client;
     if (!s3Client) {
-      s3Client = new S3Client({
+      s3Client = AwsClientFactory.create(S3Client, {
         region: this.homeRegion,
-        customUserAgent: process.env['SOLUTION_ID'] ?? '',
-        retryStrategy: setRetryStrategy(),
+        enableLogging: false,
       });
     }
     try {
@@ -1129,13 +1127,14 @@ export class GlobalConfig implements i.IGlobalConfig {
     }
   }
   private getCrossAccountSsmClient(region: string, assumeRoleCredential: AssumeRoleCommandOutput) {
-    return new SSMClient({
+    return AwsClientFactory.create(SSMClient, {
       credentials: {
         accessKeyId: assumeRoleCredential.Credentials!.AccessKeyId!,
         secretAccessKey: assumeRoleCredential.Credentials!.SecretAccessKey!,
         sessionToken: assumeRoleCredential.Credentials?.SessionToken,
       },
       region: region,
+      enableLogging: false,
     });
   }
 }

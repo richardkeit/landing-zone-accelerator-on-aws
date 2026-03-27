@@ -11,9 +11,10 @@
  *  and limitations under the License.
  */
 import { GetServiceQuotaCommand, ServiceQuotasClient } from '@aws-sdk/client-service-quotas';
-import { getCrossAccountCredentials, setRetryStrategy } from './common-functions';
+import { getCrossAccountCredentials } from './common-functions';
 import { throttlingBackOff } from './throttle';
 import { createLogger } from './logger';
+import { AwsClientFactory } from './aws-client-factory';
 const logger = createLogger(['utils-evaluate-limits']);
 
 export async function evaluateLimits(
@@ -91,7 +92,7 @@ async function getServiceQuotasClient(accountMetadata: {
     accountMetadata.currentAccountId === accountMetadata.accountId ||
     accountMetadata.currentAccountId === process.env['MANAGEMENT_ACCOUNT_ID']
   ) {
-    return new ServiceQuotasClient({ retryStrategy: setRetryStrategy(), region: accountMetadata.region });
+    return AwsClientFactory.create(ServiceQuotasClient, { region: accountMetadata.region, logger });
   } else {
     const crossAccountCredentials = await getCrossAccountCredentials(
       accountMetadata.accountId,
@@ -99,14 +100,14 @@ async function getServiceQuotasClient(accountMetadata: {
       accountMetadata.partition,
       accountMetadata.roleName,
     );
-    return new ServiceQuotasClient({
-      retryStrategy: setRetryStrategy(),
+    return AwsClientFactory.create(ServiceQuotasClient, {
       region: accountMetadata.region,
       credentials: {
         accessKeyId: crossAccountCredentials.Credentials!.AccessKeyId!,
         secretAccessKey: crossAccountCredentials.Credentials!.SecretAccessKey!,
         sessionToken: crossAccountCredentials.Credentials!.SessionToken!,
       },
+      logger,
     });
   }
 }

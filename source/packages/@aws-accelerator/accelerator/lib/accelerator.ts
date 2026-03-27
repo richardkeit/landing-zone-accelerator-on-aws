@@ -30,6 +30,7 @@ import {
   DeploymentTargets,
 } from '@aws-accelerator/config';
 import {
+  AwsClientFactory,
   createLogger,
   throttlingBackOff,
   getCrossAccountCredentials,
@@ -1172,24 +1173,20 @@ function getCrossAccountClient(
     secretAccessKey: assumeRoleCredential.Credentials!.SecretAccessKey!,
     sessionToken: assumeRoleCredential.Credentials?.SessionToken,
   };
-  let client = undefined;
-  switch (clientType) {
-    case 'IAM':
-      client = new IAMClient({ credentials, region });
-      break;
-    case 'S3':
-      client = new S3Client({ credentials, region });
-      break;
-    case 'SSM':
-      client = new SSMClient({ credentials, region });
-      break;
-    default:
-      if (!client) {
-        logger.error(`Could not create client for client type ${clientType} in region ${region}`);
-        throw new Error(`Configuration validation failed at runtime.`);
-      }
+
+  const clientMap: Record<string, new (config: Record<string, unknown>) => IAMClient | S3Client | SSMClient> = {
+    IAM: IAMClient,
+    S3: S3Client,
+    SSM: SSMClient,
+  };
+
+  const ClientClass = clientMap[clientType];
+  if (!ClientClass) {
+    logger.error(`Could not create client for client type ${clientType} in region ${region}`);
+    throw new Error(`Configuration validation failed at runtime.`);
   }
-  return client;
+
+  return AwsClientFactory.create(ClientClass, { region, credentials, enableLogging: false });
 }
 
 export async function getCentralLogBucketKmsKeyArn(
@@ -1217,7 +1214,7 @@ export async function getCentralLogBucketKmsKeyArn(
       );
       ssmClient = (await getCrossAccountClient(region, crossAccountCredentials, 'SSM')) as SSMClient;
     } else {
-      ssmClient = new SSMClient({ region });
+      ssmClient = AwsClientFactory.create(SSMClient, { region, enableLogging: false });
     }
 
     return await getSsmParameterValue(parameterName, ssmClient);

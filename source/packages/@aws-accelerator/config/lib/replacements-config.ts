@@ -25,7 +25,7 @@ import { throttlingBackOff } from '@aws-accelerator/utils/lib/throttle';
 
 import * as t from './common';
 import * as i from './models/replacements-config';
-import { setRetryStrategy } from '@aws-accelerator/utils/lib/common-functions';
+import { AwsClientFactory } from '@aws-accelerator/utils';
 
 const logger = createLogger(['replacements-config']);
 
@@ -145,11 +145,10 @@ export class ReplacementsConfig implements i.IReplacementsConfig {
     managementAccountCredentials?: AwsCredentialIdentity,
   ): Promise<void> {
     const errors: string[] = [];
-    const ssmClient = new SSMClient({
+    const ssmClient = AwsClientFactory.create(SSMClient, {
       region: region,
-      credentials: managementAccountCredentials,
-      customUserAgent: process.env['SOLUTION_ID'] ?? '',
-      retryStrategy: setRetryStrategy(),
+      ...(managementAccountCredentials && { credentials: managementAccountCredentials }),
+      enableLogging: false,
     });
 
     for (const item of this.globalReplacements) {

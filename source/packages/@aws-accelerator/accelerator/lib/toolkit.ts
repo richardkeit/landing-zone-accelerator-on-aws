@@ -37,6 +37,7 @@ import {
   CdkAppMultiContext,
   DeploymentMethod,
   DeployResult,
+  IIoHost,
   StackSelectionStrategy,
   Toolkit,
   ToolkitError,
@@ -547,7 +548,35 @@ export class AcceleratorToolkit {
       agentOptions.port = parseInt(proxyUrl.port);
     }
 
+    const accountPrefix = options.accountId ?? '';
+
+    const levelMap: Record<string, keyof typeof logger> = {
+      error: 'error',
+      warn: 'warn',
+      info: 'info',
+      debug: 'debug',
+      trace: 'debug',
+      result: 'info',
+    };
+
+    const STACK_NAME_ACCOUNT_REGEX = /AWSAccelerator-\w+-(\d{12})-/;
+
+    const ioHost = {
+      notify: async function (msg: { level: string; message: string }) {
+        const logFn = levelMap[msg.level] ?? 'info';
+        const prefix = accountPrefix || STACK_NAME_ACCOUNT_REGEX.exec(msg.message)?.[1] || '';
+        logger[logFn](`${prefix ? prefix + ' | ' : ''}${msg.message}`);
+      },
+      requestResponse: async function (msg: { level: string; message: string; defaultResponse: unknown }) {
+        const logFn = levelMap[msg.level] ?? 'info';
+        const prefix = accountPrefix || STACK_NAME_ACCOUNT_REGEX.exec(msg.message)?.[1] || '';
+        logger[logFn](`${prefix ? prefix + ' | ' : ''}${msg.message}`);
+        return msg.defaultResponse;
+      },
+    } as IIoHost;
+
     return new Toolkit({
+      ioHost,
       sdkConfig: {
         httpOptions: {
           agent: new https.Agent(agentOptions),

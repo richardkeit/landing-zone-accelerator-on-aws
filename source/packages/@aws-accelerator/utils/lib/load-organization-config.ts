@@ -19,8 +19,9 @@ import {
   OrganizationalUnit,
   Root,
 } from '@aws-sdk/client-organizations';
-import { getGlobalRegion, setRetryStrategy } from './common-functions';
+import { getGlobalRegion } from './common-functions';
 import { throttlingBackOff } from './throttle';
+import { AwsClientFactory } from './aws-client-factory';
 
 type AcceleratorOu = {
   name: string;
@@ -40,10 +41,9 @@ export async function loadOrganizationalUnits(
    * Management account credential when deployed from external account, otherwise this should remain undefined
    */ managementAccountCredentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string },
 ): Promise<AcceleratorOu[]> {
-  const client = new OrganizationsClient({
-    retryStrategy: setRetryStrategy(),
+  const client = AwsClientFactory.create(OrganizationsClient, {
     region: getGlobalRegion(partition),
-    credentials: managementAccountCredentials,
+    ...(managementAccountCredentials && { credentials: managementAccountCredentials }),
   });
   const acceleratorOrganizationalUnit: AcceleratorOu[] = [];
   const rootResults = await throttlingBackOff(() => client.send(new ListRootsCommand({})));

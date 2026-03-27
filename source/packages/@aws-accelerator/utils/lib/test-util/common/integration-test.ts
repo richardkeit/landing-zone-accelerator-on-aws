@@ -28,7 +28,8 @@ import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 import { createLogger } from '../../logger';
 import { delay, throttlingBackOff } from '../../throttle';
 import { PolicyStatementType } from '../../common-resources';
-import { getGlobalRegion, setRetryStrategy } from '../../common-functions';
+import { getGlobalRegion } from '../../common-functions';
+import { AwsClientFactory } from '../../aws-client-factory';
 
 import {
   AcceleratorIntegrationTestResources,
@@ -223,10 +224,10 @@ export class IntegrationTest {
     //
     // Generate integration test role STS credentials
     //
-    const client = new STSClient({
+    const client = AwsClientFactory.create(STSClient, {
       region: this.environment.region,
       customUserAgent: AcceleratorIntegrationTestResources.solutionId,
-      retryStrategy: setRetryStrategy(),
+      enableLogging: false,
     });
 
     this.environment.integrationAccountStsCredentials = (await this.isInsideIntegrationAccount(client))
@@ -254,11 +255,11 @@ export class IntegrationTest {
     //
     this.logger.info(`Getting test executor STS credentials`);
     const executorRoleStsCredentials = await AcceleratorIntegrationTestResources.getCrStsCredentials(
-      new STSClient({
+      AwsClientFactory.create(STSClient, {
         region: this.environment.region,
         credentials: this.environment.integrationAccountStsCredentials,
         customUserAgent: AcceleratorIntegrationTestResources.solutionId,
-        retryStrategy: setRetryStrategy(),
+        enableLogging: false,
       }),
       executorRole.Arn!,
     );
@@ -294,11 +295,11 @@ export class IntegrationTest {
    */
   public async cleanup(): Promise<void> {
     this.logger.info(`Start environment cleanup`);
-    const iamClient: IAMClient = new IAMClient({
+    const iamClient: IAMClient = AwsClientFactory.create(IAMClient, {
       region: this.environment.region,
       customUserAgent: AcceleratorIntegrationTestResources.solutionId,
-      retryStrategy: setRetryStrategy(),
       credentials: this.environment.integrationAccountStsCredentials,
+      enableLogging: false,
     });
 
     if (!(await AcceleratorIntegrationTestResources.isRoleExists(iamClient, this.executorRoleName))) {

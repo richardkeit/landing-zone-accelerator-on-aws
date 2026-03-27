@@ -14,8 +14,8 @@ import { DynamoDBClient, DynamoDBServiceException } from '@aws-sdk/client-dynamo
 import { DynamoDBDocumentClient, paginateQuery, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { Credentials } from '@aws-sdk/types';
 import { createLogger } from './logger';
-import { setRetryStrategy } from './common-functions';
 import { DynamoDBOperationError } from './common-resources';
+import { AwsClientFactory } from './aws-client-factory';
 import * as path from 'path';
 
 const logger = createLogger([path.parse(path.basename(__filename)).name]);
@@ -36,11 +36,10 @@ export async function queryConfigTable(
   credentials?: Credentials,
   commitId?: string,
 ): Promise<Record<string, unknown>[]> {
-  const clientOptions = credentials
-    ? { credentials, retryStrategy: setRetryStrategy() }
-    : { retryStrategy: setRetryStrategy() };
-
-  const client = new DynamoDBClient(clientOptions);
+  const client = AwsClientFactory.create(DynamoDBClient, {
+    ...(credentials && { credentials }),
+    logger,
+  });
   const documentClient = DynamoDBDocumentClient.from(client);
 
   const params: QueryCommandInput = {

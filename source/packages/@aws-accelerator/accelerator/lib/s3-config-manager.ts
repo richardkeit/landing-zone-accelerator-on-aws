@@ -12,7 +12,7 @@
  */
 
 import { S3Client, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import { createLogger } from '@aws-accelerator/utils';
+import { AwsClientFactory, createLogger } from '@aws-accelerator/utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -40,7 +40,7 @@ export class S3ConfigManager {
   constructor(options: S3ConfigManagerOptions) {
     this.s3Path = options.s3Path;
     this.region = options.region;
-    this.s3Client = new S3Client({ region: this.region });
+    this.s3Client = AwsClientFactory.create(S3Client, { region: this.region, enableLogging: false });
     this.pathComponents = this.parseS3Path(options.s3Path);
   }
 

@@ -14,9 +14,9 @@ import { DynamoDBClient, DynamoDBServiceException } from '@aws-sdk/client-dynamo
 import { DynamoDBDocumentClient, GetCommand, GetCommandInput, GetCommandOutput } from '@aws-sdk/lib-dynamodb';
 import { Credentials } from '@aws-sdk/types';
 import { createLogger } from './logger';
-import { setRetryStrategy } from './common-functions';
 import { DynamoDBOperationError } from './common-resources';
 import { throttlingBackOff } from './throttle';
+import { AwsClientFactory } from './aws-client-factory';
 import * as path from 'path';
 
 const logger = createLogger([path.parse(path.basename(__filename)).name]);
@@ -38,11 +38,10 @@ export async function getColumnFromConfigTable(
   credentials?: Credentials,
 ): Promise<string> {
   // Initialize DynamoDB client with optional credentials
-  const clientOptions = credentials
-    ? { credentials, retryStrategy: setRetryStrategy() }
-    : { retryStrategy: setRetryStrategy() };
-
-  const client = new DynamoDBClient(clientOptions);
+  const client = AwsClientFactory.create(DynamoDBClient, {
+    ...(credentials && { credentials }),
+    logger,
+  });
 
   // Create DocumentClient from the base client
   const documentClient = DynamoDBDocumentClient.from(client, {

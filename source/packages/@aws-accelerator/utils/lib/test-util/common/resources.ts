@@ -28,8 +28,8 @@ import { AwsCredentialIdentity } from '@aws-sdk/types';
 
 import { createLogger } from '../../logger';
 import { delay, throttlingBackOff } from '../../throttle';
-import { setRetryStrategy } from '../../common-functions';
 import { PolicyStatementType } from '../../common-resources';
+import { AwsClientFactory } from '../../aws-client-factory';
 import {
   CloudFormationCustomResourceCreateEvent,
   CloudFormationCustomResourceDeleteEvent,
@@ -206,11 +206,11 @@ export abstract class AcceleratorIntegrationTestResources {
 
   private static async getRole(roleName: string, region: string, credentials?: AwsCredentialIdentity): Promise<Role> {
     this.logger.info(`Getting existing role ${roleName}`);
-    const client: IAMClient = new IAMClient({
+    const client: IAMClient = AwsClientFactory.create(IAMClient, {
       region,
       customUserAgent: AcceleratorIntegrationTestResources.solutionId,
-      retryStrategy: setRetryStrategy(),
-      credentials,
+      ...(credentials && { credentials }),
+      enableLogging: false,
     });
 
     const response = await throttlingBackOff(() =>
@@ -299,11 +299,11 @@ export abstract class AcceleratorIntegrationTestResources {
     integrationAccountId: string;
     credentials?: AwsCredentialIdentity;
   }): Promise<Role> {
-    const iamClient = new IAMClient({
+    const iamClient = AwsClientFactory.create(IAMClient, {
       region: props.region,
-      credentials: props.credentials,
+      ...(props.credentials && { credentials: props.credentials }),
       customUserAgent: AcceleratorIntegrationTestResources.solutionId,
-      retryStrategy: setRetryStrategy(),
+      enableLogging: false,
     });
 
     if (await AcceleratorIntegrationTestResources.isRoleExists(iamClient, props.roleName)) {

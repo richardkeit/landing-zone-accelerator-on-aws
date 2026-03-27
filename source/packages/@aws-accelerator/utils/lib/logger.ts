@@ -13,18 +13,32 @@
 
 import * as winston from 'winston';
 
+const logFormat = winston.format.printf(({ message, timestamp, level, mainLabel, childLabel }) => {
+  return `${timestamp} | ${level} | ${childLabel || mainLabel} | ${message}`;
+});
+
+// eslint-disable-next-line no-control-regex
+const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
+const stripAnsi = winston.format(info => {
+  info.message = (info.message as string).replace(ANSI_REGEX, '');
+  return info;
+});
+
 const Logger = winston.createLogger({
   defaultMeta: { mainLabel: 'accelerator' },
-  level: process.env['LOG_LEVEL'] ?? 'info',
-  format: winston.format.combine(
-    winston.format.colorize(),
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.printf(({ message, timestamp, level, mainLabel, childLabel }) => {
-      return `${timestamp} | ${level} | ${childLabel || mainLabel} | ${message}`;
+  level: 'debug',
+  format: winston.format.combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' })),
+  transports: [
+    new winston.transports.Console({
+      level: process.env['LOG_LEVEL'] ?? 'info',
+      format: winston.format.combine(winston.format.colorize(), logFormat),
     }),
-    winston.format.align(),
-  ),
-  transports: [new winston.transports.Console()],
+    new winston.transports.File({
+      filename: 'debug.log',
+      level: 'debug',
+      format: winston.format.combine(stripAnsi(), logFormat),
+    }),
+  ],
 });
 
 winston.add(Logger);
