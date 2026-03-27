@@ -3865,7 +3865,6 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
           "REPLACED-JSON-PATH.json",
         ],
         "bucketType": "elb-logs",
-        "elbAccountId": "127311923021",
         "organizationId": "o-asdf123456",
         "principalOrgIdCondition": {
           "aws:PrincipalOrgID": "o-asdf123456",
@@ -9363,7 +9362,6 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 2`] = `
           "REPLACED-JSON-PATH.json",
         ],
         "bucketType": "elb-logs",
-        "elbAccountId": "797873946194",
         "organizationId": "o-asdf123456",
         "principalOrgIdCondition": {
           "aws:PrincipalOrgID": "o-asdf123456",
@@ -14491,18 +14489,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
               "Action": "s3:PutObject",
               "Effect": "Allow",
               "Principal": {
-                "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition",
-                      },
-                      ":iam::797873946194:root",
-                    ],
-                  ],
-                },
+                "Service": "logdelivery.elasticloadbalancing.amazonaws.com",
               },
               "Resource": {
                 "Fn::Join": [
@@ -18787,18 +18774,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
               "Action": "s3:PutObject",
               "Effect": "Allow",
               "Principal": {
-                "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition",
-                      },
-                      ":iam::127311923021:root",
-                    ],
-                  ],
-                },
+                "Service": "logdelivery.elasticloadbalancing.amazonaws.com",
               },
               "Resource": {
                 "Fn::Join": [

@@ -2,20 +2,27 @@ import { generateBucketPolicy } from '../index';
 import { AcceleratorImportedBucketType, AwsPrincipalAccessesType } from '@aws-accelerator/utils';
 import { describe, expect, test } from 'vitest';
 
+interface PolicyStatement {
+  Sid?: string;
+  Effect: string;
+  Action: string[];
+  Principal: Record<string, string | string[]>;
+  Resource: string[];
+  Condition?: Record<string, Record<string, string>>;
+}
+
 describe('generateBucketPolicy', () => {
-  let elbAccountId = '';
   const firewallRoles: string[] = [];
   const applyAcceleratorManagedPolicy = 'true';
   const partition = 'aws';
   const sourceAccount = '111111111111';
-  const bucketType = AcceleratorImportedBucketType.ELB_LOGS_BUCKET;
   const bucketArn = 'arn:aws:s3:::test-bucket';
   const bucketPolicyFilePaths: string[] = [];
   const principalOrgIdCondition = { 'aws:PrincipalOrgID': '${ORG_ID}' };
   const awsPrincipalAccesses: AwsPrincipalAccessesType[] = [];
 
-  test('should include ELB account in policy when elbAccountId is provided', () => {
-    elbAccountId = '123456789012';
+  test('should use service principal for ELB access logging', () => {
+    const bucketType = AcceleratorImportedBucketType.ELB_LOGS_BUCKET;
 
     const policy = generateBucketPolicy(
       firewallRoles,
@@ -27,25 +34,23 @@ describe('generateBucketPolicy', () => {
       bucketPolicyFilePaths,
       principalOrgIdCondition,
       awsPrincipalAccesses,
-      elbAccountId,
     );
 
     const policyObj = JSON.parse(policy);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const statementWithElbAccount = policyObj.Statement.find((statement: any) =>
-      statement.Principal?.AWS?.includes(`arn:aws:iam::${elbAccountId}:root`),
+    const elbStatement = policyObj.Statement.find(
+      (statement: PolicyStatement) => statement.Sid === 'Allow write access for ELB Account principal',
     );
 
-    expect(statementWithElbAccount).toBeDefined();
-    expect(statementWithElbAccount.Effect).toBe('Allow');
-    expect(statementWithElbAccount.Action).toContain('s3:PutObject');
-    expect(statementWithElbAccount.Resource).toContain(bucketArn);
+    expect(elbStatement).toBeDefined();
+    expect(elbStatement.Effect).toBe('Allow');
+    expect(elbStatement.Action).toContain('s3:PutObject');
+    expect(elbStatement.Principal.Service).toContain('logdelivery.elasticloadbalancing.amazonaws.com');
+    expect(elbStatement.Principal.AWS).toBeUndefined();
   });
 
-  test('should not include ELB account in policy when elbAccountId is not provided', () => {
+  test('should not include ELB account principal for non-ELB bucket types', () => {
     const bucketType = AcceleratorImportedBucketType.CENTRAL_LOGS_BUCKET;
-    elbAccountId = '';
 
     const policy = generateBucketPolicy(
       firewallRoles,
@@ -57,21 +62,14 @@ describe('generateBucketPolicy', () => {
       bucketPolicyFilePaths,
       principalOrgIdCondition,
       awsPrincipalAccesses,
-      elbAccountId,
     );
 
     const policyObj = JSON.parse(policy);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const statementWithElbAccount = policyObj.Statement.find((statement: any) => {
-      if (Array.isArray(statement.Principal?.AWS)) {
-        return statement.Principal.AWS.some((principal: string) => principal.includes(':root'));
-      } else if (typeof statement.Principal?.AWS === 'string') {
-        return statement.Principal.AWS.includes(':root');
-      }
-      return false;
-    });
+    const elbStatement = policyObj.Statement.find(
+      (statement: PolicyStatement) => statement.Sid === 'Allow write access for ELB Account principal',
+    );
 
-    expect(statementWithElbAccount).toBeUndefined();
+    expect(elbStatement).toBeUndefined();
   });
 });

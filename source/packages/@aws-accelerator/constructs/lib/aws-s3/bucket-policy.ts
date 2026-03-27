@@ -56,10 +56,6 @@ export interface BucketPolicyProps {
    */
   readonly organizationId?: string;
   /**
-   * ELB account Id
-   */
-  readonly elbAccountId?: string;
-  /**
    * Custom resource lambda environment encryption key, when undefined default AWS managed key will be used
    */
   readonly customResourceLambdaEnvironmentEncryptionKmsKey?: cdk.aws_kms.IKey;
@@ -117,7 +113,6 @@ export class BucketPolicy extends Construct {
           { awsPrincipalAccesses: props.awsPrincipalAccesses },
           { principalOrgIdCondition: props.principalOrgIdCondition },
           { organizationId: props.organizationId },
-          { elbAccountId: props.elbAccountId },
           { firewallRoles: props.firewallRoles },
         ],
         forceUpdate: true,

@@ -58,7 +58,6 @@ import {
   AwsPrincipalAccessesType,
   BucketAccessType,
   PrincipalOrgIdConditionType,
-  AcceleratorElbRootAccounts,
   OptInRegions,
 } from '@aws-accelerator/utils';
 
@@ -283,7 +282,6 @@ export class LoggingStack extends AcceleratorStack {
      * For ELB to write access logs bucket is needed to have SSE-S3 server-side encryption
      */
     if (cdk.Stack.of(this).account === this.props.accountsConfig.getLogArchiveAccountId()) {
-      const elbAccountId = this.getElbAccountId();
       if (this.props.globalConfig.logging.elbLogBucket?.importedBucket) {
         const bucket = this.getImportedBucket(
           this.props.globalConfig.logging.elbLogBucket.importedBucket.name,
@@ -297,40 +295,20 @@ export class LoggingStack extends AcceleratorStack {
           bucketType: AcceleratorImportedBucketType.ELB_LOGS_BUCKET,
           overridePolicyFile: this.props.globalConfig.logging.elbLogBucket.customPolicyOverrides?.policy,
           principalOrgIdCondition,
-          elbAccountId: elbAccountId,
           organizationId: this.organizationId,
         });
 
         return bucket;
       } else {
-        return this.createElbAccessLogsBucket(replicationProps, elbAccountId);
+        return this.createElbAccessLogsBucket(replicationProps);
       }
     }
     return undefined;
   }
 
   /**
-   * Function to get ELB account id
-   * @returns
-   */
-  private getElbAccountId() {
-    let elbAccountId = undefined;
-    if (AcceleratorElbRootAccounts.get(cdk.Stack.of(this).region)) {
-      elbAccountId = AcceleratorElbRootAccounts.get(cdk.Stack.of(this).region);
-    }
-    if (this.props.networkConfig.elbAccountIds?.find(item => item.region === cdk.Stack.of(this).region)) {
-      elbAccountId = this.props.networkConfig.elbAccountIds?.find(
-        item => item.region === cdk.Stack.of(this).region,
-      )!.accountId;
-    }
-
-    return elbAccountId;
-  }
-
-  /**
    * Function to create ELB access logs bucket
    * @param replicationProps {@link BucketReplicationProps}
-   * @param elbAccountId string
    *
    * @returns bucket {@link cdk.aws_s3.IBucket} | undefined
    *
@@ -338,10 +316,7 @@ export class LoggingStack extends AcceleratorStack {
    * Create S3 Bucket for ELB Access Logs, this is created in log archive account.
    * For ELB to write access logs bucket is needed to have SSE-S3 server-side encryption
    */
-  private createElbAccessLogsBucket(
-    replicationProps?: BucketReplicationProps,
-    elbAccountId?: string,
-  ): cdk.aws_s3.IBucket | undefined {
+  private createElbAccessLogsBucket(replicationProps?: BucketReplicationProps): cdk.aws_s3.IBucket | undefined {
     const elbAccessLogsBucket = new Bucket(this, 'ElbAccessLogsBucket', {
       encryptionType: BucketEncryptionType.SSE_S3, // ELB Access Logs bucket does not support SSE-KMS
       s3BucketName: this.getElbLogsBucketName(),
@@ -369,12 +344,7 @@ export class LoggingStack extends AcceleratorStack {
       ],
     });
 
-    let elbPrincipal;
-    if (elbAccountId) {
-      elbPrincipal = new iam.AccountPrincipal(`${elbAccountId}`);
-    } else {
-      elbPrincipal = new iam.ServicePrincipal(`logdelivery.elasticloadbalancing.amazonaws.com`);
-    }
+    const elbPrincipal = new iam.ServicePrincipal('logdelivery.elasticloadbalancing.amazonaws.com');
     const policies = [
       new cdk.aws_iam.PolicyStatement({
         sid: 'Allow get acl access for SSM principal',
@@ -2073,7 +2043,6 @@ export class LoggingStack extends AcceleratorStack {
    * @param s3ResourcePolicyAttachments {@link PolicyAttachmentsType}[]
    * @param principalOrgIdCondition {@link PrincipalOrgIdConditionType}
    * @param centralLogsBucketPrincipalAndPrefixes {@link CentralLogsBucketPrincipalAndPrefixesType}
-   * @param elbAccountId string
    */
   private updateImportedBucketResourcePolicy(options: {
     bucketConfig: CentralLogBucketConfig | ElbLogBucketConfig | AccessLogBucketConfig | AssetBucketConfig;
@@ -2082,7 +2051,6 @@ export class LoggingStack extends AcceleratorStack {
     overridePolicyFile?: string;
     principalOrgIdCondition?: PrincipalOrgIdConditionType;
     centralLogsBucketPrincipalAndPrefixes?: CentralLogsBucketPrincipalAndPrefixesType;
-    elbAccountId?: string;
     organizationId?: string;
   }) {
     const externalPolicyFilePaths: string[] = [];
@@ -2131,7 +2099,6 @@ export class LoggingStack extends AcceleratorStack {
         bucketPolicyFilePaths: externalPolicyFilePaths,
         principalOrgIdCondition: options.principalOrgIdCondition,
         organizationId: options.organizationId,
-        elbAccountId: options.elbAccountId,
         customResourceLambdaEnvironmentEncryptionKmsKey: this.lambdaKey,
         customResourceLambdaCloudWatchLogKmsKey: this.cloudwatchKey,
         customResourceLambdaLogRetentionInDays: this.props.globalConfig.cloudwatchLogRetentionInDays,

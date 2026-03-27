@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Changed
+chore(logging): update elb access logs bucket for service principal 
+
 ### Added
 - feat(networking): added support for VPN route propagation on route table
 

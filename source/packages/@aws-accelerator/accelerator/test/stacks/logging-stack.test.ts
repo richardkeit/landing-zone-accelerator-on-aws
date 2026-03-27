@@ -222,6 +222,32 @@ describe('createS3KmsKey', () => {
   });
 });
 
+describe('createElbAccessLogsBucket', () => {
+  it('should use service principal for ELB access logging, not account principal', () => {
+    const props = createAcceleratorStackProps();
+    // Stack must run as the log archive account for the ELB bucket to be created
+    const stack = new LoggingStack(app, 'test-elb-principal', {
+      ...props,
+      env: { region: 'us-west-2', account: '345678901' },
+    });
+    const template = cdk.assertions.Template.fromStack(stack);
+
+    const bucketPolicies = template.findResources('AWS::S3::BucketPolicy');
+    const elbPolicy = Object.values(bucketPolicies).find((policy: any) =>
+      policy.Properties?.PolicyDocument?.Statement?.some(
+        (s: any) => s.Sid === 'Allow write access for ELB Account principal',
+      ),
+    );
+
+    expect(elbPolicy).toBeDefined();
+    const statement = (elbPolicy as any).Properties.PolicyDocument.Statement.find(
+      (s: any) => s.Sid === 'Allow write access for ELB Account principal',
+    );
+    expect(statement.Principal.Service).toBe('logdelivery.elasticloadbalancing.amazonaws.com');
+    expect(statement.Principal.AWS).toBeUndefined();
+  });
+});
+
 function createBucketConfig(name: string, bucketType: AcceleratorImportedBucketType): any {
   const importedBucket = {
     name: name,
