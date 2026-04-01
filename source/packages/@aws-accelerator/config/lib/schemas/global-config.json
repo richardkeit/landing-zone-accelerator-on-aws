@@ -1197,7 +1197,7 @@
         },
         "useV2Stacks": {
           "default": false,
-          "description": "**V2 Stacks** *(Optional)*\n\nWhether or not V2 Stacks should be enabled.\n\nWhen enabled, LZA will place newly defined resources in separate CloudFormation stacks to prevent exceeding the 500 resource per stack limit. Pre-existing resources will be preserved in their original stacks.",
+          "description": "**V2 Stacks** *(Optional)*\n\nWhether or not V2 Stacks should be enabled.\n\nWhen enabled, LZA will place newly defined resources in separate CloudFormation stacks to prevent exceeding the 500 resource per stack limit. Pre-existing resources will be preserved in their original stacks.\n\nNew deployments will have this property set to `true` in the initial config. Once enabled, this property cannot be set back to `false`.",
           "type": "boolean"
         }
       },

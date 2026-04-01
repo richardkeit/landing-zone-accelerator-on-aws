@@ -118,6 +118,9 @@ export interface IGlobalConfig {
    * When enabled, LZA will place newly defined resources in separate CloudFormation stacks to prevent exceeding the 500 resource per stack limit.
    * Pre-existing resources will be preserved in their original stacks.
    *
+   * New deployments will have this property set to `true` in the initial config.
+   * Once enabled, this property cannot be set back to `false`.
+   *
    * @default false
    */
   readonly useV2Stacks?: boolean;
