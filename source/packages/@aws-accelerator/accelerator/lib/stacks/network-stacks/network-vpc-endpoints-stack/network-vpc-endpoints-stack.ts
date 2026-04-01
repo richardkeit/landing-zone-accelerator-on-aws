@@ -756,6 +756,7 @@ export class NetworkVpcEndpointsStack extends NetworkStack {
         securityGroups: [endpointSg],
         privateDnsEnabled: privateDnsValue,
         policyDocument: this.createVpcEndpointPolicy(vpcItem, endpointItem),
+        partition: cdk.Stack.of(this).partition,
       });
       this.ssmParameters.push({
         logicalId: pascalCase(`SsmParam${vpcItem.name}${endpointItem.service}Dns`),

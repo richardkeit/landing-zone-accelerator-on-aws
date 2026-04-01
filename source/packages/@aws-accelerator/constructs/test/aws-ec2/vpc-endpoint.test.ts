@@ -215,4 +215,93 @@ describe('VpcEndpoint', () => {
   });
 
   snapShotTest(testNamePrefix, stack);
+
+  it('vpc interface endpoint uses partition-aware service prefix for aws-eusc', () => {
+    const euscStack = new cdk.Stack(undefined, 'EuscStack', {
+      env: { account: '123456789012', region: 'eusc-de-east-1' },
+    });
+    const euscSg = new SecurityGroup(euscStack, 'EuscSg', {
+      securityGroupName: 'EuscSg',
+      description: 'Test SG',
+      vpcId: 'Test',
+    });
+    new VpcEndpoint(euscStack, 'VpcEndpointEusc', {
+      vpcId: 'Test',
+      vpcEndpointType: VpcEndpointType.INTERFACE,
+      service: 'ecr.dkr',
+      subnets: ['Test1', 'Test2'],
+      securityGroups: [euscSg],
+      privateDnsEnabled: true,
+      partition: 'aws-eusc',
+    });
+    const template = cdk.assertions.Template.fromStack(euscStack);
+    template.hasResourceProperties('AWS::EC2::VPCEndpoint', {
+      ServiceName: cdk.assertions.Match.exact('eu.amazonaws.eusc-de-east-1.ecr.dkr'),
+    });
+  });
+
+  it('vpc interface endpoint uses partition-aware service prefix for aws-cn', () => {
+    const cnStack = new cdk.Stack(undefined, 'CnStack', {
+      env: { account: '123456789012', region: 'cn-north-1' },
+    });
+    const cnSg = new SecurityGroup(cnStack, 'CnSg', {
+      securityGroupName: 'CnSg',
+      description: 'Test SG',
+      vpcId: 'Test',
+    });
+    new VpcEndpoint(cnStack, 'VpcEndpointCn', {
+      vpcId: 'Test',
+      vpcEndpointType: VpcEndpointType.INTERFACE,
+      service: 'ecr.dkr',
+      subnets: ['Test1', 'Test2'],
+      securityGroups: [cnSg],
+      privateDnsEnabled: true,
+      partition: 'aws-cn',
+    });
+    const template = cdk.assertions.Template.fromStack(cnStack);
+    template.hasResourceProperties('AWS::EC2::VPCEndpoint', {
+      ServiceName: cdk.assertions.Match.exact('cn.com.amazonaws.cn-north-1.ecr.dkr'),
+    });
+  });
+
+  it('vpc interface endpoint defaults to com.amazonaws for standard partition', () => {
+    const awsStack = new cdk.Stack(undefined, 'AwsStack', {
+      env: { account: '123456789012', region: 'us-east-1' },
+    });
+    const awsSg = new SecurityGroup(awsStack, 'AwsSg', {
+      securityGroupName: 'AwsSg',
+      description: 'Test SG',
+      vpcId: 'Test',
+    });
+    new VpcEndpoint(awsStack, 'VpcEndpointAws', {
+      vpcId: 'Test',
+      vpcEndpointType: VpcEndpointType.INTERFACE,
+      service: 'ecr.dkr',
+      subnets: ['Test1', 'Test2'],
+      securityGroups: [awsSg],
+      privateDnsEnabled: true,
+      partition: 'aws',
+    });
+    const template = cdk.assertions.Template.fromStack(awsStack);
+    template.hasResourceProperties('AWS::EC2::VPCEndpoint', {
+      ServiceName: cdk.assertions.Match.exact('com.amazonaws.us-east-1.ecr.dkr'),
+    });
+  });
+
+  it('vpc gwlb endpoint uses partition-aware service prefix for aws-eusc', () => {
+    const euscGwlbStack = new cdk.Stack(undefined, 'EuscGwlbStack', {
+      env: { account: '123456789012', region: 'eusc-de-east-1' },
+    });
+    new VpcEndpoint(euscGwlbStack, 'VpcEndpointGwlbEusc', {
+      vpcId: 'Test',
+      vpcEndpointType: VpcEndpointType.GWLB,
+      service: 'vpce-svc-12345',
+      subnets: ['Test1', 'Test2'],
+      partition: 'aws-eusc',
+    });
+    const template = cdk.assertions.Template.fromStack(euscGwlbStack);
+    template.hasResourceProperties('AWS::EC2::VPCEndpoint', {
+      ServiceName: cdk.assertions.Match.exact('eu.amazonaws.vpce.eusc-de-east-1.vpce-svc-12345'),
+    });
+  });
 });

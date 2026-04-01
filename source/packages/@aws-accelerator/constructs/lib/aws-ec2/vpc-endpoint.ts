@@ -14,6 +14,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { ISecurityGroup } from './vpc';
+import { getVpcEndpointServicePrefix } from '@aws-accelerator/utils';
 
 export interface IVpcEndpoint extends cdk.IResource {
   readonly vpcEndpointId: string;
@@ -98,19 +99,18 @@ export class VpcEndpoint extends VpcEndpointBase {
     const sagemakerArray = ['notebook', 'studio'];
 
     if (props.vpcEndpointType === VpcEndpointType.INTERFACE) {
-      let serviceName = `com.amazonaws.${cdk.Stack.of(this).region}.${props.service}`;
+      const servicePrefix = getVpcEndpointServicePrefix(props.partition ?? cdk.Stack.of(this).partition);
+      let serviceName = `${servicePrefix}.${cdk.Stack.of(this).region}.${props.service}`;
       if (sagemakerArray.includes(this.service)) {
         serviceName = `aws.sagemaker.${cdk.Stack.of(this).region}.${props.service}`;
       }
       if (this.service === 's3-global.accesspoint') {
-        serviceName = `com.amazonaws.${props.service}`;
+        serviceName = `${servicePrefix}.${props.service}`;
       }
       if (this.service === 'iam') {
-        serviceName = `com.amazonaws.${props.service}`;
+        serviceName = `${servicePrefix}.${props.service}`;
       }
-      // Add the ability against China region to override serviceName due to the prefix of
-      // serviceName is inconsistent (com.amazonaws vs cn.com.amazonaws) for VPC interface
-      // endpoints in that region.
+      // Allow explicit serviceName override for non-standard service name patterns
       if (props.serviceName) {
         serviceName = props.serviceName;
       }
@@ -147,7 +147,7 @@ export class VpcEndpoint extends VpcEndpointBase {
       this.vpcEndpointId = resource.ref;
       return;
     } else {
-      const servicePrefix = props.partition === 'aws-cn' ? 'cn.com.amazonaws' : 'com.amazonaws';
+      const servicePrefix = getVpcEndpointServicePrefix(props.partition ?? cdk.Stack.of(this).partition);
       const serviceName = `${servicePrefix}.vpce.${cdk.Stack.of(this).region}.${props.service}`;
 
       const resource = new cdk.aws_ec2.CfnVPCEndpoint(this, 'Resource', {

@@ -15,6 +15,7 @@ import {
   getNodeVersion,
   chunkArray,
   getStsEndpoint,
+  getVpcEndpointServicePrefix,
   wildcardMatch,
   getCrossAccountCredentials,
   getCurrentAccountId,
@@ -226,6 +227,28 @@ describe('getStsEndpoint', () => {
   it('should handle empty strings correctly', () => {
     const endpoint = getStsEndpoint('', '');
     expect(endpoint).toBe('https://sts..amazonaws.com');
+  });
+});
+
+describe('getVpcEndpointServicePrefix', () => {
+  it('should return com.amazonaws for aws partition', () => {
+    expect(getVpcEndpointServicePrefix('aws')).toBe('com.amazonaws');
+  });
+
+  it('should return com.amazonaws for aws-us-gov partition', () => {
+    expect(getVpcEndpointServicePrefix('aws-us-gov')).toBe('com.amazonaws');
+  });
+
+  it('should return cn.com.amazonaws for aws-cn partition', () => {
+    expect(getVpcEndpointServicePrefix('aws-cn')).toBe('cn.com.amazonaws');
+  });
+
+  it('should return eu.amazonaws for aws-eusc partition', () => {
+    expect(getVpcEndpointServicePrefix('aws-eusc')).toBe('eu.amazonaws');
+  });
+
+  it('should return com.amazonaws for unknown partitions', () => {
+    expect(getVpcEndpointServicePrefix('unknown')).toBe('com.amazonaws');
   });
 });
 

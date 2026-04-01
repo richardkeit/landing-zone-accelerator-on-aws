@@ -201,6 +201,29 @@ export function getStsEndpoint(partition: string, region: string): string {
   return `https://sts.${region}.amazonaws.com`;
 }
 
+/**
+ * Returns the VPC endpoint service name prefix for the given partition.
+ *
+ * VPC endpoint service names follow the pattern `{prefix}.{region}.{service}`.
+ * The prefix varies by partition:
+ * - aws, aws-us-gov: com.amazonaws
+ * - aws-cn: cn.com.amazonaws
+ * - aws-eusc: eu.amazonaws
+ *
+ * @param partition - The AWS partition identifier
+ * @returns The VPC endpoint service name prefix for the partition
+ */
+export function getVpcEndpointServicePrefix(partition: string): string {
+  switch (partition) {
+    case 'aws-cn':
+      return 'cn.com.amazonaws';
+    case 'aws-eusc':
+      return 'eu.amazonaws';
+    default:
+      return 'com.amazonaws';
+  }
+}
+
 // Converts strings with wildcards (*) to regular expressions to determine if log group name matches exclusion pattern
 export function wildcardMatch(text: string, pattern: string): boolean {
   const regexPattern = new RegExp('^' + pattern.replace(/\?/g, '.').replace(/\*/g, '.*') + '$');
