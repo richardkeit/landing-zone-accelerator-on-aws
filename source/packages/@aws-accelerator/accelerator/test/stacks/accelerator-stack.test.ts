@@ -38,6 +38,10 @@ class TestStack extends AcceleratorStack {
   constructor(scope: Construct, id: string, props: AcceleratorStackProps) {
     super(scope, id, props);
   }
+
+  public getServiceLinkedRoleSupportedPartitionList(): string[] {
+    return this.serviceLinkedRoleSupportedPartitionList;
+  }
 }
 
 let app: cdk.App;
@@ -83,5 +87,23 @@ describe('isIncluded', () => {
   it('implicit deny', () => {
     const deploymentTargets = {} as DeploymentTargets;
     expect(testStack.isIncluded(deploymentTargets)).toBeFalsy();
+  });
+});
+
+describe('serviceLinkedRoleSupportedPartitionList', () => {
+  it('should include aws-eusc partition', () => {
+    const partitions = testStack.getServiceLinkedRoleSupportedPartitionList();
+    expect(partitions).toContain('aws-eusc');
+  });
+
+  it('should include all standard partitions', () => {
+    const partitions = testStack.getServiceLinkedRoleSupportedPartitionList();
+    expect(partitions).toContain('aws');
+    expect(partitions).toContain('aws-cn');
+    expect(partitions).toContain('aws-us-gov');
+    expect(partitions).toContain('aws-iso');
+    expect(partitions).toContain('aws-iso-b');
+    expect(partitions).toContain('aws-iso-f');
+    expect(partitions).toContain('aws-eusc');
   });
 });
