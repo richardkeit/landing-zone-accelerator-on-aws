@@ -26,18 +26,18 @@
  * - Comprehensive error handling for admin operations
  */
 
-import path from 'path';
 import {
   DisableOrganizationAdminAccountCommand,
   EnableOrganizationAdminAccountCommand,
   Macie2Client,
   MacieStatus,
 } from '@aws-sdk/client-macie2';
-import { executeApi, waitUntil } from '../common/utility';
+import path from 'node:path';
 import { MODULE_EXCEPTIONS } from '../common/types';
+import { executeApi, waitUntil } from '../common/utility';
 
-import { listAdminAccounts } from './functions';
 import { createLogger } from '../common/logger';
+import { listAdminAccounts } from './functions';
 
 const logger = createLogger([path.parse(path.basename(__filename)).name]);
 
@@ -77,15 +77,20 @@ export abstract class OrganizationsDelegatedAdminAccount {
       `Waiting for confirmation that ${delegatedAdminAccountId} was removed as Macie Organization Admin.`,
       logPrefix,
     );
-    await waitUntil(async () => {
-      const accounts = await listAdminAccounts(client, logPrefix);
-      for (const account of accounts) {
-        if (account.status === MacieStatus.ENABLED || account.accountId === delegatedAdminAccountId) {
-          return false;
+    await waitUntil(
+      async () => {
+        const accounts = await listAdminAccounts(client, logPrefix);
+        for (const account of accounts) {
+          if (account.status === MacieStatus.ENABLED || account.accountId === delegatedAdminAccountId) {
+            return false;
+          }
         }
-      }
-      return true;
-    }, `Could not get confirmation that ${delegatedAdminAccountId} was removed as Macie Organization Admin`);
+        return true;
+      },
+      `Could not get confirmation that ${delegatedAdminAccountId} was removed as Macie Organization Admin`,
+      logger,
+      logPrefix,
+    );
   }
 
   /**
@@ -124,12 +129,17 @@ export abstract class OrganizationsDelegatedAdminAccount {
       `Waiting for confirmation that Macie Organization Admin was set to ${delegatedAdminAccountId}`,
       logPrefix,
     );
-    await waitUntil(async () => {
-      return (
-        (await OrganizationsDelegatedAdminAccount.getOrganizationAdminAccountId(client, logPrefix)) ===
-        delegatedAdminAccountId
-      );
-    }, `Could not get confirmation that Macie Organization admin was set to ${delegatedAdminAccountId}`);
+    await waitUntil(
+      async () => {
+        return (
+          (await OrganizationsDelegatedAdminAccount.getOrganizationAdminAccountId(client, logPrefix)) ===
+          delegatedAdminAccountId
+        );
+      },
+      `Could not get confirmation that Macie Organization admin was set to ${delegatedAdminAccountId}`,
+      logger,
+      logPrefix,
+    );
   }
 
   /**

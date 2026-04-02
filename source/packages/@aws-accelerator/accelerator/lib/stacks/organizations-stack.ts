@@ -174,7 +174,11 @@ export class OrganizationsStack extends AcceleratorStack {
     }
 
     // Macie Configuration
-    this.enableMacieDelegatedAdminAccount(securityAdminAccountId);
+    // Only create custom resources if Macie module is skipped
+    // When module runs successfully, it manages Macie via API calls
+    if (this.createMacieCustomResource) {
+      this.enableMacieDelegatedAdminAccount(securityAdminAccountId);
+    }
 
     //GuardDuty Config
     this.enableGuardDutyDelegatedAdminAccount(securityAdminAccountId);
@@ -534,7 +538,7 @@ export class OrganizationsStack extends AcceleratorStack {
    * @param adminAccountId
    */
   private enableMacieDelegatedAdminAccount(adminAccountId: string) {
-    if (this.centralSecurityServices.macie.enable) {
+    if (this.centralSecurityServices.macie?.enable) {
       if ((this.centralSecurityServices.macie.excludeRegions ?? []).indexOf(cdk.Stack.of(this).region) == -1) {
         this.logger.debug(
           `Starts macie admin account delegation to the account with email ${

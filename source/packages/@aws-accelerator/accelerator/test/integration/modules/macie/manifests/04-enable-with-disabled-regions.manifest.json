@@ -1,0 +1,36 @@
+{
+    "name": "enable-with-disabled-regions",
+    "description": "Enable Macie with multi-region boundary — us-east-1 enabled, us-west-2 actively disabled",
+    "order": 4,
+    "moduleConfig": {
+        "enable": true,
+        "delegatedAdminAccount": "Audit",
+        "boundary": {
+            "regions": [
+                "us-east-1",
+                "us-west-2",
+                "eu-west-1"
+            ]
+        },
+        "regionFilters": {
+            "ignoredRegions": [
+                "eu-west-1"
+            ],
+            "disabledRegions": [
+                "us-west-2"
+            ]
+        },
+        "policyFindingsPublishingFrequency": "SIX_HOURS",
+        "publishSensitiveDataFindings": false,
+        "publishPolicyFindings": false,
+        "automatedDiscoveryEnabled": true
+    },
+    "expectedAssertions": {
+        "macieSessionEnabled": true,
+        "delegatedAdminConfigured": true,
+        "publishingFrequency": "SIX_HOURS",
+        "regionIgnored": "eu-west-1",
+        "automatedDiscoveryEnabled": true
+    },
+    "skipCleanup": true
+}

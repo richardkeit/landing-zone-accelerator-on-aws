@@ -11,14 +11,15 @@
  *  and limitations under the License.
  */
 
-import { describe, beforeEach, afterEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   delay,
-  waitUntil,
-  setRetryStrategy,
   executeApi,
   getAcceleratorAccountType,
+  processInBatches,
+  setRetryStrategy,
   validateRegionFilters,
+  waitUntil,
 } from '../../../lib/common/utility';
 
 vi.mock('@aws-sdk/util-retry', () => ({
@@ -36,6 +37,11 @@ const mockLogger = {
   info: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
+  processStart: vi.fn(),
+  processEnd: vi.fn(),
+  dryRun: vi.fn(),
+  commandExecution: vi.fn(),
+  commandSuccess: vi.fn(),
 };
 
 describe('utility', () => {
@@ -59,7 +65,7 @@ describe('utility', () => {
   describe('waitUntil', () => {
     test('should return when predicate is true', async () => {
       const predicate = vi.fn().mockResolvedValue(true);
-      await waitUntil(predicate, 'error');
+      await waitUntil(predicate, 'error', mockLogger, 'test-prefix');
       expect(predicate).toHaveBeenCalledTimes(1);
     });
 
@@ -67,7 +73,7 @@ describe('utility', () => {
       const predicate = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(false).mockResolvedValueOnce(true);
       const mockDelay = vi.fn().mockResolvedValue(undefined);
 
-      const promise = waitUntil(predicate, 'error', 5, 1, mockDelay);
+      const promise = waitUntil(predicate, 'error', mockLogger, 'test-prefix', 5, 1, mockDelay);
       await promise;
 
       expect(predicate).toHaveBeenCalledTimes(3);
@@ -78,7 +84,7 @@ describe('utility', () => {
       const predicate = vi.fn().mockResolvedValue(false);
       const mockDelay = vi.fn().mockResolvedValue(undefined);
 
-      await expect(waitUntil(predicate, 'timeout error', 2, 1, mockDelay)).rejects.toThrow(
+      await expect(waitUntil(predicate, 'timeout error', mockLogger, 'test-prefix', 2, 1, mockDelay)).rejects.toThrow(
         'ServiceException: timeout error',
       );
 
@@ -226,6 +232,150 @@ describe('utility', () => {
         ignoredRegions: [],
       };
       expect(() => validateRegionFilters(false, mockLogger, 'test', regionFilters)).not.toThrow();
+    });
+  });
+
+  describe('processInBatches', () => {
+    beforeEach(() => {
+      vi.useRealTimers();
+    });
+
+    test('should process all items successfully', async () => {
+      const processed: number[] = [];
+      const handler = vi.fn(async (item: number) => {
+        processed.push(item);
+      });
+
+      await processInBatches([1, 2, 3], 2, handler, mockLogger, 'test');
+
+      expect(handler).toHaveBeenCalledTimes(3);
+      expect(processed).toEqual(expect.arrayContaining([1, 2, 3]));
+    });
+
+    test('should process items in batches of specified size', async () => {
+      const batchTracker: number[][] = [];
+      let currentBatch: number[] = [];
+
+      const handler = vi.fn(async (item: number) => {
+        currentBatch.push(item);
+      });
+
+      // Override mockLogger.info to detect batch boundaries
+      mockLogger.info.mockImplementation((msg: string) => {
+        if (msg.startsWith('Processing batch')) {
+          if (currentBatch.length > 0) {
+            batchTracker.push([...currentBatch]);
+            currentBatch = [];
+          }
+        }
+      });
+
+      await processInBatches([1, 2, 3, 4, 5], 2, handler, mockLogger, 'test');
+      // Push the last batch
+      if (currentBatch.length > 0) {
+        batchTracker.push([...currentBatch]);
+      }
+
+      expect(batchTracker.length).toBe(3); // batches: [1,2], [3,4], [5]
+      expect(handler).toHaveBeenCalledTimes(5);
+    });
+
+    test('should handle empty items array', async () => {
+      const handler = vi.fn(async () => {
+        /* no-op */
+      });
+
+      await processInBatches([], 10, handler, mockLogger, 'test');
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    test('should collect errors and throw aggregated error', async () => {
+      const handler = vi.fn(async (item: number) => {
+        if (item === 2 || item === 4) {
+          throw new Error(`Failed for item ${item}`);
+        }
+      });
+
+      await expect(processInBatches([1, 2, 3, 4, 5], 10, handler, mockLogger, 'test')).rejects.toThrow(
+        '2 of 5 batch operations failed',
+      );
+
+      expect(handler).toHaveBeenCalledTimes(5);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Batch item 1 failed: Failed for item 2'),
+        'test',
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Batch item 3 failed: Failed for item 4'),
+        'test',
+      );
+    });
+
+    test('should continue processing remaining batches after batch errors', async () => {
+      const processed: number[] = [];
+      const handler = vi.fn(async (item: number) => {
+        if (item === 1) {
+          throw new Error('First item failed');
+        }
+        processed.push(item);
+      });
+
+      await expect(processInBatches([1, 2, 3, 4], 2, handler, mockLogger, 'test')).rejects.toThrow(
+        '1 of 4 batch operations failed',
+      );
+
+      // Items 2, 3, 4 should still be processed despite item 1 failing
+      expect(processed).toEqual(expect.arrayContaining([2, 3, 4]));
+    });
+
+    test('should handle non-Error rejection values', async () => {
+      const handler = vi.fn(async (item: number) => {
+        if (item === 1) {
+          throw 'string error';
+        }
+      });
+
+      await expect(processInBatches([1, 2], 10, handler, mockLogger, 'test')).rejects.toThrow(
+        '1 of 2 batch operations failed: string error',
+      );
+    });
+
+    test('should run items within a batch concurrently', async () => {
+      const startTimes: number[] = [];
+      const handler = vi.fn(async () => {
+        startTimes.push(Date.now());
+        await new Promise<void>(resolve => setTimeout(resolve, 50));
+      });
+
+      await processInBatches([1, 2, 3], 3, handler, mockLogger, 'test');
+
+      // All 3 items should start at roughly the same time (within 20ms)
+      const maxDiff = Math.max(...startTimes) - Math.min(...startTimes);
+      expect(maxDiff).toBeLessThan(20);
+    });
+
+    test('should log batch progress', async () => {
+      const handler = vi.fn(async () => {
+        /* no-op */
+      });
+
+      await processInBatches([1, 2, 3, 4, 5], 2, handler, mockLogger, 'test');
+
+      expect(mockLogger.info).toHaveBeenCalledWith('Processing batch 1 of 3 (2 items)', 'test');
+      expect(mockLogger.info).toHaveBeenCalledWith('Processing batch 2 of 3 (2 items)', 'test');
+      expect(mockLogger.info).toHaveBeenCalledWith('Processing batch 3 of 3 (1 items)', 'test');
+    });
+
+    test('should handle batch size larger than items count', async () => {
+      const handler = vi.fn(async () => {
+        /* no-op */
+      });
+
+      await processInBatches([1, 2], 100, handler, mockLogger, 'test');
+
+      expect(handler).toHaveBeenCalledTimes(2);
+      expect(mockLogger.info).toHaveBeenCalledWith('Processing batch 1 of 1 (2 items)', 'test');
     });
   });
 });

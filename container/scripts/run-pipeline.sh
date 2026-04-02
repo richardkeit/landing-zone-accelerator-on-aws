@@ -86,6 +86,12 @@ SomeStacks=( $stack1 $stack2 $stack3 $stack4 $stack5 $stack6 $stack7 $stack8 $st
 
 cd /landing-zone-accelerator-on-aws/source/packages/\@aws-accelerator/installer
 
+echo "Setting up Module Runner Infrastructure"
+
+set -e && ./lib/bash/create-module-infrastructure.sh $ACCELERATOR_PREFIX $AWS_REGION $PIPELINE_ACCOUNT_ID
+
+export VERBOSE_LOG_GROUP_NAME="${ACCELERATOR_PREFIX}-Module-Verbose-Logs"
+
 # Handle external pipeline role assumption for bootstrap
 if [ -n "$MANAGEMENT_ACCOUNT_ID" ] && [ -n "$MANAGEMENT_ACCOUNT_ROLE_NAME" ]; then
     echo "External pipeline mode: Assuming role for bootstrap operations"
@@ -153,8 +159,7 @@ for Item1 in prepare accounts; do
     echo "DEPLOYING $Item1 STACK"
 
     export ACCELERATOR_STAGE=$Item1
-    RUNNER_ARGS="--partition ${PARTITION} --region ${AWS_REGION} --config-dir $srcDirConfig --stage $Item1 --prefix AWSAccelerator"
-    set -e && yarn run ts-node ../modules/bin/runner.ts $RUNNER_ARGS
+    set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage $ACCELERATOR_STAGE --verbose
     
     yarn run ts-node --transpile-only cdk.ts synth \
         --stage $Item1 \
@@ -180,8 +185,7 @@ done
 # This ensures all newly created accounts are properly bootstrapped
 echo "BOOTSTRAPPING ALL ACCOUNTS"
 
-RUNNER_ARGS="--partition ${PARTITION} --region ${AWS_REGION} --config-dir $srcDirConfig --stage bootstrap --prefix AWSAccelerator"
-set -e && yarn run ts-node ../modules/bin/runner.ts $RUNNER_ARGS
+set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage bootstrap --verbose
 yarn run ts-node --transpile-only cdk.ts --require-approval never synth \
     --stage bootstrap \
     --config-dir $srcDirConfig \
@@ -195,8 +199,8 @@ yarn run ts-node --transpile-only cdk.ts --require-approval never bootstrap \
     --app cdk.out
 
 ## adding this specifically for network refactor v2 stacks
-RUNNER_ARGS="--partition ${PARTITION} --region ${AWS_REGION} --config-dir $srcDirConfig --stage network-vpc --prefix AWSAccelerator"
-set -e && CDK_OPTIONS=bootstrap yarn run ts-node ../modules/bin/runner.ts $RUNNER_ARGS
+
+set -e && CDK_OPTIONS=bootstrap yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage network-vpc --verbose
 
 
 if [ $? -ne 0 ]; then
@@ -213,8 +217,7 @@ if [ -z "$SomeStacks" ]; then
     echo "Deploying all remaining stacks in sequence"
     for Item1 in ${AllStacks[*]}; do
         echo "DEPLOYING $Item1 STAGE"
-        RUNNER_ARGS="--partition ${PARTITION} --region ${AWS_REGION} --config-dir $srcDirConfig --stage $Item1 --prefix AWSAccelerator"
-        set -e && yarn run ts-node ../modules/bin/runner.ts $RUNNER_ARGS
+        set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage $Item1 --verbose
         
         yarn run ts-node --transpile-only cdk.ts synth \
             --stage $Item1 \
@@ -240,9 +243,8 @@ else
     echo "DEPLOYING ${SomeStacks[*]} STAGES"
     for Item2 in ${SomeStacks[*]}; do
         echo "DEPLOYING $Item2 STAGE"
-
-        RUNNER_ARGS="--partition ${PARTITION} --region ${AWS_REGION} --config-dir $srcDirConfig --stage $Item2 --prefix AWSAccelerator"
-        set -e && yarn run ts-node ../modules/bin/runner.ts $RUNNER_ARGS
+        
+        set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage $Item2 --verbose
         
         yarn run ts-node --transpile-only cdk.ts synth \
             --stage $Item2 \

@@ -97,7 +97,7 @@ export class KeyStack extends AcceleratorStack {
     ];
 
     // Deprecated
-    if (props.securityConfig.centralSecurityServices.macie.enable) {
+    if (props.securityConfig.centralSecurityServices.macie?.enable) {
       allowedServicePrincipals.push({ name: 'Macie', principal: 'macie.amazonaws.com' });
     }
     // Deprecated

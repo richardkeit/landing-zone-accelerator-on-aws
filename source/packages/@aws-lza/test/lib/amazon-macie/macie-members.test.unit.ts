@@ -11,9 +11,9 @@
  *  and limitations under the License.
  */
 
-import { describe, beforeEach, expect, test, vi } from 'vitest';
-import { Macie2Client, RelationshipStatus, AccessDeniedException } from '@aws-sdk/client-macie2';
+import { AccessDeniedException, Macie2Client, RelationshipStatus } from '@aws-sdk/client-macie2';
 import { Account } from '@aws-sdk/client-organizations';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { MacieMembers } from '../../../lib/amazon-macie/macie-members';
 
 vi.mock('@aws-sdk/client-macie2', () => ({
@@ -28,9 +28,13 @@ vi.mock('@aws-sdk/client-macie2', () => ({
   AccessDeniedException: vi.fn(),
 }));
 
-vi.mock('../../../lib/common/utility', () => ({
-  executeApi: vi.fn(),
-}));
+vi.mock('../../../lib/common/utility', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../../lib/common/utility')>();
+  return {
+    ...actual,
+    executeApi: vi.fn(),
+  };
+});
 
 vi.mock('../../../lib/common/logger', () => {
   const mockLogger = {
@@ -65,12 +69,12 @@ describe('MacieMembers', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const utility = await import('../../../lib/common/utility');
+    const utility = await import('../../../lib/common/utility.js');
     const macie = await import('@aws-sdk/client-macie2');
-    const logger = await import('../../../lib/common/logger');
+    const logger = await import('../../../lib/common/logger.js');
     mockExecuteApi = vi.mocked(utility.executeApi);
     mockPaginate = vi.mocked(macie.paginateListMembers);
-    mockLogger = (logger as { mockLogger: typeof mockLogger }).mockLogger;
+    mockLogger = (logger as unknown as { mockLogger: typeof mockLogger }).mockLogger;
 
     // Mock client.send method
     mockClient.send = vi.fn().mockResolvedValue({});
@@ -181,6 +185,22 @@ describe('MacieMembers', () => {
 
       expect(mockExecuteApi).toHaveBeenCalledTimes(3); // CreateMember, UpdateOrganization, and isOrganizationAutoEnabled
     });
+
+    test('should use MAX_MEMBER_BATCH_SIZE env var for batch size in enable flow', async () => {
+      process.env['MAX_MEMBER_BATCH_SIZE'] = '5';
+      const mockPaginator = {
+        [Symbol.asyncIterator]: async function* () {
+          yield { members: [] };
+        },
+      };
+      mockPaginate.mockReturnValue(mockPaginator);
+      mockExecuteApi.mockResolvedValue({ autoEnable: true });
+
+      await MacieMembers.enable(mockClient, mockAccounts, adminAccountId, false, logPrefix);
+
+      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('in batches of 5'), logPrefix);
+      delete process.env['MAX_MEMBER_BATCH_SIZE'];
+    });
   });
 
   describe('disable', () => {
@@ -211,6 +231,24 @@ describe('MacieMembers', () => {
         expect.anything(),
         logPrefix,
       );
+    });
+
+    test('should use MAX_MEMBER_BATCH_SIZE env var for batch size in disable flow', async () => {
+      process.env['MAX_MEMBER_BATCH_SIZE'] = '3';
+      const mockPaginator = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            members: [{ accountId: '222222222222' }, { accountId: '333333333333' }],
+          };
+        },
+      };
+      mockPaginate.mockReturnValue(mockPaginator);
+      mockExecuteApi.mockResolvedValue({ autoEnable: false });
+
+      await MacieMembers.disable(mockClient, mockAccounts, adminAccountId, false, logPrefix);
+
+      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('in batches of 3'), logPrefix);
+      delete process.env['MAX_MEMBER_BATCH_SIZE'];
     });
 
     test('should handle dry run', async () => {
@@ -289,10 +327,10 @@ describe('MacieMembers', () => {
 
     test('should achieve 100% coverage by mocking listMembers to return data in dry run', async () => {
       // Mock the private listMembers method to return data even in dry run mode
-      const originalListMembers = (MacieMembers as { listMembers: unknown }).listMembers;
+      const originalListMembers = (MacieMembers as unknown as { listMembers: unknown }).listMembers;
 
       // Test line 50: DeleteMemberCommand dry run with removed member
-      (MacieMembers as { listMembers: ReturnType<typeof vi.fn> }).listMembers = vi
+      (MacieMembers as unknown as { listMembers: ReturnType<typeof vi.fn> }).listMembers = vi
         .fn()
         .mockResolvedValue([{ accountId: '222222222222', relationshipStatus: RelationshipStatus.Removed }]);
       mockExecuteApi.mockResolvedValue({ autoEnable: false });
@@ -306,7 +344,9 @@ describe('MacieMembers', () => {
       );
 
       // Test lines 70-74: CreateMemberCommand dry run with no existing member
-      (MacieMembers as { listMembers: ReturnType<typeof vi.fn> }).listMembers = vi.fn().mockResolvedValue([]);
+      (MacieMembers as unknown as { listMembers: ReturnType<typeof vi.fn> }).listMembers = vi
+        .fn()
+        .mockResolvedValue([]);
 
       await MacieMembers.enable(
         mockClient,
@@ -317,7 +357,7 @@ describe('MacieMembers', () => {
       );
 
       // Test lines 118-119: DisassociateMemberCommand and DeleteMemberCommand dry run
-      (MacieMembers as { listMembers: ReturnType<typeof vi.fn> }).listMembers = vi
+      (MacieMembers as unknown as { listMembers: ReturnType<typeof vi.fn> }).listMembers = vi
         .fn()
         .mockResolvedValue([{ accountId: '444444444444' }]);
 
@@ -330,7 +370,7 @@ describe('MacieMembers', () => {
       );
 
       // Restore original method
-      (MacieMembers as { listMembers: unknown }).listMembers = originalListMembers;
+      (MacieMembers as unknown as { listMembers: unknown }).listMembers = originalListMembers;
 
       // Verify that dry run was called multiple times
       expect(mockLogger.dryRun).toHaveBeenCalled();
@@ -338,8 +378,8 @@ describe('MacieMembers', () => {
 
     test('should cover lines 70-74 - CreateMemberCommand else block with removed member', async () => {
       // Mock listMembers to return a removed member
-      const originalListMembers = (MacieMembers as { listMembers: unknown }).listMembers;
-      (MacieMembers as { listMembers: ReturnType<typeof vi.fn> }).listMembers = vi
+      const originalListMembers = (MacieMembers as unknown as { listMembers: unknown }).listMembers;
+      (MacieMembers as unknown as { listMembers: ReturnType<typeof vi.fn> }).listMembers = vi
         .fn()
         .mockResolvedValue([{ accountId: '333333333333', relationshipStatus: RelationshipStatus.Removed }]);
       mockExecuteApi.mockResolvedValue({ autoEnable: false });
@@ -354,7 +394,7 @@ describe('MacieMembers', () => {
       );
 
       // Restore original method
-      (MacieMembers as { listMembers: unknown }).listMembers = originalListMembers;
+      (MacieMembers as unknown as { listMembers: unknown }).listMembers = originalListMembers;
 
       // Verify executeApi was called for both DeleteMemberCommand and CreateMemberCommand
       expect(mockExecuteApi).toHaveBeenCalledWith(
@@ -375,14 +415,16 @@ describe('MacieMembers', () => {
 
     test('should cover lines 70-74 - CreateMemberCommand else block with no existing member', async () => {
       // Mock listMembers to return empty array (no existing members)
-      const originalListMembers = (MacieMembers as { listMembers: unknown }).listMembers;
-      (MacieMembers as { listMembers: ReturnType<typeof vi.fn> }).listMembers = vi.fn().mockResolvedValue([]);
+      const originalListMembers = (MacieMembers as unknown as { listMembers: unknown }).listMembers;
+      (MacieMembers as unknown as { listMembers: ReturnType<typeof vi.fn> }).listMembers = vi
+        .fn()
+        .mockResolvedValue([]);
 
       // Mock client.send method
       mockClient.send = vi.fn().mockResolvedValue({});
 
       // Mock executeApi to actually call the function passed to it (lines 70-74)
-      mockExecuteApi.mockImplementation(async (commandName, params, fn) => {
+      mockExecuteApi.mockImplementation(async (commandName, _params, fn) => {
         if (commandName === 'CreateMemberCommand') {
           // Execute the function to cover lines 70-74
           await fn();
@@ -400,7 +442,7 @@ describe('MacieMembers', () => {
       );
 
       // Restore original method
-      (MacieMembers as { listMembers: unknown }).listMembers = originalListMembers;
+      (MacieMembers as unknown as { listMembers: unknown }).listMembers = originalListMembers;
 
       // Verify executeApi was called for CreateMemberCommand
       expect(mockExecuteApi).toHaveBeenCalledWith(
@@ -511,7 +553,7 @@ describe('MacieMembers', () => {
 
       // Access private method through type assertion
       const result = await (
-        MacieMembers as {
+        MacieMembers as unknown as {
           listMembers: (client: Macie2Client, logPrefix: string, dryRun: boolean) => Promise<unknown[]>;
         }
       ).listMembers(mockClient, logPrefix, true);
@@ -530,7 +572,7 @@ describe('MacieMembers', () => {
       mockPaginate.mockReturnValue(mockPaginator);
 
       const result = await (
-        MacieMembers as {
+        MacieMembers as unknown as {
           listMembers: (client: Macie2Client, logPrefix: string, dryRun: boolean) => Promise<unknown[]>;
         }
       ).listMembers(mockClient, logPrefix, false);
@@ -545,7 +587,9 @@ describe('MacieMembers', () => {
       mockExecuteApi.mockResolvedValue({ autoEnable: true });
 
       const result = await (
-        MacieMembers as { isOrganizationAutoEnabled: (client: Macie2Client, logPrefix: string) => Promise<boolean> }
+        MacieMembers as unknown as {
+          isOrganizationAutoEnabled: (client: Macie2Client, logPrefix: string) => Promise<boolean>;
+        }
       ).isOrganizationAutoEnabled(mockClient, logPrefix);
 
       expect(result).toBe(true);
@@ -555,7 +599,9 @@ describe('MacieMembers', () => {
       mockExecuteApi.mockResolvedValue({});
 
       const result = await (
-        MacieMembers as { isOrganizationAutoEnabled: (client: Macie2Client, logPrefix: string) => Promise<boolean> }
+        MacieMembers as unknown as {
+          isOrganizationAutoEnabled: (client: Macie2Client, logPrefix: string) => Promise<boolean>;
+        }
       ).isOrganizationAutoEnabled(mockClient, logPrefix);
 
       expect(result).toBe(false);
@@ -566,7 +612,9 @@ describe('MacieMembers', () => {
       mockExecuteApi.mockRejectedValue(error);
 
       const result = await (
-        MacieMembers as { isOrganizationAutoEnabled: (client: Macie2Client, logPrefix: string) => Promise<boolean> }
+        MacieMembers as unknown as {
+          isOrganizationAutoEnabled: (client: Macie2Client, logPrefix: string) => Promise<boolean>;
+        }
       ).isOrganizationAutoEnabled(mockClient, logPrefix);
 
       expect(result).toBe(false);
@@ -578,7 +626,9 @@ describe('MacieMembers', () => {
 
       await expect(
         (
-          MacieMembers as { isOrganizationAutoEnabled: (client: Macie2Client, logPrefix: string) => Promise<boolean> }
+          MacieMembers as unknown as {
+            isOrganizationAutoEnabled: (client: Macie2Client, logPrefix: string) => Promise<boolean>;
+          }
         ).isOrganizationAutoEnabled(mockClient, logPrefix),
       ).rejects.toThrow('Other error');
     });

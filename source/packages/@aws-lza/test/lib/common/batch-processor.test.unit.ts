@@ -11,16 +11,18 @@
  *  and limitations under the License.
  */
 
-import { describe, beforeEach, expect, test, vi, afterEach } from 'vitest';
 import { Account } from '@aws-sdk/client-organizations';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
-  processAccountBatch,
-  processEnableOperations,
-  processDisableOperations,
-  ServiceOperationHandler,
   AccountSetupHandler,
+  BatchProcessorConfig,
+  OrderedBatchProcessorConfig,
+  processAccountBatch,
+  processDisableOperations,
+  processEnableOperations,
+  ServiceOperationHandler,
 } from '../../../lib/common/batch-processor';
-import { IConcurrencySettings } from '../../../lib/common/interfaces';
+import { IRequiredBatchOperationSettings } from '../../../lib/common/interfaces';
 import { OrderedAccountListType } from '../../../lib/common/types';
 
 // Mock constants
@@ -35,10 +37,10 @@ const MOCK_CONSTANTS = {
   operation: 'TestOperation',
   props: { testProp: 'testValue' },
   dryRun: false,
-  concurrencySettings: {
+  batchOperationSettings: {
     maxConcurrentEnvironments: 2,
     operationTimeoutMs: 5000,
-  } as IConcurrencySettings,
+  } as IRequiredBatchOperationSettings,
   orderedAccountBatches: [
     {
       name: 'Management' as const,
@@ -64,6 +66,8 @@ vi.mock('../../../lib/common/logger', () => ({
     processStart: vi.fn(),
     processEnd: vi.fn(),
     info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   })),
 }));
 
@@ -83,16 +87,17 @@ describe('batch-processor', () => {
 
   describe('processAccountBatch', () => {
     test('should process accounts and regions successfully with default concurrency', async () => {
-      const results = await processAccountBatch(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.operation,
-        MOCK_CONSTANTS.managementAccountId,
-        MOCK_CONSTANTS.targetAccounts,
-        MOCK_CONSTANTS.targetRegions,
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-      );
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, MOCK_CONSTANTS.targetAccounts, config);
 
       expect(results).toHaveLength(4); // 2 accounts × 2 regions
       expect(results.every(result => result === 'success')).toBe(true);
@@ -100,123 +105,145 @@ describe('batch-processor', () => {
     });
 
     test('should process with custom concurrency settings', async () => {
-      const results = await processAccountBatch(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.operation,
-        MOCK_CONSTANTS.managementAccountId,
-        MOCK_CONSTANTS.targetAccounts,
-        MOCK_CONSTANTS.targetRegions,
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-        MOCK_CONSTANTS.concurrencySettings,
-      );
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, MOCK_CONSTANTS.targetAccounts, config);
 
       expect(results).toHaveLength(4);
       expect(mockServiceHandler).toHaveBeenCalledTimes(4);
     });
 
     test('should use account setup handler when provided', async () => {
-      const results = await processAccountBatch(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.operation,
-        MOCK_CONSTANTS.managementAccountId,
-        MOCK_CONSTANTS.targetAccounts,
-        MOCK_CONSTANTS.targetRegions,
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-        MOCK_CONSTANTS.concurrencySettings,
-        mockAccountSetupHandler,
-        MOCK_CONSTANTS.organizationAccounts,
-      );
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+        accountSetupHandler: mockAccountSetupHandler,
+        organizationAccounts: MOCK_CONSTANTS.organizationAccounts,
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, MOCK_CONSTANTS.targetAccounts, config);
 
       expect(results).toHaveLength(4);
-      expect(mockAccountSetupHandler).toHaveBeenCalledTimes(4); // Once per account-region combination
+      expect(mockAccountSetupHandler).toHaveBeenCalledTimes(2); // Once per account, reused across regions
       expect(mockServiceHandler).toHaveBeenCalledTimes(4);
     });
 
     test('should handle service handler timeout', async () => {
       const slowHandler = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 10000)));
 
-      await expect(
-        processAccountBatch(
-          MOCK_CONSTANTS.service,
-          MOCK_CONSTANTS.operation,
-          MOCK_CONSTANTS.managementAccountId,
-          [MOCK_CONSTANTS.targetAccounts[0]],
-          [MOCK_CONSTANTS.targetRegions[0]],
-          MOCK_CONSTANTS.props,
-          MOCK_CONSTANTS.dryRun,
-          slowHandler,
-          { maxConcurrentEnvironments: 1, operationTimeoutMs: 100 },
-        ),
-      ).rejects.toThrow('timeout after 100ms');
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: slowHandler,
+        batchOperationSettings: { maxConcurrentEnvironments: 1, operationTimeoutMs: 100 },
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, [MOCK_CONSTANTS.targetAccounts[0]], config);
+
+      // Should return error object instead of throwing
+      expect(results).toHaveLength(1);
+      const errorResult = results[0] as {
+        region: string;
+        accountId: string;
+        accountName: string;
+        errorName: string;
+        errorMessage: string;
+      };
+      expect(errorResult.region).toBe('us-east-1');
+      expect(errorResult.errorMessage).toContain('timeout after 100ms');
     });
 
     test('should handle service handler errors', async () => {
       const errorHandler = vi.fn().mockRejectedValue(new Error('Service error'));
 
-      await expect(
-        processAccountBatch(
-          MOCK_CONSTANTS.service,
-          MOCK_CONSTANTS.operation,
-          MOCK_CONSTANTS.managementAccountId,
-          [MOCK_CONSTANTS.targetAccounts[0]],
-          [MOCK_CONSTANTS.targetRegions[0]],
-          MOCK_CONSTANTS.props,
-          MOCK_CONSTANTS.dryRun,
-          errorHandler,
-        ),
-      ).rejects.toThrow('Service error');
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: errorHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, [MOCK_CONSTANTS.targetAccounts[0]], config);
+
+      // Should return error object instead of throwing
+      expect(results).toHaveLength(1);
+      const errorResult = results[0] as {
+        region: string;
+        accountId: string;
+        accountName: string;
+        errorName: string;
+        errorMessage: string;
+      };
+      expect(errorResult.region).toBe('us-east-1');
+      expect(errorResult.errorMessage).toBe('Service error');
     });
 
     test('should handle empty accounts array', async () => {
-      const results = await processAccountBatch(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.operation,
-        MOCK_CONSTANTS.managementAccountId,
-        [],
-        MOCK_CONSTANTS.targetRegions,
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-      );
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, [], config);
 
       expect(results).toHaveLength(0);
       expect(mockServiceHandler).not.toHaveBeenCalled();
     });
 
     test('should handle empty regions array', async () => {
-      const results = await processAccountBatch(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.operation,
-        MOCK_CONSTANTS.managementAccountId,
-        MOCK_CONSTANTS.targetAccounts,
-        [],
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-      );
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, MOCK_CONSTANTS.targetAccounts, config);
 
       expect(results).toHaveLength(0);
       expect(mockServiceHandler).not.toHaveBeenCalled();
     });
 
     test('should pass correct parameters to service handler', async () => {
-      await processAccountBatch(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.operation,
-        MOCK_CONSTANTS.managementAccountId,
-        [MOCK_CONSTANTS.targetAccounts[0]],
-        [MOCK_CONSTANTS.targetRegions[0]],
-        MOCK_CONSTANTS.props,
-        true, // dryRun
-        mockServiceHandler,
-        undefined,
-        undefined,
-        MOCK_CONSTANTS.organizationAccounts,
-      );
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: true, // dryRun
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+        organizationAccounts: MOCK_CONSTANTS.organizationAccounts,
+      };
+
+      await processAccountBatch(MOCK_CONSTANTS.operation, [MOCK_CONSTANTS.targetAccounts[0]], config);
 
       expect(mockServiceHandler).toHaveBeenCalledWith(
         MOCK_CONSTANTS.managementAccountId,
@@ -232,16 +259,17 @@ describe('batch-processor', () => {
     test('should handle accounts with undefined Name and Id', async () => {
       const accountWithUndefinedFields = { Id: undefined, Name: undefined } as Account;
 
-      await processAccountBatch(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.operation,
-        MOCK_CONSTANTS.managementAccountId,
-        [accountWithUndefinedFields],
-        [MOCK_CONSTANTS.targetRegions[0]],
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-      );
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      await processAccountBatch(MOCK_CONSTANTS.operation, [accountWithUndefinedFields], config);
 
       expect(mockServiceHandler).toHaveBeenCalledWith(
         MOCK_CONSTANTS.managementAccountId,
@@ -253,22 +281,156 @@ describe('batch-processor', () => {
         undefined,
       );
     });
+
+    test('should convert handler errors to IRegionOperationError objects', async () => {
+      const errorHandler = vi.fn().mockRejectedValue(new Error('Service operation failed'));
+
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: errorHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, [MOCK_CONSTANTS.targetAccounts[0]], config);
+
+      expect(results).toHaveLength(1);
+      const errorResult = results[0] as {
+        region: string;
+        accountId: string;
+        accountName: string;
+        errorName: string;
+        errorMessage: string;
+      };
+
+      expect(errorResult.region).toBe('us-east-1');
+      expect(errorResult.accountId).toBe('111111111111');
+      expect(errorResult.accountName).toBe('Account1');
+      expect(errorResult.errorName).toBe('Error');
+      expect(errorResult.errorMessage).toBe('Service operation failed');
+    });
+
+    test('should handle non-Error exceptions and convert to IRegionOperationError', async () => {
+      const errorHandler = vi.fn().mockRejectedValue('String error message');
+
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: errorHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, [MOCK_CONSTANTS.targetAccounts[0]], config);
+
+      expect(results).toHaveLength(1);
+      const errorResult = results[0] as {
+        region: string;
+        accountId: string;
+        accountName: string;
+        errorName: string;
+        errorMessage: string;
+      };
+
+      expect(errorResult.region).toBe('us-east-1');
+      expect(errorResult.accountId).toBe('111111111111');
+      expect(errorResult.accountName).toBe('Account1');
+      expect(errorResult.errorName).toBe('UnknownError');
+      expect(errorResult.errorMessage).toBe('String error message');
+    });
+
+    test('should return mix of success results and error objects', async () => {
+      let callCount = 0;
+      const mixedHandler = vi.fn().mockImplementation(() => {
+        callCount++;
+        // Fail first call, succeed second
+        if (callCount === 1) {
+          return Promise.reject(new Error('First call failed'));
+        }
+        return Promise.resolve('success');
+      });
+
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mixedHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, [MOCK_CONSTANTS.targetAccounts[0]], config);
+
+      expect(results).toHaveLength(2);
+
+      // First result should be an error
+      const firstResult = results[0] as {
+        region: string;
+        accountId: string;
+        accountName: string;
+        errorName: string;
+        errorMessage: string;
+      };
+      expect(firstResult.region).toBe('us-east-1');
+      expect(firstResult.errorMessage).toBe('First call failed');
+
+      // Second result should be success
+      expect(results[1]).toBe('success');
+    });
+
+    test('should handle errors with undefined account Name and Id', async () => {
+      const errorHandler = vi.fn().mockRejectedValue(new Error('Operation failed'));
+      const accountWithUndefinedFields = { Id: undefined, Name: undefined } as Account;
+
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: errorHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, [accountWithUndefinedFields], config);
+
+      expect(results).toHaveLength(1);
+      const errorResult = results[0] as {
+        region: string;
+        accountId: string;
+        accountName: string;
+        errorName: string;
+        errorMessage: string;
+      };
+
+      expect(errorResult.accountId).toBe('Unknown');
+      expect(errorResult.accountName).toBe('Unknown');
+      expect(errorResult.region).toBe('us-east-1');
+    });
   });
 
   describe('processEnableOperations', () => {
     test('should process ordered account batches in sequence', async () => {
-      const results = await processEnableOperations(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.managementAccountId,
-        MOCK_CONSTANTS.orderedAccountBatches,
-        MOCK_CONSTANTS.targetRegions,
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-        MOCK_CONSTANTS.concurrencySettings,
-        mockAccountSetupHandler,
-        MOCK_CONSTANTS.organizationAccounts,
-      );
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: MOCK_CONSTANTS.orderedAccountBatches,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+        accountSetupHandler: mockAccountSetupHandler,
+        organizationAccounts: MOCK_CONSTANTS.organizationAccounts,
+      };
+
+      const results = await processEnableOperations(config);
 
       expect(results).toHaveLength(4); // 2 batches × 1 account each × 2 regions
       expect(mockServiceHandler).toHaveBeenCalledTimes(4);
@@ -280,30 +442,36 @@ describe('batch-processor', () => {
         { ...MOCK_CONSTANTS.orderedAccountBatches[0], order: 1 },
       ];
 
-      const results = await processEnableOperations(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.managementAccountId,
-        unorderedBatches,
-        MOCK_CONSTANTS.targetRegions,
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-      );
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: unorderedBatches,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processEnableOperations(config);
 
       expect(results).toHaveLength(4);
       expect(mockServiceHandler).toHaveBeenCalledTimes(4);
     });
 
     test('should handle empty batches array', async () => {
-      const results = await processEnableOperations(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.managementAccountId,
-        [],
-        MOCK_CONSTANTS.targetRegions,
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-      );
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: [],
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processEnableOperations(config);
 
       expect(results).toHaveLength(0);
       expect(mockServiceHandler).not.toHaveBeenCalled();
@@ -312,34 +480,158 @@ describe('batch-processor', () => {
     test('should handle batch processing errors', async () => {
       const errorHandler = vi.fn().mockRejectedValue(new Error('Batch error'));
 
-      await expect(
-        processEnableOperations(
-          MOCK_CONSTANTS.service,
-          MOCK_CONSTANTS.managementAccountId,
-          MOCK_CONSTANTS.orderedAccountBatches,
-          MOCK_CONSTANTS.targetRegions,
-          MOCK_CONSTANTS.props,
-          MOCK_CONSTANTS.dryRun,
-          errorHandler,
-        ),
-      ).rejects.toThrow('Batch error');
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: MOCK_CONSTANTS.orderedAccountBatches,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: errorHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processEnableOperations(config);
+
+      // Should return error objects instead of throwing
+      // First batch: 2 regions fail
+      // Second batch: skipped because all regions failed in first batch
+      expect(results).toHaveLength(2);
+      // All results should be errors
+      const errorResults = results.filter(
+        r => r !== null && typeof r === 'object' && 'errorName' in r && 'region' in r,
+      );
+      expect(errorResults).toHaveLength(2);
+    });
+
+    test('should track failed regions and skip them in subsequent batches', async () => {
+      let callCount = 0;
+      const partialErrorHandler = vi.fn().mockImplementation((_managementAccountId, _account, region) => {
+        callCount++;
+        // Fail us-east-1 in first batch
+        if (callCount <= 1 && region === 'us-east-1') {
+          return Promise.reject(new Error('Region failure'));
+        }
+        return Promise.resolve('success');
+      });
+
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: MOCK_CONSTANTS.orderedAccountBatches,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: partialErrorHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processEnableOperations(config);
+
+      // Should have 4 results total: 2 from first batch (1 error, 1 success), 1 from second batch (us-west-2 only)
+      expect(results).toHaveLength(3);
+
+      // Check that we have one error result
+      const errorResults = results.filter(
+        r => r !== null && typeof r === 'object' && 'errorName' in r && 'region' in r,
+      );
+      expect(errorResults).toHaveLength(1);
+
+      // Verify the error is for us-east-1
+      const error = errorResults[0] as { region: string; errorName: string; errorMessage: string };
+      expect(error.region).toBe('us-east-1');
+
+      // Handler should be called 3 times: 2 in first batch, 1 in second batch (us-west-2 only)
+      expect(partialErrorHandler).toHaveBeenCalledTimes(3);
+    });
+
+    test('should skip batch when all regions have failed', async () => {
+      const errorHandler = vi.fn().mockImplementation(() => {
+        // Fail all regions in first batch
+        return Promise.reject(new Error('All regions failed'));
+      });
+
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: MOCK_CONSTANTS.orderedAccountBatches,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: errorHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processEnableOperations(config);
+
+      // Should have 2 error results from first batch only (both regions failed)
+      expect(results).toHaveLength(2);
+
+      // All results should be errors
+      const errorResults = results.filter(
+        r => r !== null && typeof r === 'object' && 'errorName' in r && 'region' in r,
+      );
+      expect(errorResults).toHaveLength(2);
+
+      // Handler should only be called for first batch (2 times)
+      expect(errorHandler).toHaveBeenCalledTimes(2);
+    });
+
+    test('should continue processing available regions when some fail', async () => {
+      let callCount = 0;
+      const mixedHandler = vi.fn().mockImplementation((_managementAccountId, _account, region) => {
+        callCount++;
+        // Fail us-east-1 in first batch only
+        if (callCount === 1 && region === 'us-east-1') {
+          return Promise.reject(new Error('First region failed'));
+        }
+        return Promise.resolve('success');
+      });
+
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: MOCK_CONSTANTS.orderedAccountBatches,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mixedHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processEnableOperations(config);
+
+      // Should have 3 results: 2 from first batch (1 error, 1 success), 1 from second batch (us-west-2 only)
+      expect(results).toHaveLength(3);
+
+      // Check success count
+      const successResults = results.filter(r => r === 'success');
+      expect(successResults).toHaveLength(2);
+
+      // Check error count
+      const errorResults = results.filter(
+        r => r !== null && typeof r === 'object' && 'errorName' in r && 'region' in r,
+      );
+      expect(errorResults).toHaveLength(1);
     });
   });
 
   describe('processDisableOperations', () => {
     test('should process ordered account batches in sequence', async () => {
-      const results = await processDisableOperations(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.managementAccountId,
-        MOCK_CONSTANTS.orderedAccountBatches,
-        MOCK_CONSTANTS.targetRegions,
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-        MOCK_CONSTANTS.concurrencySettings,
-        mockAccountSetupHandler,
-        MOCK_CONSTANTS.organizationAccounts,
-      );
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: MOCK_CONSTANTS.orderedAccountBatches,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+        accountSetupHandler: mockAccountSetupHandler,
+        organizationAccounts: MOCK_CONSTANTS.organizationAccounts,
+      };
+
+      const results = await processDisableOperations(config);
 
       expect(results).toHaveLength(4);
       expect(mockServiceHandler).toHaveBeenCalledTimes(4);
@@ -351,33 +643,152 @@ describe('batch-processor', () => {
         { ...MOCK_CONSTANTS.orderedAccountBatches[0], order: 1 },
       ];
 
-      const results = await processDisableOperations(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.managementAccountId,
-        unorderedBatches,
-        MOCK_CONSTANTS.targetRegions,
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-      );
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: unorderedBatches,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processDisableOperations(config);
 
       expect(results).toHaveLength(4);
       expect(mockServiceHandler).toHaveBeenCalledTimes(4);
     });
 
     test('should handle empty batches array', async () => {
-      const results = await processDisableOperations(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.managementAccountId,
-        [],
-        MOCK_CONSTANTS.targetRegions,
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-      );
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: [],
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processDisableOperations(config);
 
       expect(results).toHaveLength(0);
       expect(mockServiceHandler).not.toHaveBeenCalled();
+    });
+
+    test('should track failed regions and skip them in subsequent batches', async () => {
+      const failedRegions = new Set<string>();
+      const partialErrorHandler = vi.fn().mockImplementation((_managementAccountId, account, region) => {
+        // Fail us-west-2 only in first batch (Management account)
+        if (account.Name === 'Management' && region === 'us-west-2') {
+          failedRegions.add(region);
+          return Promise.reject(new Error('Region failure'));
+        }
+        return Promise.resolve('success');
+      });
+
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: MOCK_CONSTANTS.orderedAccountBatches,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: partialErrorHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processDisableOperations(config);
+
+      // First batch (Management): 2 regions (us-east-1 success, us-west-2 error)
+      // Second batch (DelegatedAdmin): 1 region (us-east-1 only, us-west-2 skipped)
+      // Total: 3 results
+      expect(results).toHaveLength(3);
+
+      // Check that we have one error result
+      const errorResults = results.filter(
+        r => r !== null && typeof r === 'object' && 'errorName' in r && 'region' in r,
+      );
+      expect(errorResults).toHaveLength(1);
+
+      // Verify the error is for us-west-2
+      const error = errorResults[0] as { region: string; errorName: string; errorMessage: string };
+      expect(error.region).toBe('us-west-2');
+
+      // Handler should be called 3 times: 2 in first batch, 1 in second batch (us-east-1 only)
+      expect(partialErrorHandler).toHaveBeenCalledTimes(3);
+    });
+
+    test('should skip batch when all regions have failed', async () => {
+      const errorHandler = vi.fn().mockImplementation(() => {
+        // Fail all regions in first batch
+        return Promise.reject(new Error('All regions failed'));
+      });
+
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: MOCK_CONSTANTS.orderedAccountBatches,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: errorHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processDisableOperations(config);
+
+      // Should have 2 error results from first batch only (both regions failed)
+      expect(results).toHaveLength(2);
+
+      // All results should be errors
+      const errorResults = results.filter(
+        r => r !== null && typeof r === 'object' && 'errorName' in r && 'region' in r,
+      );
+      expect(errorResults).toHaveLength(2);
+
+      // Handler should only be called for first batch (2 times)
+      expect(errorHandler).toHaveBeenCalledTimes(2);
+    });
+
+    test('should continue processing available regions when some fail', async () => {
+      const mixedHandler = vi.fn().mockImplementation((_managementAccountId, account, region) => {
+        // Fail us-west-2 in first batch (Management account) only
+        if (account.Name === 'Management' && region === 'us-west-2') {
+          return Promise.reject(new Error('First region failed'));
+        }
+        return Promise.resolve('success');
+      });
+
+      const config: OrderedBatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        orderedTargetAccounts: MOCK_CONSTANTS.orderedAccountBatches,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mixedHandler,
+        batchOperationSettings: MOCK_CONSTANTS.batchOperationSettings,
+      };
+
+      const results = await processDisableOperations(config);
+
+      // First batch (Management): 2 regions (us-east-1 success, us-west-2 error)
+      // Second batch (DelegatedAdmin): 1 region (us-east-1 only, us-west-2 skipped)
+      // Total: 3 results
+      expect(results).toHaveLength(3);
+
+      // Check success count
+      const successResults = results.filter(r => r === 'success');
+      expect(successResults).toHaveLength(2);
+
+      // Check error count
+      const errorResults = results.filter(
+        r => r !== null && typeof r === 'object' && 'errorName' in r && 'region' in r,
+      );
+      expect(errorResults).toHaveLength(1);
     });
   });
 
@@ -385,18 +796,18 @@ describe('batch-processor', () => {
     test('should handle maxConcurrency validation', async () => {
       const errorHandler = vi.fn().mockRejectedValue(new Error('Invalid concurrency'));
 
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: errorHandler,
+        batchOperationSettings: { maxConcurrentEnvironments: 0, operationTimeoutMs: 1000 }, // Invalid concurrency
+      };
+
       await expect(
-        processAccountBatch(
-          MOCK_CONSTANTS.service,
-          MOCK_CONSTANTS.operation,
-          MOCK_CONSTANTS.managementAccountId,
-          [MOCK_CONSTANTS.targetAccounts[0]],
-          [MOCK_CONSTANTS.targetRegions[0]],
-          MOCK_CONSTANTS.props,
-          MOCK_CONSTANTS.dryRun,
-          errorHandler,
-          { maxConcurrentEnvironments: 0, operationTimeoutMs: 1000 }, // Invalid concurrency
-        ),
+        processAccountBatch(MOCK_CONSTANTS.operation, [MOCK_CONSTANTS.targetAccounts[0]], config),
       ).rejects.toThrow();
     });
 
@@ -407,17 +818,17 @@ describe('batch-processor', () => {
         Email: `account${i}@example.com`,
       })) as Account[];
 
-      const results = await processAccountBatch(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.operation,
-        MOCK_CONSTANTS.managementAccountId,
-        manyAccounts,
-        MOCK_CONSTANTS.targetRegions,
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-        { maxConcurrentEnvironments: 2, operationTimeoutMs: 5000 },
-      );
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: MOCK_CONSTANTS.targetRegions,
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: { maxConcurrentEnvironments: 2, operationTimeoutMs: 5000 },
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, manyAccounts, config);
 
       expect(results).toHaveLength(20); // 10 accounts × 2 regions
       expect(mockServiceHandler).toHaveBeenCalledTimes(20);
@@ -433,19 +844,67 @@ describe('batch-processor', () => {
         return Promise.resolve('success');
       });
 
-      await expect(
-        processAccountBatch(
-          MOCK_CONSTANTS.service,
-          MOCK_CONSTANTS.operation,
-          MOCK_CONSTANTS.managementAccountId,
-          MOCK_CONSTANTS.targetAccounts,
-          [MOCK_CONSTANTS.targetRegions[0]],
-          MOCK_CONSTANTS.props,
-          MOCK_CONSTANTS.dryRun,
-          partialErrorHandler,
-          { maxConcurrentEnvironments: 1, operationTimeoutMs: 5000 },
-        ),
-      ).rejects.toThrow('Task execution error');
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: partialErrorHandler,
+        batchOperationSettings: { maxConcurrentEnvironments: 1, operationTimeoutMs: 5000 },
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, MOCK_CONSTANTS.targetAccounts, config);
+
+      // Should return mix of success and error results
+      expect(results).toHaveLength(2);
+      const successResults = results.filter(r => r === 'success');
+      expect(successResults).toHaveLength(1);
+      const errorResults = results.filter(
+        r => r !== null && typeof r === 'object' && 'errorName' in r && 'region' in r,
+      );
+      expect(errorResults).toHaveLength(1);
+    });
+
+    test('should handle promise rejection errors in worker pool', async () => {
+      let callCount = 0;
+      const rejectionHandler = vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 2) {
+          // Return a rejected promise instead of throwing synchronously
+          return Promise.reject(new Error('Promise rejection error'));
+        }
+        return Promise.resolve('success');
+      });
+
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: rejectionHandler,
+        batchOperationSettings: { maxConcurrentEnvironments: 1, operationTimeoutMs: 5000 },
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, MOCK_CONSTANTS.targetAccounts, config);
+
+      // Should return mix of success and error results
+      expect(results).toHaveLength(2);
+      const successResults = results.filter(r => r === 'success');
+      expect(successResults).toHaveLength(1);
+      const errorResults = results.filter(
+        r => r !== null && typeof r === 'object' && 'errorName' in r && 'region' in r,
+      );
+      expect(errorResults).toHaveLength(1);
+      const errorResult = errorResults[0] as {
+        region: string;
+        accountId: string;
+        accountName: string;
+        errorName: string;
+        errorMessage: string;
+      };
+      expect(errorResult.errorMessage).toBe('Promise rejection error');
     });
   });
 
@@ -453,17 +912,17 @@ describe('batch-processor', () => {
     test('should clear timeout when promise resolves', async () => {
       const fastHandler = vi.fn().mockResolvedValue('fast result');
 
-      const results = await processAccountBatch(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.operation,
-        MOCK_CONSTANTS.managementAccountId,
-        [MOCK_CONSTANTS.targetAccounts[0]],
-        [MOCK_CONSTANTS.targetRegions[0]],
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        fastHandler,
-        { maxConcurrentEnvironments: 1, operationTimeoutMs: 5000 },
-      );
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: fastHandler,
+        batchOperationSettings: { maxConcurrentEnvironments: 1, operationTimeoutMs: 5000 },
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, [MOCK_CONSTANTS.targetAccounts[0]], config);
 
       expect(results).toEqual(['fast result']);
       expect(fastHandler).toHaveBeenCalledTimes(1);
@@ -472,57 +931,66 @@ describe('batch-processor', () => {
     test('should clear timeout when promise rejects', async () => {
       const errorHandler = vi.fn().mockRejectedValue(new Error('Handler error'));
 
-      await expect(
-        processAccountBatch(
-          MOCK_CONSTANTS.service,
-          MOCK_CONSTANTS.operation,
-          MOCK_CONSTANTS.managementAccountId,
-          [MOCK_CONSTANTS.targetAccounts[0]],
-          [MOCK_CONSTANTS.targetRegions[0]],
-          MOCK_CONSTANTS.props,
-          MOCK_CONSTANTS.dryRun,
-          errorHandler,
-          { maxConcurrentEnvironments: 1, operationTimeoutMs: 5000 },
-        ),
-      ).rejects.toThrow('Handler error');
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: errorHandler,
+        batchOperationSettings: { maxConcurrentEnvironments: 1, operationTimeoutMs: 5000 },
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, [MOCK_CONSTANTS.targetAccounts[0]], config);
+
+      // Should return error object instead of throwing
+      expect(results).toHaveLength(1);
+      const errorResult = results[0] as {
+        region: string;
+        accountId: string;
+        accountName: string;
+        errorName: string;
+        errorMessage: string;
+      };
+      expect(errorResult.errorMessage).toBe('Handler error');
     });
   });
 
-  describe('resolveConcurrencySettings function coverage', () => {
-    test('should use default values when concurrency is undefined', async () => {
-      const results = await processAccountBatch(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.operation,
-        MOCK_CONSTANTS.managementAccountId,
-        [MOCK_CONSTANTS.targetAccounts[0]],
-        [MOCK_CONSTANTS.targetRegions[0]],
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-        undefined, // No concurrency settings
-      );
+  describe('resolveBatchOperationSettings function coverage', () => {
+    test('should use default values when batchOperationSettings is undefined', async () => {
+      // This test should now expect an error since batchOperationSettings is required
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: undefined as unknown as IRequiredBatchOperationSettings, // This should cause a runtime error
+      };
 
-      expect(results).toHaveLength(1);
-      expect(mockServiceHandler).toHaveBeenCalledTimes(1);
+      await expect(
+        processAccountBatch(MOCK_CONSTANTS.operation, [MOCK_CONSTANTS.targetAccounts[0]], config),
+      ).rejects.toThrow("Cannot read properties of undefined (reading 'maxConcurrentEnvironments')");
     });
 
     test('should use partial concurrency settings with defaults', async () => {
-      const partialSettings: IConcurrencySettings = {
+      const partialSettings: IRequiredBatchOperationSettings = {
         maxConcurrentEnvironments: 3,
-        // operationTimeoutMs not provided - should use default
+        operationTimeoutMs: 5000, // operationTimeoutMs is required in IRequiredBatchOperationSettings
       };
 
-      const results = await processAccountBatch(
-        MOCK_CONSTANTS.service,
-        MOCK_CONSTANTS.operation,
-        MOCK_CONSTANTS.managementAccountId,
-        [MOCK_CONSTANTS.targetAccounts[0]],
-        [MOCK_CONSTANTS.targetRegions[0]],
-        MOCK_CONSTANTS.props,
-        MOCK_CONSTANTS.dryRun,
-        mockServiceHandler,
-        partialSettings,
-      );
+      const config: BatchProcessorConfig<{ testProp: string }, string> = {
+        service: MOCK_CONSTANTS.service,
+        managementAccountId: MOCK_CONSTANTS.managementAccountId,
+        targetRegions: [MOCK_CONSTANTS.targetRegions[0]],
+        props: MOCK_CONSTANTS.props,
+        dryRun: MOCK_CONSTANTS.dryRun,
+        serviceHandler: mockServiceHandler,
+        batchOperationSettings: partialSettings,
+      };
+
+      const results = await processAccountBatch(MOCK_CONSTANTS.operation, [MOCK_CONSTANTS.targetAccounts[0]], config);
 
       expect(results).toHaveLength(1);
       expect(mockServiceHandler).toHaveBeenCalledTimes(1);

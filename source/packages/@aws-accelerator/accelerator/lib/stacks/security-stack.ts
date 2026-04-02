@@ -18,21 +18,21 @@ import { Construct } from 'constructs';
 import { EbsDefaultVolumeEncryptionConfig, GuardDutyConfig, SecurityHubConfig } from '@aws-accelerator/config';
 import {
   AcceleratorMetadata,
+  ConfigAggregation,
   EbsDefaultEncryption,
   GuardDutyPublishingDestination,
   MacieExportConfigClassification,
   PasswordPolicy,
   SecurityHubStandards,
-  ConfigAggregation,
 } from '@aws-accelerator/constructs';
 
+import { pascalCase } from 'pascal-case';
 import {
   AcceleratorKeyType,
   AcceleratorStack,
   AcceleratorStackProps,
   NagSuppressionRuleIds,
 } from './accelerator-stack';
-import { pascalCase } from 'pascal-case';
 
 /**
  * Security Stack, configures local account security services
@@ -68,8 +68,12 @@ export class SecurityStack extends AcceleratorStack {
 
     //
     // MacieSession configuration
+    // Only create custom resources if Macie module is skipped
+    // When module runs successfully, it manages Macie via API calls
     //
-    this.configureMacie();
+    if (this.createMacieCustomResource) {
+      this.configureMacie();
+    }
 
     //
     // GuardDuty configuration
@@ -139,7 +143,7 @@ export class SecurityStack extends AcceleratorStack {
    */
   private configureMacie() {
     if (
-      this.props.securityConfig.centralSecurityServices.macie.enable &&
+      this.props.securityConfig.centralSecurityServices.macie?.enable &&
       (this.props.securityConfig.centralSecurityServices.macie.excludeRegions ?? []).indexOf(
         cdk.Stack.of(this).region,
       ) === -1

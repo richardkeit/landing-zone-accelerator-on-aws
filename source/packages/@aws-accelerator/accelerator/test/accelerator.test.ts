@@ -1,14 +1,13 @@
-import { describe, beforeEach, afterEach, expect, test, vi, it } from 'vitest';
-import { getCentralLogBucketKmsKeyArn, AcceleratorProps, Accelerator } from '../lib/accelerator';
-import { STSClient, AssumeRoleCommand, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
-import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
-import { EC2Client, DescribeRegionsCommand } from '@aws-sdk/client-ec2';
-import { mockClient, AwsClientStub } from 'aws-sdk-client-mock';
 import { AccountsConfig, CustomizationsConfig, GlobalConfig, OrganizationConfig } from '@aws-accelerator/config';
-import { AcceleratorToolkit, AcceleratorToolkitProps } from '../lib/toolkit';
+import { DescribeRegionsCommand, EC2Client } from '@aws-sdk/client-ec2';
+import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
+import { AssumeRoleCommand, GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
+import { AwsClientStub, mockClient } from 'aws-sdk-client-mock';
 import fs, { PathLike } from 'fs';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { Accelerator, AcceleratorProps, getCentralLogBucketKmsKeyArn, shouldLookupDynamoDb } from '../lib/accelerator';
 import { AcceleratorStage } from '../lib/accelerator-stage';
-import { shouldLookupDynamoDb } from '../lib/accelerator';
+import { AcceleratorToolkit, AcceleratorToolkitProps } from '../lib/toolkit';
 
 let stsMock: AwsClientStub<STSClient>;
 let ssmMock: AwsClientStub<SSMClient>;

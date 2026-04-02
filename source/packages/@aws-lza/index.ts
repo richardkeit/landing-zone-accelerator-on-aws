@@ -14,115 +14,133 @@
 //
 // Common resources
 //
-export { DynamoDBFilterOperator, MODULE_EXCEPTIONS } from './lib/common/types';
-export { createLogger, createStatusLogger } from './lib/common/logger';
-export { IAssumeRoleCredential, IDynamoDBFilter, IModuleResponse } from './lib/common/interfaces';
-export { setRetryStrategy } from './lib/common/utility';
-export { getCredentials } from './lib/common/sts-functions';
-export { throttlingBackOff } from './lib/common/throttle';
-export { getCurrentSessionDetails } from './lib/common/sts-functions';
-export { ISessionContext } from './lib/common/interfaces';
+export { uploadFileToS3 } from './common/s3-functions';
+export {
+  IDynamoDBPaginationConfig,
+  IDynamoDBQueryResult,
+  putItemsBatch,
+  queryDynamoDBTable,
+} from './lib/common/dynamodb-table-functions';
+export {
+  AcceleratorModuleName,
+  AssumeRoleCredentialType,
+  IAssumeRoleCredential,
+  IDynamoDBFilter,
+  IModuleBoundary,
+  IModuleRegionFilters,
+  IModuleRequest,
+  IModuleResponse,
+  ISessionContext,
+} from './lib/common/interfaces';
+export {
+  createLogger,
+  createStatusLogger,
+  flushLoggers,
+  waitForLoggerInitialization,
+  type IconLogger,
+} from './lib/common/logger';
+export {
+  getOrganizationAccounts,
+  getOrganizationAccountsFromSourceTable,
+  getOrganizationDetails,
+} from './lib/common/organizations-functions';
 export { getParametersValue } from './lib/common/ssm-functions';
-export { MODULE_STATE_CODE } from './lib/common/types';
-export { putItemsBatch, queryDynamoDBTable } from './lib/common/dynamodb-table-functions';
+export { getCredentials, getCurrentSessionDetails } from './lib/common/sts-functions';
+export { throttlingBackOff } from './lib/common/throttle';
+export { DynamoDBFilterOperator, MODULE_EXCEPTIONS, MODULE_STATE_CODE } from './lib/common/types';
+export { executeApi, setRetryStrategy, waitUntil } from './lib/common/utility';
 
 //
 // Control Tower Module resources
 //
-export { ISetupLandingZoneHandlerParameter } from './interfaces/control-tower/setup-landing-zone';
 export { setupControlTowerLandingZone } from './executors/accelerator-control-tower';
+export { ISetupLandingZoneHandlerParameter } from './interfaces/control-tower/setup-landing-zone';
 
-export { IRegisterOrganizationalUnitHandlerParameter } from './interfaces/control-tower/register-organizational-unit';
 export { registerOrganizationalUnit } from './executors/accelerator-control-tower';
+export { IRegisterOrganizationalUnitHandlerParameter } from './interfaces/control-tower/register-organizational-unit';
 
-export { IEnrollAccountsHandlerParameter } from './interfaces/control-tower/enroll-accounts';
 export { enrollAccounts } from './executors/accelerator-control-tower';
+export { IEnrollAccountsHandlerParameter } from './interfaces/control-tower/enroll-accounts';
 
 //
 // AWS Organizations Module resources
 //
-export { ICreateOrganizationalUnitHandlerParameter } from './interfaces/aws-organizations/create-organizational-unit';
 export {
-  createOrganizationalUnit,
   createAndRetrieveOrganizationalUnit,
+  createOrganizationalUnit,
 } from './executors/accelerator-aws-organizations';
+export { ICreateOrganizationalUnitHandlerParameter } from './interfaces/aws-organizations/create-organizational-unit';
 
 export {
-  IInviteAccountToOrganizationHandlerParameter,
-  IInviteAccountsBatchToOrganizationHandlerParameter,
-} from './interfaces/aws-organizations/invite-account-to-organization';
-export {
-  inviteAccountToOrganization,
   inviteAccountsBatchToOrganization,
+  inviteAccountToOrganization,
 } from './executors/accelerator-aws-organizations';
+export {
+  IInviteAccountsBatchToOrganizationHandlerParameter,
+  IInviteAccountToOrganizationHandlerParameter,
+} from './interfaces/aws-organizations/invite-account-to-organization';
 
+export { moveAccount, moveAccountsBatch } from './executors/accelerator-aws-organizations';
 export {
   IMoveAccountHandlerParameter,
   IMoveAccountsBatchHandlerParameter,
 } from './interfaces/aws-organizations/move-account';
-export { moveAccount, moveAccountsBatch } from './executors/accelerator-aws-organizations';
 
+export { getOrganizationalUnitsDetail } from './executors/accelerator-aws-organizations';
 export {
   IGetOrganizationalUnitsDetailHandlerParameter,
   IOrganizationalUnitDetailsType,
 } from './interfaces/aws-organizations/get-organizational-units-detail';
-export { getOrganizationalUnitsDetail } from './executors/accelerator-aws-organizations';
 
 export { getOrganizationId } from './common/functions';
 
-export { IManageAccountAliasHandlerParameter } from './interfaces/aws-organizations/manage-account-alias';
 export { manageAccountAlias } from './executors/accelerator-aws-organizations';
+export { IManageAccountAliasHandlerParameter } from './interfaces/aws-organizations/manage-account-alias';
 
-export { IManagePolicyHandlerParameter } from './interfaces/aws-organizations/manage-policy';
 export { managePolicy } from './executors/accelerator-aws-organizations';
+export { IManagePolicyHandlerParameter } from './interfaces/aws-organizations/manage-policy';
 
 //
 // Amazon EC2 Module resources
 //
-export { IManageEbsDefaultEncryptionHandlerParameter } from './interfaces/amazon-ec2/manage-ebs-default-encryption';
 export { manageEbsDefaultEncryption } from './executors/accelerator-amazon-ec2';
+export { IManageEbsDefaultEncryptionHandlerParameter } from './interfaces/amazon-ec2/manage-ebs-default-encryption';
 
-export { IDeleteDefaultVpcParameter } from './interfaces/amazon-ec2/delete-default-vpc';
 export { deleteDefaultVpc } from './executors/accelerator-amazon-ec2';
+export { IDeleteDefaultVpcParameter } from './interfaces/amazon-ec2/delete-default-vpc';
 
 //
 // AWS CloudFormation resources
 //
-export { IGetCloudFormationTemplatesHandlerParameter } from './interfaces/aws-cloudformation/get-cloudformation-templates';
 export { getCloudFormationTemplates } from './executors/accelerator-aws-cloudformation';
+export { IGetCloudFormationTemplatesHandlerParameter } from './interfaces/aws-cloudformation/get-cloudformation-templates';
 
-export { IStackPolicyHandlerParameter } from './interfaces/aws-cloudformation/create-stack-policy';
 export { createStackPolicy } from './executors/accelerator-aws-cloudformation';
+export { IStackPolicyHandlerParameter } from './interfaces/aws-cloudformation/create-stack-policy';
 
-export { IDeleteDefaultSecurityGroupRulesParameter } from './interfaces/amazon-ec2/delete-default-security-group-rules';
 export { deleteDefaultSecurityGroupRules } from './executors/accelerator-amazon-ec2';
-
-export { ICustomResourceTemplateModifierHandlerParameter } from './interfaces/aws-cloudformation/custom-resource-template-modifier';
-export { customResourceTemplateModifier } from './executors/accelerator-aws-cloudformation';
-
-export { IDeployStackHandlerParameter } from './interfaces/aws-cloudformation/deploy-stack';
-export { deployStack } from './executors/accelerator-aws-cloudformation';
+export { IDeleteDefaultSecurityGroupRulesParameter } from './interfaces/amazon-ec2/delete-default-security-group-rules';
 
 //
 // AWS GuardDuty Module resources
 //
-export { IGuardDutyManageOrganizationAdminParameter } from './interfaces/aws-guardduty/manage-organization-admin';
 export { manageGuardDutyAdminAccount } from './executors/accelerator-aws-guardduty';
+export { IGuardDutyManageOrganizationAdminParameter } from './interfaces/aws-guardduty/manage-organization-admin';
 
 // AWS IAM Module resources
-export { IRootUserManagementHandlerParameter } from './interfaces/aws-iam/root-user-management';
 export { configureRootUserManagment } from './executors/accelerator-aws-iam';
+export { IRootUserManagementHandlerParameter } from './interfaces/aws-iam/root-user-management';
 
 //
 // Amazon Detective Module resources
 //
-export { IDetectiveManageOrganizationAdminParameter } from './interfaces/detective/manage-organization-admin';
 export { manageDetectiveOrganizationAdminAccount } from './executors/accelerator-detective';
-// AWS Macie Module resource
+export { IDetectiveManageOrganizationAdminParameter } from './interfaces/detective/manage-organization-admin';
 
 //
 // AWS Macie Module resources
 //
+export { ClassificationScopeUpdateOperation as MacieClassificationScopeUpdateOperation } from '@aws-sdk/client-macie2';
 export { IMacieModuleDataSources, IMacieModuleRequest, IMacieModuleResponse } from './lib/amazon-macie/interfaces';
 export { configureMacie } from './lib/amazon-macie/macie';
 
@@ -130,36 +148,35 @@ export { configureMacie } from './lib/amazon-macie/macie';
 // AWS Lambda Module Resources
 //
 
-export { ICheckLambdaConcurrencyParameter } from './interfaces/aws-lambda/check-lambda-concurrency';
 export { checkLambdaConcurrency } from './executors/accelerator-aws-lambda';
+export { ICheckLambdaConcurrencyParameter } from './interfaces/aws-lambda/check-lambda-concurrency';
 
 //
 // Service Quotas Module Resources
 //
 
-export { ICheckServiceQuotaParameter } from './interfaces/service-quotas/check-service-quota';
 export { checkServiceQuota } from './executors/accelerator-service-quotas';
+export { ICheckServiceQuotaParameter } from './interfaces/service-quotas/check-service-quota';
 
-export { IGetServiceQuotaCodeParameter } from './interfaces/service-quotas/get-service-quota-code';
 export { getServiceQuotaCode } from './executors/accelerator-service-quotas';
+export { IGetServiceQuotaCodeParameter } from './interfaces/service-quotas/get-service-quota-code';
 
 //
 // AWS SSM Module resources
 //
-export { IBlockPublicDocumentSharingHandlerParameter } from './interfaces/aws-ssm/manage-document-public-access-block';
-export { manageBlockPublicDocumentSharing } from './executors/accelerator-aws-ssm';
+export { getSsmParametersValue, manageBlockPublicDocumentSharing } from './executors/accelerator-aws-ssm';
 export {
-  IGetSsmParametersValueHandlerParameter,
   IGetSsmParametersValueConfiguration,
+  IGetSsmParametersValueHandlerParameter,
   ISsmParameterValue,
 } from './interfaces/aws-ssm/get-parameters';
-export { getSsmParametersValue } from './executors/accelerator-aws-ssm';
+export { IBlockPublicDocumentSharingHandlerParameter } from './interfaces/aws-ssm/manage-document-public-access-block';
 
 //
 // AWS Security Hub Module resources
 //
-export { ISecurityHubManageOrganizationAdminParameter } from './interfaces/security-hub/manage-organization-admin';
 export { manageSecurityHubOrganizationAdminAccount } from './executors/accelerator-security-hub';
+export { ISecurityHubManageOrganizationAdminParameter } from './interfaces/security-hub/manage-organization-admin';
 
-export { ISecurityHubManageAutomationRulesParameter } from './interfaces/security-hub/manage-automation-rules';
 export { manageSecurityHubAutomationRules } from './executors/accelerator-security-hub';
+export { ISecurityHubManageAutomationRulesParameter } from './interfaces/security-hub/manage-automation-rules';

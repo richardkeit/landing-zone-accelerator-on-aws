@@ -11,10 +11,10 @@
  *  and limitations under the License.
  */
 
+import { afterAll, beforeAll, describe } from 'vitest';
 import { AcceleratorStage } from '../lib/accelerator-stage';
-import { describe } from 'vitest';
+import { Create, memoize } from './accelerator-test-helpers';
 import { snapShotTest } from './snapshot-test';
-import { Create } from './accelerator-test-helpers';
 
 const testNamePrefix = 'Construct(SecurityAuditStack): ';
 
@@ -32,4 +32,19 @@ describe('delegatedAdminStack', () => {
       'all-enabled-delegated-admin',
     ]),
   );
+});
+
+// Test with SKIP_MACIE_MODULE environment variable set
+describe('SecurityAuditStack with SkipMacie', () => {
+  beforeAll(() => {
+    // Set environment variable before creating the stack
+    process.env['SKIP_MACIE_MODULE'] = 'true';
+  });
+
+  afterAll(() => {
+    delete process.env['SKIP_MACIE_MODULE'];
+  });
+
+  const getStackWithSkipMacie = memoize(Create.stackProvider(`Audit-us-east-1`, AcceleratorStage.SECURITY_AUDIT));
+  snapShotTest('Construct(SecurityAuditStack with SkipMacie): ', getStackWithSkipMacie);
 });

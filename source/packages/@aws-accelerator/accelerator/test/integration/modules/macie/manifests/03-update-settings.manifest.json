@@ -1,0 +1,52 @@
+{
+    "name": "update-settings",
+    "description": "Update session settings — change frequency, toggle sensitive data findings off, add cross-region bucket exclusion",
+    "order": 3,
+    "moduleConfig": {
+        "enable": true,
+        "delegatedAdminAccount": "Audit",
+        "boundary": {
+            "regions": [
+                "us-east-1",
+                "eu-west-1"
+            ]
+        },
+        "regionFilters": {
+            "ignoredRegions": [
+                "eu-west-1"
+            ],
+            "disabledRegions": []
+        },
+        "policyFindingsPublishingFrequency": "ONE_HOUR",
+        "publishSensitiveDataFindings": false,
+        "publishPolicyFindings": true,
+        "classificationScopeExcludedBuckets": [
+            {
+                "names": [
+                    "${ENV:LOGGING_BUCKET_NAME}"
+                ],
+                "region": "us-east-1"
+            },
+            {
+                "names": [
+                    "${ENV:SECONDARY_BUCKET_NAME}"
+                ],
+                "region": "${ENV:SECONDARY_BUCKET_REGION}"
+            }
+        ]
+    },
+    "expectedAssertions": {
+        "macieSessionEnabled": true,
+        "delegatedAdminConfigured": true,
+        "publishingFrequency": "ONE_HOUR",
+        "findingsPublishingConfigured": true,
+        "regionIgnored": "eu-west-1",
+        "automatedDiscoveryEnabled": true,
+        "classificationScopeExclusions": {
+            "us-east-1": [
+                "${ENV:LOGGING_BUCKET_NAME}"
+            ]
+        }
+    },
+    "skipCleanup": true
+}

@@ -11,8 +11,8 @@
  *  and limitations under the License.
  */
 
-import { describe, beforeEach, expect, test, vi } from 'vitest';
 import { Macie2Client, MacieStatus } from '@aws-sdk/client-macie2';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { OrganizationsDelegatedAdminAccount } from '../../../lib/amazon-macie/organizations-delegated-admin-account';
 
 vi.mock('@aws-sdk/client-macie2', () => ({
@@ -44,13 +44,13 @@ describe('OrganizationsDelegatedAdminAccount', () => {
   let mockListAdminAccounts: ReturnType<typeof vi.fn>;
   const mockClient = new Macie2Client({});
   const logPrefix = 'test';
-  const delegatedAdminAccountId = '123456789012';
+  const delegatedAdminAccountId = 'XXXXXXXXXXXX';
 
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.restoreAllMocks();
-    const utility = await import('../../../lib/common/utility');
-    const functions = await import('../../../lib/amazon-macie/functions');
+    const utility = await import('../../../lib/common/utility.js');
+    const functions = await import('../../../lib/amazon-macie/functions.js');
 
     mockExecuteApi = vi.mocked(utility.executeApi);
     mockWaitUntil = vi.mocked(utility.waitUntil);
@@ -165,11 +165,51 @@ describe('OrganizationsDelegatedAdminAccount', () => {
 
       expect(predicateResult).toBe(false);
     });
+
+    test('should return true when no enabled accounts and no matching delegated admin ID', async () => {
+      mockExecuteApi.mockResolvedValue(undefined);
+      let predicateResult = false;
+      mockWaitUntil.mockImplementation(async predicate => {
+        predicateResult = await predicate();
+      });
+      mockListAdminAccounts.mockResolvedValue([{ accountId: 'other-account', status: MacieStatus.PAUSED }]);
+
+      await OrganizationsDelegatedAdminAccount.disableOrganizationAdminAccount(
+        mockClient,
+        false,
+        delegatedAdminAccountId,
+        logPrefix,
+      );
+
+      expect(predicateResult).toBe(true);
+    });
+  });
+
+  describe('enableOrganizationAdminAccount - waitUntil predicate', () => {
+    test('should return true when admin account ID matches expected', async () => {
+      mockExecuteApi.mockResolvedValue(undefined);
+      let predicateResult = false;
+      mockWaitUntil.mockImplementation(async predicate => {
+        predicateResult = await predicate();
+      });
+
+      const getAdminAccountIdSpy = vi.spyOn(OrganizationsDelegatedAdminAccount, 'getOrganizationAdminAccountId');
+      getAdminAccountIdSpy.mockResolvedValue(delegatedAdminAccountId);
+
+      await OrganizationsDelegatedAdminAccount.enableOrganizationAdminAccount(
+        mockClient,
+        false,
+        delegatedAdminAccountId,
+        logPrefix,
+      );
+
+      expect(predicateResult).toBe(true);
+    });
   });
 
   describe('getOrganizationAdminAccountId', () => {
     test('should return undefined when no enabled admin accounts', async () => {
-      mockListAdminAccounts.mockResolvedValue([{ accountId: '999999999999', status: MacieStatus.PAUSED }]);
+      mockListAdminAccounts.mockResolvedValue([{ accountId: 'YYYYYYYYYYYY', status: MacieStatus.PAUSED }]);
 
       const result = await OrganizationsDelegatedAdminAccount.getOrganizationAdminAccountId(mockClient, logPrefix);
 
@@ -186,8 +226,8 @@ describe('OrganizationsDelegatedAdminAccount', () => {
 
     test('should throw error when multiple enabled admin accounts exist', async () => {
       mockListAdminAccounts.mockResolvedValue([
-        { accountId: '999999999998', status: MacieStatus.ENABLED },
-        { accountId: '999999999999', status: MacieStatus.ENABLED },
+        { accountId: 'YYYYYYYYYYYY', status: MacieStatus.ENABLED },
+        { accountId: 'ZZZZZZZZZZZZ', status: MacieStatus.ENABLED },
       ]);
 
       await expect(

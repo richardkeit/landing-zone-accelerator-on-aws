@@ -28,46 +28,155 @@
  * - Comprehensive response tracking and reporting
  */
 
+import { AutoEnableMode, Macie2Client } from '@aws-sdk/client-macie2';
+import { Account, OrganizationsClient } from '@aws-sdk/client-organizations';
+import path from 'node:path';
 import {
   AccountSetupHandler,
-  processEnableOperations,
-  processDisableOperations,
-  processAccountBatch,
   ServiceOperationHandler,
+  processDisableOperations,
+  processEnableOperations,
 } from '../common/batch-processor';
-import { Macie2Client } from '@aws-sdk/client-macie2';
+import {
+  AcceleratorModuleName,
+  IDelegatedAccountData,
+  IDelegatedAccountResponse,
+  IModuleResponse,
+  IOrganizationAdminData,
+  IOrganizationAdminResponse,
+  IRegionOperationError,
+} from '../common/interfaces';
 import { createLogger } from '../common/logger';
-import { BoundaryResolver, BoundaryType } from '../common/boundary-resolver';
 import {
-  IMacieDelegatedAccountResponse,
-  IMacieModuleRequest,
-  IMacieModuleResponse,
-  IMacieOrganizationAdminResponse,
-  IMacieSessionResponse,
-} from './interfaces';
-import { OrganizationsDelegatedAdminAccount } from './organizations-delegated-admin-account';
-import path from 'path';
-import { setRetryStrategy, validateRegionFilters } from '../common/utility';
-import { disableMacie, enableMacie, isMacieEnabled } from './functions';
+  DelegatedAdminManager,
+  DelegatedAdminOperations,
+  manageOrganizationsApiDelegatedAdmin,
+} from '../common/security/delegated-admin-manager';
+import { SecurityServiceContextBuilder } from '../common/security/security-service-context-builder';
+import { SecurityServiceModuleResponseBuilder } from '../common/security/security-service-module-response-builder';
 import {
-  getOrganizationAccounts,
-  getOrganizationAccountsFromSourceTable,
-  isManagementAccount,
-} from '../common/organizations-functions';
-import { Account, OrganizationsClient } from '@aws-sdk/client-organizations';
-import { AcceleratorModuleName, IModuleResponse } from '../common/interfaces';
+  DelegatedAccountResponseHandler,
+  OrganizationAdminResponseHandler,
+  SecurityServiceResponseBuilder,
+} from '../common/security/security-service-response-builder';
 import { getCredentials } from '../common/sts-functions';
+import { SecurityModuleOperationAction, SecurityModuleOperationType } from '../common/types';
+import { setRetryStrategy } from '../common/utility';
+import { disableMacie, enableMacie, isMacieEnabled } from './functions';
+import { IMacieModuleRequest, IMacieModuleResponse, IMacieS3Destination, IMacieSessionResponse } from './interfaces';
 import { MacieMembers } from './macie-members';
 import { MacieSession } from './macie-session';
-import { MODULE_STATE_CODE, OrderedAccountListType, SecurityModuleOperationType } from '../common/types';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { OrganizationsDelegatedAdminAccount } from './organizations-delegated-admin-account';
+import { MacieSessionResponseHandler } from './response-factories';
 
 const logger = createLogger([path.parse(path.basename(__filename)).name]);
 
-const moduleResponse: IMacieModuleResponse = {
-  organizationAdminConfig: [],
-  delegatedAdminAccountConfig: [],
-  sessionConfig: [],
+/**
+ * Macie service name constant used for Organizations API calls
+ */
+const MACIE_SERVICE_NAME = 'macie.amazonaws.com';
+
+/**
+ * Macie session configuration data
+ * Used by handlers to return session setup information (data only, no operation/regions)
+ */
+interface IMacieSessionData extends Record<string, unknown> {
+  /** List of account IDs affected by the operation */
+  accountIds: string[];
+  /** Whether sensitive data findings are published */
+  publishSensitiveDataFindings?: boolean;
+  /** Frequency of finding publication */
+  findingPublishingFrequency?: string;
+  /** S3 destination configuration */
+  s3Destination?: IMacieS3Destination;
+}
+
+/**
+ * Handler operation response
+ * Contains data returned by a single handler execution (one account-region)
+ */
+interface MacieOperationResponse {
+  /** Organization admin configuration data */
+  organizationAdmin?: IOrganizationAdminData;
+  /** Delegated admin configuration data */
+  delegatedAdmin?: IDelegatedAccountData;
+  /** Session configuration data */
+  session?: IMacieSessionData;
+}
+
+/**
+ * Collected response with region and account context
+ */
+interface CollectedMacieResponse {
+  region: string;
+  accountId: string;
+  response: MacieOperationResponse;
+  operation: SecurityModuleOperationAction; // Track which operation this response came from
+}
+
+/**
+ * Builds module-specific response from collected handler responses
+ * Uses SecurityServiceResponseBuilder to merge responses across regions
+ *
+ * @param operation - Operation type (enabled/disabled)
+ * @param collectedResponses - All responses collected from handlers
+ * @param logPrefix - Logging prefix for the operation
+ * @returns Module response with configuration results
+ */
+function buildModuleResponse(
+  operation: SecurityModuleOperationType,
+  collectedResponses: CollectedMacieResponse[],
+  logPrefix: string,
+): IMacieModuleResponse {
+  // Create response builders for each response type
+  const orgAdminBuilder = new SecurityServiceResponseBuilder<IOrganizationAdminResponse>(logger);
+  const delegatedAdminBuilder = new SecurityServiceResponseBuilder<IDelegatedAccountResponse>(logger);
+  const sessionBuilder = new SecurityServiceResponseBuilder<IMacieSessionResponse>(logger);
+
+  // Create response handlers (combined factory + merge strategy)
+  const orgAdminHandler = new OrganizationAdminResponseHandler();
+  const delegatedAdminHandler = new DelegatedAccountResponseHandler();
+  const sessionHandler = new MacieSessionResponseHandler();
+
+  // Process all collected responses
+  for (const { region, response } of collectedResponses) {
+    // Add organization admin responses
+    if (response.organizationAdmin) {
+      orgAdminBuilder.addResponse(operation, region, orgAdminHandler, response.organizationAdmin, logPrefix);
+    }
+
+    // Add delegated admin responses
+    if (response.delegatedAdmin) {
+      delegatedAdminBuilder.addResponse(operation, region, delegatedAdminHandler, response.delegatedAdmin, logPrefix);
+    }
+
+    // Add session responses
+    if (response.session) {
+      sessionBuilder.addResponse(operation, region, sessionHandler, response.session, logPrefix);
+    }
+  }
+
+  return {
+    organizationAdminConfig: orgAdminBuilder.getResponses(),
+    delegatedAdminAccountConfig: delegatedAdminBuilder.getResponses(),
+    sessionConfig: sessionBuilder.getResponses(),
+  };
+}
+
+/**
+ * Delegated admin operations for the security service
+ * Implements the DelegatedAdminOperations interface
+ */
+const delegatedAdminOps: DelegatedAdminOperations<Macie2Client> = {
+  enable: async (client: Macie2Client, accountId: string, dryRun: boolean, logPrefix: string) => {
+    await OrganizationsDelegatedAdminAccount.enableOrganizationAdminAccount(client, dryRun, accountId, logPrefix);
+  },
+  disable: async (client: Macie2Client, accountId: string, dryRun: boolean, logPrefix: string) => {
+    await OrganizationsDelegatedAdminAccount.disableOrganizationAdminAccount(client, dryRun, accountId, logPrefix);
+  },
+  getCurrent: async (client: Macie2Client, logPrefix: string) => {
+    return await OrganizationsDelegatedAdminAccount.getOrganizationAdminAccountId(client, logPrefix);
+  },
 };
 
 /**
@@ -76,171 +185,173 @@ const moduleResponse: IMacieModuleResponse = {
  * @returns Promise resolving to module response with operation results
  */
 export async function configureMacie(props: IMacieModuleRequest): Promise<IModuleResponse<IMacieModuleResponse>> {
+  const logPrefix = `${props.invokingAccountId}:${props.region}`;
   const moduleName = props.moduleName ?? AcceleratorModuleName.AMAZON_MACIE;
   const dryRun = props.dryRun ?? false;
 
+  // Create response collection array
+  const collectedResponses: CollectedMacieResponse[] = [];
+
   try {
-    logger.processStart(`Starting ${moduleName} module`);
-    logger.info(`Execution invoked from ${props.invokingAccountId} in ${props.region} region.`);
+    logger.processStart(`Starting ${moduleName} module`, logPrefix);
+    // Build security service context
+    const contextBuilder = new SecurityServiceContextBuilder(logger);
+    const context = await contextBuilder.build(moduleName, props, MACIE_SERVICE_NAME, logPrefix);
 
-    const invokerLogPrefix = `Invoker:${props.region}`;
+    logger.info(
+      `Macie configuration initialized: ${context.enabledRegions.length} enabled regions, ${context.disabledRegions.length} disabled regions`,
+      logPrefix,
+    );
 
-    logger.info(`Validating region filter configuration`, invokerLogPrefix);
-    validateRegionFilters(props.configuration.enable, logger, invokerLogPrefix, props.configuration.regionFilters);
-    logger.info(`Region filter configuration validated successfully`, invokerLogPrefix);
-
-    const client = new OrganizationsClient({
-      region: props.region,
+    // Manage Organizations API delegated admin globally (once per execution)
+    // This must be done BEFORE regional operations to avoid race conditions
+    const organizationsClient = new OrganizationsClient({
+      region: props.region, // Use home region for Organizations API
       customUserAgent: props.solutionId,
       retryStrategy: setRetryStrategy(),
       credentials: props.credentials,
     });
 
-    const managementAccount = await isManagementAccount(client, props.invokingAccountId, invokerLogPrefix);
-
-    if (!managementAccount) {
-      const message = `Account ${props.invokingAccountId} is not the AWS Organizations Management Account. Amazon Macie ${props.operation} cannot be performed from non-management accounts.`;
-      logger.error(message);
-      throw new Error(message);
-    }
-
-    logger.info(`Management account verified, proceeding with Amazon Macie ${props.operation}`);
-    const managementAccountId = props.invokingAccountId;
-
-    logger.info(`Get Organizations Accounts`);
-    const organizationAccounts: Account[] = [];
-    if (props.configuration.dataSources?.organizations) {
-      logger.info(
-        `Get Organizations Accounts from DataSource Table: ${props.configuration.dataSources.organizations.tableName}`,
-      );
-      const client = new DynamoDBClient({
-        region: props.region,
-        customUserAgent: props.solutionId,
-        retryStrategy: setRetryStrategy(),
-        credentials: props.credentials,
-      });
-      organizationAccounts.push(
-        ...(await getOrganizationAccountsFromSourceTable({
-          client,
-          organizationsDataSource: props.configuration.dataSources.organizations,
-          logPrefix: invokerLogPrefix,
-        })),
-      );
-    } else {
-      logger.info(`Get Organizations Accounts from Organizations API`);
-      organizationAccounts.push(...(await getOrganizationAccounts(client, props.region)));
-    }
-
-    const boundaries = await BoundaryResolver.calculateBoundaries(
-      BoundaryType.REGIONS,
-      props.configuration.enable,
-      {
-        partition: props.partition,
-        region: props.region,
-        solutionId: props.solutionId,
-        credentials: props.credentials,
-      },
-      props.configuration.boundary?.regions,
-      props.configuration.regionFilters,
+    await manageOrganizationsApiDelegatedAdmin(
+      organizationsClient,
+      MACIE_SERVICE_NAME,
+      props.configuration.delegatedAdminAccountId,
+      context.enabledRegions,
+      context.disabledRegions,
+      dryRun,
+      logPrefix,
+      logger,
     );
 
-    const enabledRegions = boundaries.enabledBoundaries;
-    const disabledRegions = boundaries.disabledBoundaries;
+    // Pass response collection array through props
+    const propsWithResponses = { ...props, collectedResponses };
 
-    logger.info(`Macie will be enabled in regions: [${enabledRegions.join(', ')}]`);
-    logger.info(`Macie will be disabled in regions: [${disabledRegions.join(', ')}]`);
+    // Update context with props that include collectedResponses
+    const contextWithResponses = { ...context, props: propsWithResponses };
 
-    const enableOrderAccounts = sortAccountsForEnable(managementAccountId, organizationAccounts, props);
-    const disableOrderAccounts = sortAccountsForDisable(managementAccountId, organizationAccounts, props);
-    const finalCleanupAccounts = [
-      organizationAccounts.find(acc => acc.Id === props.configuration.delegatedAdminAccountId),
-      organizationAccounts.find(acc => acc.Id === managementAccountId),
-    ].filter(Boolean) as Account[];
+    // Execute regional operations in parallel (enable and disable target different environments)
+    const [enableResults, disableResults] = await Promise.all([
+      processEnableOperations({
+        service: context.moduleName,
+        managementAccountId: context.managementAccountId,
+        orderedTargetAccounts: context.enableOrderedAccounts,
+        targetRegions: context.enabledRegions,
+        props: contextWithResponses.props,
+        dryRun,
+        serviceHandler: macieEnableHandler,
+        batchOperationSettings: context.batchOperationSettings,
+        accountSetupHandler: macieAccountSetup,
+        organizationAccounts: context.organizationAccounts,
+      }),
+      processDisableOperations({
+        service: context.moduleName,
+        managementAccountId: context.managementAccountId,
+        orderedTargetAccounts: context.disableOrderedAccounts,
+        targetRegions: context.disabledRegions,
+        props: contextWithResponses.props,
+        dryRun,
+        serviceHandler: macieDisableHandler,
+        batchOperationSettings: context.batchOperationSettings,
+        accountSetupHandler: macieAccountSetup,
+        organizationAccounts: context.organizationAccounts,
+      }),
+    ]);
 
-    const operations: Promise<void[]>[] = [];
+    logger.info(
+      `Regional operations completed: ${enableResults.length} enable results, ${disableResults.length} disable results`,
+      logPrefix,
+    );
 
-    if (enabledRegions.length > 0) {
-      operations.push(
-        processEnableOperations<IMacieModuleRequest, void>(
-          moduleName,
-          managementAccountId,
-          enableOrderAccounts,
-          enabledRegions,
-          props,
+    // Perform final cleanup (if needed)
+    let cleanupResults: (void | IRegionOperationError)[] = [];
+
+    if (context.disabledRegions.length > 0) {
+      const cleanupAccounts = [
+        context.organizationAccounts.find(acc => acc.Id === props.configuration.delegatedAdminAccountId),
+        context.organizationAccounts.find(acc => acc.Id === context.managementAccountId),
+      ].filter(Boolean) as Account[];
+
+      if (cleanupAccounts.length > 0) {
+        logger.info(
+          `Performing final cleanup for ${cleanupAccounts.length} accounts in ${context.disabledRegions.length} disabled regions`,
+          logPrefix,
+        );
+
+        cleanupResults = await processDisableOperations({
+          service: context.moduleName,
+          managementAccountId: context.managementAccountId,
+          orderedTargetAccounts: [{ name: 'WorkLoads', order: 1, accounts: cleanupAccounts }],
+          targetRegions: context.disabledRegions,
+          props: contextWithResponses.props,
           dryRun,
-          macieEnableHandler,
-          props.configuration.concurrency,
-          macieAccountSetup,
-          organizationAccounts,
-        ),
-      );
+          serviceHandler: macieFinalCleanupHandler,
+          batchOperationSettings: context.batchOperationSettings,
+          accountSetupHandler: macieAccountSetup,
+          organizationAccounts: cleanupAccounts,
+        });
+
+        logger.info(`Final cleanup completed`, logPrefix);
+      }
     }
 
-    if (disabledRegions.length > 0) {
-      operations.push(
-        processDisableOperations(
-          moduleName,
-          managementAccountId,
-          disableOrderAccounts,
-          disabledRegions,
-          props,
-          dryRun,
-          macieDisableHandler,
-          props.configuration.concurrency,
-          macieAccountSetup,
-          organizationAccounts,
-        ),
-      );
-    }
+    // Build module-specific response from collected responses
+    // Separate responses by operation type
+    const enableResponses = collectedResponses.filter(r => r.operation === 'enable');
+    const disableResponses = collectedResponses.filter(r => r.operation === 'disable');
 
-    await Promise.all(operations);
+    // Build responses for each operation type
+    const enableModuleResponse =
+      enableResponses.length > 0
+        ? buildModuleResponse('enabled', enableResponses, logPrefix)
+        : { organizationAdminConfig: [], delegatedAdminAccountConfig: [], sessionConfig: [] };
 
-    // Perform final cleanup on Management and Delegated Admin account due to service dependencies
-    await performFinalServiceCleanup(
-      moduleName,
-      managementAccountId,
-      finalCleanupAccounts,
-      disabledRegions,
-      props,
+    const disableModuleResponse =
+      disableResponses.length > 0
+        ? buildModuleResponse('disabled', disableResponses, logPrefix)
+        : { organizationAdminConfig: [], delegatedAdminAccountConfig: [], sessionConfig: [] };
+
+    // Merge both responses
+    const macieResponse: IMacieModuleResponse = {
+      organizationAdminConfig: [
+        ...enableModuleResponse.organizationAdminConfig,
+        ...disableModuleResponse.organizationAdminConfig,
+      ],
+      delegatedAdminAccountConfig: [
+        ...enableModuleResponse.delegatedAdminAccountConfig,
+        ...disableModuleResponse.delegatedAdminAccountConfig,
+      ],
+      sessionConfig: [...enableModuleResponse.sessionConfig, ...disableModuleResponse.sessionConfig],
+    };
+
+    // Build final module response
+    const responseBuilder = new SecurityServiceModuleResponseBuilder(logger);
+
+    const response = responseBuilder.build(
+      'macie',
+      props.operation,
+      macieResponse,
+      [...enableResults, ...disableResults],
+      cleanupResults,
       dryRun,
     );
+    logger.processEnd(`Successfully completed ${moduleName} module`, logPrefix);
 
-    logger.processEnd(`Successfully completed ${moduleName} module`);
+    return response;
+  } catch (error) {
+    // Handle top-level errors
+    logger.error(`Error in configureMacie: ${error}`, logPrefix);
 
-    const statusMessage = dryRun
-      ? `Amazon Macie ${props.operation} (dry-run) completed`
-      : `Amazon Macie ${props.operation} completed`;
+    const responseBuilder = new SecurityServiceModuleResponseBuilder(logger);
 
-    return {
-      status: MODULE_STATE_CODE.COMPLETED,
-      summary: statusMessage,
-      timestamp: new Date().toISOString(),
-      moduleName: moduleName,
-      dryRun: dryRun,
-      response: moduleResponse,
+    const emptyResponse: IMacieModuleResponse = {
+      organizationAdminConfig: [],
+      delegatedAdminAccountConfig: [],
+      sessionConfig: [],
     };
-  } catch (error: unknown) {
-    let errorMessage = String(error);
-    let errorName = 'UnknownError';
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      errorName = error.name;
-    }
-    const summary = `Amazon Macie ${props.operation} failed with error : ${errorMessage}`;
-    logger.error(summary);
 
-    return {
-      error: {
-        name: errorName,
-        message: errorMessage,
-      },
-      status: MODULE_STATE_CODE.FAILED,
-      summary,
-      timestamp: new Date().toISOString(),
-      moduleName: moduleName,
-      dryRun: dryRun,
-      response: moduleResponse,
-    };
+    const response = responseBuilder.buildErrorResponse(error, 'macie', props.operation, dryRun, emptyResponse);
+    logger.processEnd(`${moduleName} module failed`, logPrefix);
+    return response;
   }
 }
 
@@ -251,7 +362,7 @@ export async function configureMacie(props: IMacieModuleRequest): Promise<IModul
  * @param props - Macie module request properties
  * @returns Promise resolving to updated props with appropriate credentials
  */
-const macieAccountSetup: AccountSetupHandler<IMacieModuleRequest> = async (
+export const macieAccountSetup: AccountSetupHandler<IMacieModuleRequest> = async (
   targetAccount: Account,
   managementAccountId: string,
   props: IMacieModuleRequest,
@@ -286,7 +397,7 @@ const macieAccountSetup: AccountSetupHandler<IMacieModuleRequest> = async (
  * @param organizationAccounts - Optional list of organization accounts
  * @returns Promise that resolves when enable operation completes
  */
-const macieEnableHandler: ServiceOperationHandler<IMacieModuleRequest, void> = async (
+export const macieEnableHandler: ServiceOperationHandler<IMacieModuleRequest, void> = async (
   managementAccountId: string,
   targetAccount: Account,
   targetRegion: string,
@@ -295,7 +406,7 @@ const macieEnableHandler: ServiceOperationHandler<IMacieModuleRequest, void> = a
   props: IMacieModuleRequest,
   organizationAccounts?: Account[],
 ): Promise<void> => {
-  await enableService(
+  const response = await enableService(
     targetAccount,
     targetRegion,
     managementAccountId,
@@ -304,6 +415,17 @@ const macieEnableHandler: ServiceOperationHandler<IMacieModuleRequest, void> = a
     props,
     organizationAccounts ?? [],
   );
+
+  // Add response to collection array if available
+  const propsWithResponses = props as IMacieModuleRequest & { collectedResponses?: CollectedMacieResponse[] };
+  if (propsWithResponses.collectedResponses) {
+    propsWithResponses.collectedResponses.push({
+      region: targetRegion,
+      accountId: targetAccount.Id!,
+      response,
+      operation: 'enable', // Mark as enable operation
+    });
+  }
 };
 
 /**
@@ -317,7 +439,7 @@ const macieEnableHandler: ServiceOperationHandler<IMacieModuleRequest, void> = a
  * @param organizationAccounts - Optional list of organization accounts
  * @returns Promise that resolves when disable operation completes
  */
-const macieDisableHandler: ServiceOperationHandler<IMacieModuleRequest, void> = async (
+export const macieDisableHandler: ServiceOperationHandler<IMacieModuleRequest, void> = async (
   managementAccountId: string,
   targetAccount: Account,
   targetRegion: string,
@@ -326,7 +448,7 @@ const macieDisableHandler: ServiceOperationHandler<IMacieModuleRequest, void> = 
   props: IMacieModuleRequest,
   organizationAccounts?: Account[],
 ): Promise<void> => {
-  await disableService(
+  const response = await disableService(
     targetAccount,
     targetRegion,
     managementAccountId,
@@ -335,6 +457,17 @@ const macieDisableHandler: ServiceOperationHandler<IMacieModuleRequest, void> = 
     props,
     organizationAccounts ?? [],
   );
+
+  // Add response to collection array if available
+  const propsWithResponses = props as IMacieModuleRequest & { collectedResponses?: CollectedMacieResponse[] };
+  if (propsWithResponses.collectedResponses) {
+    propsWithResponses.collectedResponses.push({
+      region: targetRegion,
+      accountId: targetAccount.Id!,
+      response,
+      operation: 'disable', // Mark as disable operation
+    });
+  }
 };
 
 /**
@@ -347,7 +480,7 @@ const macieDisableHandler: ServiceOperationHandler<IMacieModuleRequest, void> = 
  * @param props - Macie module request properties
  * @returns Promise that resolves when cleanup completes
  */
-const macieFinalCleanupHandler: ServiceOperationHandler<IMacieModuleRequest, void> = async (
+export const macieFinalCleanupHandler: ServiceOperationHandler<IMacieModuleRequest, void> = async (
   _managementAccountId: string,
   targetAccount: Account,
   targetRegion: string,
@@ -364,88 +497,15 @@ const macieFinalCleanupHandler: ServiceOperationHandler<IMacieModuleRequest, voi
 
   const macieEnabled = await isMacieEnabled(client, logPrefix);
 
-  if (!macieEnabled) {
-    logger.info(`Macie is already disabled in ${targetRegion}.`, logPrefix);
-    return;
-  } else {
+  if (macieEnabled) {
     if (!dryRun) {
       logger.info(`Disabling Macie in ${targetRegion} for ${targetAccount.Name} account (final cleanup).`, logPrefix);
     }
     await disableMacie(client, dryRun, logPrefix);
-    addSessionSetting('disabled', targetRegion, targetAccount.Id!);
+  } else {
+    logger.info(`Macie is already disabled in ${targetRegion}.`, logPrefix);
   }
 };
-
-/**
- * Sorts accounts into dependency order for Macie enablement operations
- * @param managementAccountId - Management account ID
- * @param accounts - List of organization accounts
- * @param props - Macie module request properties
- * @returns Ordered account list with proper dependency sequence
- */
-function sortAccountsForEnable(
-  managementAccountId: string,
-  accounts: Account[],
-  props: IMacieModuleRequest,
-): OrderedAccountListType[] {
-  const sortedList: OrderedAccountListType[] = [];
-  const managementAccount = accounts.find(acc => acc.Id === managementAccountId);
-
-  if (!managementAccount) {
-    throw new Error(`Management account ${managementAccountId} not found in the list of Organizations accounts`);
-  }
-  const delegatedAdminAccount = accounts.find(acc => acc.Id === props.configuration.delegatedAdminAccountId);
-  if (!delegatedAdminAccount) {
-    throw new Error(
-      `Delegated admin account ${props.configuration.delegatedAdminAccountId} not found in the list of Organizations accounts`,
-    );
-  }
-
-  const workLoadAccounts = accounts.filter(
-    acc => acc.Id !== managementAccountId && acc.Id !== props.configuration.delegatedAdminAccountId,
-  );
-
-  sortedList.push({ name: 'Management', order: 1, accounts: [managementAccount] });
-  sortedList.push({ name: 'DelegatedAdmin', order: 2, accounts: [delegatedAdminAccount] });
-  sortedList.push({ name: 'WorkLoads', order: 3, accounts: workLoadAccounts });
-
-  return sortedList;
-}
-
-/**
- * Sorts accounts into dependency order for Macie disablement operations
- * @param managementAccountId - Management account ID
- * @param accounts - List of organization accounts
- * @param props - Macie module request properties
- * @returns Ordered account list with proper dependency sequence for disable
- */
-function sortAccountsForDisable(
-  managementAccountId: string,
-  accounts: Account[],
-  props: IMacieModuleRequest,
-): OrderedAccountListType[] {
-  const sortedList: OrderedAccountListType[] = [];
-  const managementAccount = accounts.find(acc => acc.Id === managementAccountId);
-
-  if (!managementAccount) {
-    throw new Error(`Management account ${managementAccountId} not found in the list of Organizations accounts`);
-  }
-  const delegatedAdminAccount = accounts.find(acc => acc.Id === props.configuration.delegatedAdminAccountId);
-  if (!delegatedAdminAccount) {
-    throw new Error(
-      `Delegated admin account ${props.configuration.delegatedAdminAccountId} not found in the list of Organizations accounts`,
-    );
-  }
-  const workLoadAccounts = accounts.filter(
-    acc => acc.Id !== managementAccountId && acc.Id !== props.configuration.delegatedAdminAccountId,
-  );
-
-  sortedList.push({ name: 'DelegatedAdmin', order: 1, accounts: [delegatedAdminAccount] });
-  sortedList.push({ name: 'Management', order: 2, accounts: [managementAccount] });
-  sortedList.push({ name: 'WorkLoads', order: 3, accounts: workLoadAccounts });
-
-  return sortedList;
-}
 
 /**
  * Enables Macie service for a specific account and region with role-based configuration
@@ -456,7 +516,7 @@ function sortAccountsForDisable(
  * @param logPrefix - Logging prefix
  * @param props - Macie module request properties
  * @param organizationAccounts - List of organization accounts
- * @returns Promise that resolves when service is enabled
+ * @returns Promise that resolves with operation response data
  */
 async function enableService(
   targetAccount: Account,
@@ -466,7 +526,9 @@ async function enableService(
   logPrefix: string,
   props: IMacieModuleRequest,
   organizationAccounts: Account[],
-): Promise<void> {
+): Promise<MacieOperationResponse> {
+  const response: MacieOperationResponse = {};
+
   const client = new Macie2Client({
     region: targetRegion,
     customUserAgent: props.solutionId,
@@ -481,71 +543,118 @@ async function enableService(
 
   // Process Management Account
   if (targetAccount.Id === managementAccountId) {
-    await enableDelegatedAdminAccount(props, client, dryRun, logPrefix);
-    addOrganizationSetting('enabled', targetRegion, targetAccount.Id, props.configuration.delegatedAdminAccountId);
+    await enableDelegatedAdminAccount(props, targetRegion, client, MACIE_SERVICE_NAME, dryRun, logPrefix);
+    response.organizationAdmin = {
+      managementAccountId,
+      delegatedAdminAccountId: props.configuration.delegatedAdminAccountId,
+    };
   }
 
   // Process Delegated Admin Account
   if (targetAccount.Id === props.configuration.delegatedAdminAccountId) {
     await MacieMembers.enable(client, organizationAccounts, targetAccount.Id, dryRun, logPrefix);
-    const memberAccountIds = organizationAccounts.map(acc => acc.Id!).filter(Boolean);
-    addDelegatedAccountSetting('enabled', targetRegion, targetAccount.Id, memberAccountIds);
+    response.delegatedAdmin = {
+      adminAccountId: targetAccount.Id,
+      memberAccountIds: organizationAccounts.map(acc => acc.Id!).filter(id => id !== targetAccount.Id),
+    };
   }
 
-  // Process Workload Accounts except Management and Audit
-  if (![managementAccountId, props.configuration.delegatedAdminAccountId].includes(targetAccount.Id!)) {
-    await MacieSession.configure(
-      { accountId: targetAccount.Id!, region: targetRegion },
+  // Classification export is only configured on the delegated admin account (central model)
+  const isDelegatedAdmin = targetAccount.Id === props.configuration.delegatedAdminAccountId;
+  const skipClassificationExport = !isDelegatedAdmin;
+
+  // Configure Macie session
+  await MacieSession.configure({
+    env: { accountId: targetAccount.Id!, region: targetRegion },
+    client,
+    s3Destination: props.configuration.s3Destination,
+    policyFindingsPublishingFrequency: props.configuration.policyFindingsPublishingFrequency,
+    publishSensitiveDataFindings: props.configuration.publishSensitiveDataFindings,
+    publishPolicyFindings: props.configuration.publishPolicyFindings,
+    skipClassificationExport,
+    dryRun,
+    logPrefix,
+  });
+  response.session = {
+    accountIds: [targetAccount.Id!],
+    publishSensitiveDataFindings: props.configuration.publishSensitiveDataFindings,
+    findingPublishingFrequency: props.configuration.policyFindingsPublishingFrequency,
+    s3Destination: props.configuration.s3Destination,
+  };
+
+  // Enable automated discovery on delegated admin account
+  if (isDelegatedAdmin) {
+    const autoEnableMembers: AutoEnableMode = props.configuration.automatedDiscoveryEnabled
+      ? AutoEnableMode.ALL
+      : AutoEnableMode.NONE;
+    await MacieSession.configureAutomatedDiscovery({
       client,
-      props.configuration.s3Destination,
-      props.configuration.policyFindingsPublishingFrequency,
-      props.configuration.publishSensitiveDataFindings,
-      props.configuration.publishPolicyFindings,
+      enabled: props.configuration.automatedDiscoveryEnabled,
+      autoEnableOrganizationMembers: autoEnableMembers,
       dryRun,
       logPrefix,
-    );
+    });
 
-    addSessionSetting('enabled', targetRegion, targetAccount.Id!, props);
+    // Update classification scope exclusions on delegated admin account
+    if (props.configuration.automatedDiscoveryEnabled && props.configuration.classificationScopeExclusion) {
+      await MacieSession.updateClassificationScope({
+        client,
+        buckets: props.configuration.classificationScopeExclusion.buckets,
+        operation: props.configuration.classificationScopeExclusion.operation,
+        targetRegion,
+        dryRun,
+        logPrefix,
+      });
+    }
   }
+
+  return response;
 }
 
 /**
+ * Cleans up existing delegated administrator accounts that don't match the target
+ * Checks both Organizations API and Macie API to ensure complete cleanup
+ * Creates Organizations client internally using provided props and credentials
+ * @param targetRegion - Target AWS Region name (used for logging context)
+ * @param props - Macie module request containing configuration and credentials
+ * @param macieClient - Macie2 client instance
+ * @param dryRun - Whether to perform dry run without making changes
+ * @param logPrefix - Prefix for logging messages
+ * @param currentMacieAdmin - Optional current Macie delegated admin account ID (avoids duplicate API call)
+ * @returns Promise that resolves when cleanup is complete
+ * @throws Error if cleanup validation fails
+ */
+/**
  * Enables delegated administrator account for Macie organization management
  * @param props - Macie module request properties
+ * @param targetRegion - Target region for the operation
  * @param client - Macie2 client instance
+ * @param serviceName - AWS service name for Organizations API
  * @param dryRun - Whether to perform dry run
  * @param logPrefix - Logging prefix
  * @returns Promise that resolves when delegated admin is configured
  */
 async function enableDelegatedAdminAccount(
   props: IMacieModuleRequest,
+  targetRegion: string,
   client: Macie2Client,
+  serviceName: string,
   dryRun: boolean,
   logPrefix: string,
 ): Promise<void> {
-  const currentAdmin = await OrganizationsDelegatedAdminAccount.getOrganizationAdminAccountId(client, logPrefix);
+  // Create Organizations client for delegated admin management
+  const organizationsClient = new OrganizationsClient({
+    region: targetRegion,
+    customUserAgent: props.solutionId,
+    retryStrategy: setRetryStrategy(),
+    credentials: props.credentials,
+  });
 
-  logger.info(
-    `Current delegated admin account id: ${currentAdmin || 'none'}, Target delegated admin: ${props.configuration.delegatedAdminAccountId}`,
-    logPrefix,
-  );
+  // Create delegated admin manager
+  const adminManager = new DelegatedAdminManager<Macie2Client>(serviceName, organizationsClient, logger);
 
-  // Only set delegated admin if it's different from current or none is set
-  if (currentAdmin !== props.configuration.delegatedAdminAccountId) {
-    // If there's a different admin account, disable it first
-    if (currentAdmin && currentAdmin !== props.configuration.delegatedAdminAccountId) {
-      logger.info(`Disabling current delegated admin ${currentAdmin} before setting new one`, logPrefix);
-      await OrganizationsDelegatedAdminAccount.disableOrganizationAdminAccount(client, dryRun, currentAdmin, logPrefix);
-    }
-
-    // Set the new delegated admin
-    await OrganizationsDelegatedAdminAccount.enableOrganizationAdminAccount(
-      client,
-      dryRun,
-      props.configuration.delegatedAdminAccountId,
-      logPrefix,
-    );
-  }
+  // Enable delegated admin using the simplified interface
+  await adminManager.enable(props.configuration.delegatedAdminAccountId, client, delegatedAdminOps, dryRun, logPrefix);
 }
 
 /**
@@ -557,7 +666,7 @@ async function enableDelegatedAdminAccount(
  * @param logPrefix - Logging prefix
  * @param props - Macie module request properties
  * @param organizationAccounts - List of organization accounts
- * @returns Promise that resolves when service is disabled
+ * @returns Promise that resolves with operation response data
  */
 async function disableService(
   targetAccount: Account,
@@ -567,7 +676,9 @@ async function disableService(
   logPrefix: string,
   props: IMacieModuleRequest,
   organizationAccounts: Account[],
-): Promise<void> {
+): Promise<MacieOperationResponse> {
+  const response: MacieOperationResponse = {};
+
   const client = new Macie2Client({
     region: targetRegion,
     customUserAgent: props.solutionId,
@@ -579,233 +690,68 @@ async function disableService(
 
   if (!macieEnabled) {
     logger.info(`Macie is already disabled in ${targetRegion}.`, logPrefix);
-    return;
+    return response;
   }
 
   // Process Delegated Admin Account
   if (targetAccount.Id === props.configuration.delegatedAdminAccountId) {
     await MacieMembers.disable(client, organizationAccounts, targetAccount.Id, dryRun, logPrefix);
-    const memberAccountIds = organizationAccounts.map(acc => acc.Id!).filter(Boolean);
-    addDelegatedAccountSetting('disabled', targetRegion, targetAccount.Id, memberAccountIds);
+    response.delegatedAdmin = {
+      adminAccountId: targetAccount.Id,
+      memberAccountIds: organizationAccounts.map(acc => acc.Id!).filter(id => id !== targetAccount.Id),
+    };
   }
 
   // Process Management Account
   if (targetAccount.Id === managementAccountId) {
-    await disableDelegatedAdminAccount(client, dryRun, logPrefix);
-    addOrganizationSetting('disabled', targetRegion, targetAccount.Id, props.configuration.delegatedAdminAccountId);
+    await disableDelegatedAdminAccount(client, MACIE_SERVICE_NAME, dryRun, logPrefix, props, targetRegion);
+    response.organizationAdmin = {
+      managementAccountId,
+      delegatedAdminAccountId: props.configuration.delegatedAdminAccountId,
+    };
   }
 
   // Process Workload Accounts except Management and Audit
   if (![managementAccountId, props.configuration.delegatedAdminAccountId].includes(targetAccount.Id!)) {
     logger.info(`Disabling Macie in ${targetRegion} for ${targetAccount.Name} account.`, logPrefix);
     await disableMacie(client, dryRun, logPrefix);
-    addSessionSetting('disabled', targetRegion, targetAccount.Id!);
-  }
-}
-
-/**
- * Performs final cleanup operations for management and delegated admin accounts
- * @param service - Service name for logging
- * @param managementAccountId - Management account ID
- * @param targetAccounts - Accounts requiring final cleanup
- * @param targetRegions - Regions for cleanup operations
- * @param props - Macie module request properties
- * @param dryRun - Whether to perform dry run
- * @returns Promise that resolves when cleanup is complete
- */
-async function performFinalServiceCleanup(
-  service: string,
-  managementAccountId: string,
-  targetAccounts: Account[],
-  targetRegions: string[],
-  props: IMacieModuleRequest,
-  dryRun: boolean,
-): Promise<void> {
-  if (targetRegions.length === 0) {
-    return;
+    response.session = {
+      accountIds: [targetAccount.Id!],
+    };
   }
 
-  if (targetAccounts.length === 0) {
-    return;
-  }
-
-  const accounts = targetAccounts.map(item => item.Name ?? item.Id).join(',');
-
-  logger.processStart(`Starting final Macie cleanup for [${accounts}] accounts`);
-
-  await processAccountBatch(
-    service,
-    'disable',
-    managementAccountId,
-    targetAccounts,
-    targetRegions,
-    props,
-    dryRun,
-    macieFinalCleanupHandler,
-    props.configuration.concurrency,
-    macieAccountSetup,
-  );
-
-  logger.processEnd(`Successfully completed final Macie cleanup for [${accounts}] accounts`);
+  return response;
 }
 
 /**
  * Disables the current delegated administrator account for Macie
  * @param client - Macie2 client instance
+ * @param serviceName - AWS service name for Organizations API
  * @param dryRun - Whether to perform dry run
  * @param logPrefix - Logging prefix
+ * @param props - Macie module request properties (needed for Organizations client)
+ * @param targetRegion - Target region (needed for Organizations client)
  * @returns Promise that resolves when delegated admin is disabled
  */
-async function disableDelegatedAdminAccount(client: Macie2Client, dryRun: boolean, logPrefix: string): Promise<void> {
-  const delegatedAdminAccountId = await OrganizationsDelegatedAdminAccount.getOrganizationAdminAccountId(
-    client,
-    logPrefix,
-  );
-
-  if (delegatedAdminAccountId) {
-    await OrganizationsDelegatedAdminAccount.disableOrganizationAdminAccount(
-      client,
-      dryRun,
-      delegatedAdminAccountId,
-      logPrefix,
-    );
-  }
-}
-
-/**
- * Adds organization-level configuration to module response
- * @param operation - Type of operation (enabled/disabled)
- * @param targetRegion - Target region for the setting
- * @param managementAccountId - Management account ID
- * @param delegatedAdminAccountId - Delegated administrator account ID
- */
-function addOrganizationSetting(
-  operation: SecurityModuleOperationType,
+async function disableDelegatedAdminAccount(
+  client: Macie2Client,
+  serviceName: string,
+  dryRun: boolean,
+  logPrefix: string,
+  props: IMacieModuleRequest,
   targetRegion: string,
-  managementAccountId: string,
-  delegatedAdminAccountId: string,
-): void {
-  logger.info(`Adding organization setting for ${managementAccountId} in ${targetRegion} in response`);
-  const existing = moduleResponse.organizationAdminConfig.find(
-    setting => setting.operation === operation && setting.managementAccountId === managementAccountId,
-  );
+): Promise<void> {
+  // Create Organizations client for delegated admin management
+  const organizationsClient = new OrganizationsClient({
+    region: targetRegion,
+    customUserAgent: props.solutionId,
+    retryStrategy: setRetryStrategy(),
+    credentials: props.credentials,
+  });
 
-  if (existing) {
-    logger.info(`Organization setting for ${managementAccountId} in ${targetRegion} already exists in response`);
-    existing.regions.push(targetRegion);
-  } else {
-    if (operation === 'enabled') {
-      logger.info(`Creating new organization setting for ${managementAccountId} in ${targetRegion} in response`);
-      const newResponse: IMacieOrganizationAdminResponse = {
-        operation: 'enabled',
-        regions: [targetRegion],
-        managementAccountId,
-        delegatedAdminAccountId,
-      };
-      moduleResponse.organizationAdminConfig.push(newResponse);
-    } else {
-      logger.info(`Creating new organization setting for ${managementAccountId} in ${targetRegion} in response`);
-      const newResponse: IMacieOrganizationAdminResponse = {
-        operation: 'disabled',
-        regions: [targetRegion],
-        managementAccountId,
-        delegatedAdminAccountId,
-      };
-      moduleResponse.organizationAdminConfig.push(newResponse);
-    }
-  }
-}
+  // Create delegated admin manager
+  const adminManager = new DelegatedAdminManager<Macie2Client>(serviceName, organizationsClient, logger);
 
-/**
- * Adds delegated account configuration to module response
- * @param operation - Type of operation (enabled/disabled)
- * @param targetRegion - Target region for the setting
- * @param delegatedAdminAccountId - Delegated administrator account ID
- * @param memberAccountIds - List of member account IDs
- */
-function addDelegatedAccountSetting(
-  operation: SecurityModuleOperationType,
-  targetRegion: string,
-  delegatedAdminAccountId: string,
-  memberAccountIds: string[],
-): void {
-  logger.info(`Adding delegated account setting for ${delegatedAdminAccountId} in ${targetRegion} in response`);
-  const existing = moduleResponse.delegatedAdminAccountConfig.find(
-    setting => setting.operation === operation && setting.adminAccountId === delegatedAdminAccountId,
-  );
-
-  if (existing) {
-    logger.info(
-      `Delegated account setting for ${delegatedAdminAccountId} in ${targetRegion} already exists in response`,
-    );
-    existing.regions.push(targetRegion);
-  } else {
-    if (operation === 'enabled') {
-      logger.info(
-        `Creating new delegated account setting for ${delegatedAdminAccountId} in ${targetRegion} in response`,
-      );
-      const newResponse: IMacieDelegatedAccountResponse = {
-        operation: 'enabled',
-        regions: [targetRegion],
-        adminAccountId: delegatedAdminAccountId,
-        memberAccountIds,
-      };
-      moduleResponse.delegatedAdminAccountConfig.push(newResponse);
-    } else {
-      logger.info(
-        `Creating new delegated account setting for ${delegatedAdminAccountId} in ${targetRegion} in response`,
-      );
-      const newResponse: IMacieDelegatedAccountResponse = {
-        operation: 'disabled',
-        regions: [targetRegion],
-        adminAccountId: delegatedAdminAccountId,
-        memberAccountIds,
-      };
-      moduleResponse.delegatedAdminAccountConfig.push(newResponse);
-    }
-  }
-}
-
-/**
- * Adds session-level configuration to module response
- * @param operation - Type of operation (enabled/disabled)
- * @param targetRegion - Target region for the setting
- * @param accountId - Account ID for the session
- * @param props - Optional Macie module request properties for configuration details
- */
-function addSessionSetting(
-  operation: SecurityModuleOperationType,
-  targetRegion: string,
-  accountId: string,
-  props?: IMacieModuleRequest,
-): void {
-  logger.info(`Adding session setting for ${accountId} in ${targetRegion} in response`);
-  const existing = moduleResponse.sessionConfig.find(setting => setting.operation === operation);
-
-  if (existing) {
-    logger.info(`Session setting for ${accountId} in ${targetRegion} already exists in response`);
-    if (!existing.accountIds.includes(accountId)) {
-      logger.info(`Adding account ${accountId} to session setting for ${operation} operation in response`);
-      existing.accountIds.push(accountId);
-    }
-    if (!existing.regions.includes(targetRegion)) {
-      logger.info(`Adding region ${targetRegion} to session setting for ${operation} operation in response`);
-      existing.regions.push(targetRegion);
-    }
-  } else {
-    logger.info(`Creating new session setting for ${accountId} in ${targetRegion} in response`);
-    const newResponse: IMacieSessionResponse = {
-      operation,
-      regions: [targetRegion],
-      accountIds: [accountId],
-    };
-
-    if (operation === 'enabled' && props) {
-      logger.info(`Adding configuration to session setting for ${accountId} in ${targetRegion} in response`);
-      newResponse.publishSensitiveDataFindings = props.configuration.publishSensitiveDataFindings;
-      newResponse.findingPublishingFrequency = props.configuration.policyFindingsPublishingFrequency;
-      newResponse.s3Destination = props.configuration.s3Destination;
-    }
-    moduleResponse.sessionConfig.push(newResponse);
-  }
+  // Disable delegated admin using the simplified interface
+  await adminManager.disable(client, delegatedAdminOps, dryRun, logPrefix);
 }

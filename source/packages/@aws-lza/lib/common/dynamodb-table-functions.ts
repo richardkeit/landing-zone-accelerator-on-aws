@@ -24,21 +24,22 @@
  * - Support for all DynamoDB operators
  * - Automatic expression attribute value management
  * - Comprehensive error handling and validation
+ * - Table existence validation and creation
  */
 
-import path from 'path';
-import { DynamoDBClient, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
+import { DescribeTableCommand, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
-  DynamoDBDocumentClient,
-  ScanCommand,
-  QueryCommand,
   BatchWriteCommand,
   BatchWriteCommandInput,
+  DynamoDBDocumentClient,
+  QueryCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { executeApi } from './utility';
+import path from 'node:path';
+import { IDynamoDBFilter, IDynamoDBPartitionKey, IDynamoDBSortKey } from './interfaces';
 import { createLogger } from './logger';
-import { IDynamoDBPartitionKey, IDynamoDBSortKey, IDynamoDBFilter } from './interfaces';
 import { DynamoDBFilterOperator, DynamoDBLogicalOperator, MODULE_EXCEPTIONS } from './types';
+import { executeApi } from './utility';
 
 const logger = createLogger([path.parse(path.basename(__filename)).name]);
 
@@ -60,7 +61,334 @@ async function validateTableExists(client: DynamoDBClient, tableName: string, lo
 }
 
 /**
- * Performs advanced DynamoDB query or scan operations with comprehensive filtering support
+ * Builds a filter expression string from an array of filter conditions
+ * @param filters - Array of filter conditions
+ * @param expressionAttributeValues - Object to populate with expression attribute values
+ * @param valueCounter - Counter for generating unique value placeholders
+ * @param filterOperator - Logical operator for combining filters (AND/OR)
+ * @returns Filter expression string
+ */
+function buildFilterExpression(
+  filters: IDynamoDBFilter[],
+  expressionAttributeValues: { [key: string]: unknown },
+  valueCounter: { count: number },
+  filterOperator?: DynamoDBLogicalOperator,
+): string {
+  const filterConditions = filters
+    .map(filter => {
+      const operator = filter.operator ?? DynamoDBFilterOperator.EQUALS;
+      const valueKey = `:val${++valueCounter.count}`;
+
+      switch (operator) {
+        case 'attribute_exists':
+          return `attribute_exists(${filter.name})`;
+        case 'attribute_not_exists':
+          return `attribute_not_exists(${filter.name})`;
+        case 'begins_with':
+          expressionAttributeValues[valueKey] = filter.value;
+          return `begins_with(${filter.name}, ${valueKey})`;
+        case 'contains':
+          expressionAttributeValues[valueKey] = filter.value;
+          return `contains(${filter.name}, ${valueKey})`;
+        case 'attribute_type':
+          expressionAttributeValues[valueKey] = filter.value;
+          return `attribute_type(${filter.name}, ${valueKey})`;
+        case 'size':
+          expressionAttributeValues[valueKey] = filter.value;
+          return `size(${filter.name}) = ${valueKey}`;
+        case 'between': {
+          const valueKey2 = `:val${++valueCounter.count}`;
+          expressionAttributeValues[valueKey] = filter.value;
+          expressionAttributeValues[valueKey2] = filter.value2;
+          return `${filter.name} BETWEEN ${valueKey} AND ${valueKey2}`;
+        }
+        case 'in':
+          if (filter.values) {
+            const inValues = filter.values.map((_, index) => {
+              const inValueKey = `:val${++valueCounter.count}`;
+              expressionAttributeValues[inValueKey] = filter.values![index];
+              return inValueKey;
+            });
+            return `${filter.name} IN (${inValues.join(', ')})`;
+          }
+          return '';
+        default:
+          expressionAttributeValues[valueKey] = filter.value;
+          return `${filter.name} ${operator} ${valueKey}`;
+      }
+    })
+    .filter(Boolean);
+
+  return filterConditions.length > 0 ? filterConditions.join(` ${filterOperator ?? 'AND'} `) : '';
+}
+
+/**
+ * Builds a key condition expression for DynamoDB query operations
+ * @param partitionKey - Partition key configuration
+ * @param sortKey - Optional sort key configuration
+ * @param expressionAttributeValues - Object to populate with expression attribute values
+ * @param valueCounter - Counter for generating unique value placeholders
+ * @returns Key condition expression string
+ */
+function buildKeyConditionExpression(
+  partitionKey: IDynamoDBPartitionKey,
+  sortKey: IDynamoDBSortKey | undefined,
+  expressionAttributeValues: { [key: string]: unknown },
+  valueCounter: { count: number },
+): string {
+  expressionAttributeValues[':pk'] = partitionKey.value;
+  let keyConditionExpression = `${partitionKey.name} = :pk`;
+
+  if (sortKey) {
+    const operator = sortKey.operator ?? DynamoDBFilterOperator.EQUALS;
+    const skValue = `:sk${++valueCounter.count}`;
+    expressionAttributeValues[skValue] = sortKey.value;
+
+    if (operator === 'begins_with') {
+      keyConditionExpression += ` AND begins_with(${sortKey.name}, ${skValue})`;
+    } else if (operator === 'between') {
+      const skValue2 = `:sk${++valueCounter.count}`;
+      expressionAttributeValues[skValue2] = sortKey.value2;
+      keyConditionExpression += ` AND ${sortKey.name} BETWEEN ${skValue} AND ${skValue2}`;
+    } else {
+      keyConditionExpression += ` AND ${sortKey.name} ${operator} ${skValue}`;
+    }
+  }
+
+  return keyConditionExpression;
+}
+
+/**
+ * Executes a DynamoDB query operation
+ * @param options - Query operation configuration
+ * @returns Query results with LastEvaluatedKey for pagination
+ */
+async function executeQuery(options: {
+  docClient: DynamoDBDocumentClient;
+  tableName: string;
+  keyConditionExpression: string;
+  filterExpression: string;
+  expressionAttributeValues: { [key: string]: unknown };
+  scanIndexForward: boolean | undefined;
+  limit: number | undefined;
+  exclusiveStartKey?: Record<string, unknown>;
+  logPrefix: string;
+}): Promise<{ items: { [key: string]: unknown }[] | undefined; lastEvaluatedKey?: Record<string, unknown> }> {
+  const queryParameters = {
+    TableName: options.tableName,
+    KeyConditionExpression: options.keyConditionExpression,
+    ...(Object.keys(options.expressionAttributeValues).length > 0 && {
+      ExpressionAttributeValues: options.expressionAttributeValues,
+    }),
+    FilterExpression: options.filterExpression || undefined,
+    ScanIndexForward: options.scanIndexForward,
+    Limit: options.limit,
+    ExclusiveStartKey: options.exclusiveStartKey,
+  };
+
+  const queryResponse = await executeApi(
+    'QueryCommand',
+    queryParameters,
+    () => options.docClient.send(new QueryCommand(queryParameters)),
+    logger,
+    options.logPrefix,
+  );
+
+  return {
+    items: queryResponse.Items && queryResponse.Items.length > 0 ? queryResponse.Items : undefined,
+    lastEvaluatedKey: queryResponse.LastEvaluatedKey,
+  };
+}
+
+/**
+ * Executes a DynamoDB scan operation
+ * @param options - Scan operation configuration
+ * @returns Scan results with LastEvaluatedKey for pagination
+ */
+async function executeScan(options: {
+  docClient: DynamoDBDocumentClient;
+  tableName: string;
+  filterExpression: string;
+  expressionAttributeValues: { [key: string]: unknown };
+  limit: number | undefined;
+  exclusiveStartKey?: Record<string, unknown>;
+  logPrefix: string;
+}): Promise<{ items: { [key: string]: unknown }[] | undefined; lastEvaluatedKey?: Record<string, unknown> }> {
+  const scanParameters = {
+    TableName: options.tableName,
+    ...(options.filterExpression && { FilterExpression: options.filterExpression }),
+    ...(Object.keys(options.expressionAttributeValues).length > 0 && {
+      ExpressionAttributeValues: options.expressionAttributeValues,
+    }),
+    Limit: options.limit,
+    ExclusiveStartKey: options.exclusiveStartKey,
+  };
+
+  const scanResponse = await executeApi(
+    'ScanCommand',
+    scanParameters,
+    () => options.docClient.send(new ScanCommand(scanParameters)),
+    logger,
+    options.logPrefix,
+  );
+
+  return {
+    items: scanResponse.Items && scanResponse.Items.length > 0 ? scanResponse.Items : undefined,
+    lastEvaluatedKey: scanResponse.LastEvaluatedKey,
+  };
+}
+
+/**
+ * Pagination configuration for DynamoDB query operations
+ */
+export interface IDynamoDBPaginationConfig {
+  /** Enable automatic pagination to retrieve all results */
+  readonly enabled: boolean;
+  /** Optional maximum number of pages to retrieve (safety limit, default: 100) */
+  readonly maxPages?: number;
+}
+
+/**
+ * Executes DynamoDB query or scan with automatic pagination support.
+ * Loops through all pages using LastEvaluatedKey until all results are retrieved
+ * or maxPages limit is reached.
+ *
+ * @param options - Pagination execution configuration
+ * @returns Query result with all items and pagination metadata
+ */
+async function executeWithPagination(options: {
+  docClient: DynamoDBDocumentClient;
+  tableName: string;
+  partitionKey?: IDynamoDBPartitionKey;
+  sortKey?: IDynamoDBSortKey;
+  filters?: IDynamoDBFilter[];
+  filterOperator?: DynamoDBLogicalOperator;
+  scanIndexForward?: boolean;
+  limit?: number;
+  maxPages: number;
+  logPrefix: string;
+}): Promise<IDynamoDBQueryResult> {
+  const allItems: { [key: string]: unknown }[] = [];
+  let pageCount = 0;
+  let lastEvaluatedKey: Record<string, unknown> | undefined = undefined;
+  let hasMorePages = true;
+
+  logger.info(
+    `Starting paginated query for table ${options.tableName} (maxPages: ${options.maxPages})`,
+    options.logPrefix,
+  );
+
+  while (hasMorePages && pageCount < options.maxPages) {
+    pageCount++;
+
+    const expressionAttributeValues: { [key: string]: unknown } = {};
+    const valueCounter = { count: 0 };
+
+    // Determine if this is a query or scan operation
+    const isQuery = !!options.partitionKey;
+
+    let result: { items: { [key: string]: unknown }[] | undefined; lastEvaluatedKey?: Record<string, unknown> };
+
+    if (isQuery) {
+      // Build key condition expression for query
+      const keyConditionExpression = buildKeyConditionExpression(
+        options.partitionKey!,
+        options.sortKey,
+        expressionAttributeValues,
+        valueCounter,
+      );
+
+      // Build filter expression if filters provided
+      const filterExpression = options.filters
+        ? buildFilterExpression(options.filters, expressionAttributeValues, valueCounter, options.filterOperator)
+        : '';
+
+      // Execute query with pagination
+      result = await executeQuery({
+        docClient: options.docClient,
+        tableName: options.tableName,
+        keyConditionExpression,
+        filterExpression,
+        expressionAttributeValues,
+        scanIndexForward: options.scanIndexForward,
+        limit: options.limit,
+        exclusiveStartKey: lastEvaluatedKey,
+        logPrefix: options.logPrefix,
+      });
+    } else {
+      // Build filter expression for scan
+      const filterExpression = options.filters
+        ? buildFilterExpression(options.filters, expressionAttributeValues, valueCounter, options.filterOperator)
+        : '';
+
+      // Execute scan with pagination
+      result = await executeScan({
+        docClient: options.docClient,
+        tableName: options.tableName,
+        filterExpression,
+        expressionAttributeValues,
+        limit: options.limit,
+        exclusiveStartKey: lastEvaluatedKey,
+        logPrefix: options.logPrefix,
+      });
+    }
+
+    // Accumulate items from this page
+    if (result.items && result.items.length > 0) {
+      allItems.push(...result.items);
+      logger.info(
+        `Page ${pageCount}: Retrieved ${result.items.length} items (total: ${allItems.length})`,
+        options.logPrefix,
+      );
+    } else {
+      logger.info(`Page ${pageCount}: No items returned`, options.logPrefix);
+    }
+
+    // Check if there are more pages
+    if (result.lastEvaluatedKey) {
+      lastEvaluatedKey = result.lastEvaluatedKey;
+      hasMorePages = true;
+    } else {
+      hasMorePages = false;
+      logger.info(`Pagination complete: Retrieved all items across ${pageCount} page(s)`, options.logPrefix);
+    }
+  }
+
+  // Warn if we hit the maxPages limit
+  if (hasMorePages && pageCount >= options.maxPages) {
+    logger.warn(
+      `Reached maximum page limit (${options.maxPages}). There may be more items available. ` +
+        `Retrieved ${allItems.length} items across ${pageCount} pages.`,
+      options.logPrefix,
+    );
+  }
+
+  return {
+    items: allItems.length > 0 ? allItems : undefined,
+    lastEvaluatedKey,
+    pageCount,
+    totalItems: allItems.length,
+  };
+}
+
+/**
+ * Result of DynamoDB query operation with optional pagination metadata
+ */
+export interface IDynamoDBQueryResult {
+  /** Array of items returned from the query */
+  readonly items: { [key: string]: unknown }[] | undefined;
+  /** Last evaluated key for pagination (present if more results available) */
+  readonly lastEvaluatedKey?: Record<string, unknown>;
+  /** Number of pages retrieved (only present when pagination enabled) */
+  readonly pageCount?: number;
+  /** Total number of items retrieved across all pages */
+  readonly totalItems?: number;
+}
+
+/**
+ * Performs advanced DynamoDB query or scan operations with automatic pagination support.
+ * Always returns pagination metadata for consistency and observability.
+ *
  * @param options - Configuration object for the DynamoDB operation
  * @param options.client - DynamoDB client instance
  * @param options.logPrefix - Prefix for logging messages
@@ -70,8 +398,30 @@ async function validateTableExists(client: DynamoDBClient, tableName: string, lo
  * @param options.filters - Optional array of filter conditions
  * @param options.filterOperator - Logical operator for combining filters (AND/OR)
  * @param options.scanIndexForward - Sort order for query results
- * @param options.limit - Maximum number of items to return
- * @returns Promise resolving to array of items or undefined if no results
+ * @param options.limit - Maximum number of items to return per page
+ * @param options.pagination - Pagination configuration (enabled: true is required, maxPages defaults to 100)
+ * @returns Promise resolving to query result with items and pagination metadata
+ *
+ * @example
+ * ```typescript
+ * // Query with automatic pagination
+ * const result = await queryDynamoDBTable({
+ *   client,
+ *   tableName: 'my-table',
+ *   partitionKey: { name: 'PK', value: 'USER#123' },
+ *   pagination: { enabled: true },
+ *   logPrefix: 'MyApp'
+ * });
+ *
+ * // Query with custom maxPages limit
+ * const result = await queryDynamoDBTable({
+ *   client,
+ *   tableName: 'my-table',
+ *   partitionKey: { name: 'PK', value: 'RETENTION#MACIE' },
+ *   pagination: { enabled: true, maxPages: 50 },
+ *   logPrefix: 'MyApp'
+ * });
+ * ```
  */
 export async function queryDynamoDBTable(options: {
   client: DynamoDBClient;
@@ -83,191 +433,27 @@ export async function queryDynamoDBTable(options: {
   filterOperator?: DynamoDBLogicalOperator;
   scanIndexForward?: boolean;
   limit?: number;
-}): Promise<{ [key: string]: unknown }[] | undefined> {
+  pagination: IDynamoDBPaginationConfig & { enabled: true };
+}): Promise<IDynamoDBQueryResult> {
   const docClient = DynamoDBDocumentClient.from(options.client);
 
   await validateTableExists(options.client, options.tableName, options.logPrefix);
 
-  if (!options.partitionKey && !options.filters) {
-    const scanResponse = await executeApi(
-      'ScanCommand',
-      { TableName: options.tableName, Limit: options.limit },
-      () => docClient.send(new ScanCommand({ TableName: options.tableName, Limit: options.limit })),
-      logger,
-      options.logPrefix,
-    );
+  const maxPages = options.pagination.maxPages ?? 100; // Safety limit
 
-    if (!scanResponse.Items || scanResponse.Items.length === 0) {
-      return undefined;
-    }
-
-    return scanResponse.Items;
-  }
-
-  const expressionAttributeValues: { [key: string]: unknown } = {};
-  let valueCounter = 0;
-
-  if (options.partitionKey) {
-    expressionAttributeValues[':pk'] = options.partitionKey.value;
-    let keyConditionExpression = `${options.partitionKey.name} = :pk`;
-
-    if (options.sortKey) {
-      const operator = options.sortKey.operator ?? DynamoDBFilterOperator.EQUALS;
-      const skValue = `:sk${++valueCounter}`;
-      expressionAttributeValues[skValue] = options.sortKey.value;
-
-      if (operator === 'begins_with') {
-        keyConditionExpression += ` AND begins_with(${options.sortKey.name}, ${skValue})`;
-      } else if (operator === 'between') {
-        const skValue2 = `:sk${++valueCounter}`;
-        expressionAttributeValues[skValue2] = options.sortKey.value2;
-        keyConditionExpression += ` AND ${options.sortKey.name} BETWEEN ${skValue} AND ${skValue2}`;
-      } else {
-        keyConditionExpression += ` AND ${options.sortKey.name} ${operator} ${skValue}`;
-      }
-    }
-
-    let filterExpression = '';
-    if (options.filters && options.filters.length > 0) {
-      const filterConditions = options.filters
-        .map(filter => {
-          const operator = filter.operator ?? DynamoDBFilterOperator.EQUALS;
-          const valueKey = `:val${++valueCounter}`;
-
-          switch (operator) {
-            case 'attribute_exists':
-              return `attribute_exists(${filter.name})`;
-            case 'attribute_not_exists':
-              return `attribute_not_exists(${filter.name})`;
-            case 'begins_with':
-              expressionAttributeValues[valueKey] = filter.value;
-              return `begins_with(${filter.name}, ${valueKey})`;
-            case 'contains':
-              expressionAttributeValues[valueKey] = filter.value;
-              return `contains(${filter.name}, ${valueKey})`;
-            case 'attribute_type':
-              expressionAttributeValues[valueKey] = filter.value;
-              return `attribute_type(${filter.name}, ${valueKey})`;
-            case 'size':
-              expressionAttributeValues[valueKey] = filter.value;
-              return `size(${filter.name}) = ${valueKey}`;
-            case 'between':
-              const valueKey2 = `:val${++valueCounter}`;
-              expressionAttributeValues[valueKey] = filter.value;
-              expressionAttributeValues[valueKey2] = filter.value2;
-              return `${filter.name} BETWEEN ${valueKey} AND ${valueKey2}`;
-            case 'in':
-              if (filter.values) {
-                const inValues = filter.values.map((_, index) => {
-                  const inValueKey = `:val${++valueCounter}`;
-                  expressionAttributeValues[inValueKey] = filter.values![index];
-                  return inValueKey;
-                });
-                return `${filter.name} IN (${inValues.join(', ')})`;
-              }
-              return '';
-            default:
-              expressionAttributeValues[valueKey] = filter.value;
-              return `${filter.name} ${operator} ${valueKey}`;
-          }
-        })
-        .filter(condition => condition);
-
-      if (filterConditions.length > 0) {
-        filterExpression = filterConditions.join(` ${options.filterOperator ?? 'AND'} `);
-      }
-    }
-
-    const queryParameters = {
-      TableName: options.tableName,
-      KeyConditionExpression: keyConditionExpression,
-      ...(Object.keys(expressionAttributeValues).length > 0 && {
-        ExpressionAttributeValues: expressionAttributeValues,
-      }),
-      FilterExpression: filterExpression ?? undefined,
-      ScanIndexForward: options.scanIndexForward,
-      Limit: options.limit,
-    };
-
-    const queryResponse = await executeApi(
-      'QueryCommand',
-      queryParameters,
-      () => docClient.send(new QueryCommand(queryParameters)),
-      logger,
-      options.logPrefix,
-    );
-
-    if (!queryResponse.Items || queryResponse.Items.length === 0) {
-      return undefined;
-    }
-
-    return queryResponse.Items;
-  }
-
-  if (options.filters && options.filters.length > 0) {
-    const filterConditions = options.filters
-      .map(filter => {
-        const operator = filter.operator ?? DynamoDBFilterOperator.EQUALS;
-        const valueKey = `:val${++valueCounter}`;
-
-        switch (operator) {
-          case 'attribute_exists':
-            return `attribute_exists(${filter.name})`;
-          case 'attribute_not_exists':
-            return `attribute_not_exists(${filter.name})`;
-          case 'begins_with':
-            expressionAttributeValues[valueKey] = filter.value;
-            return `begins_with(${filter.name}, ${valueKey})`;
-          case 'contains':
-            expressionAttributeValues[valueKey] = filter.value;
-            return `contains(${filter.name}, ${valueKey})`;
-          case 'between':
-            const valueKey2 = `:val${++valueCounter}`;
-            expressionAttributeValues[valueKey] = filter.value;
-            expressionAttributeValues[valueKey2] = filter.value2;
-            return `${filter.name} BETWEEN ${valueKey} AND ${valueKey2}`;
-          case 'in':
-            if (filter.values) {
-              const inValues = filter.values.map((_, index) => {
-                const inValueKey = `:val${++valueCounter}`;
-                expressionAttributeValues[inValueKey] = filter.values![index];
-                return inValueKey;
-              });
-              return `${filter.name} IN (${inValues.join(', ')})`;
-            }
-            return '';
-          default:
-            expressionAttributeValues[valueKey] = filter.value;
-            return `${filter.name} ${operator} ${valueKey}`;
-        }
-      })
-      .filter(condition => condition);
-
-    const scanParameters = {
-      TableName: options.tableName,
-      FilterExpression: filterConditions.join(` ${options.filterOperator ?? 'AND'} `),
-      ...(Object.keys(expressionAttributeValues).length > 0 && {
-        ExpressionAttributeValues: expressionAttributeValues,
-      }),
-      Limit: options.limit,
-    };
-
-    const scanResponse = await executeApi(
-      'ScanCommand',
-      scanParameters,
-      () => docClient.send(new ScanCommand(scanParameters)),
-      logger,
-      options.logPrefix,
-    );
-
-    if (!scanResponse.Items || scanResponse.Items.length === 0) {
-      return undefined;
-    }
-
-    return scanResponse.Items;
-  }
-
-  return undefined;
+  // Always execute with pagination
+  return executeWithPagination({
+    docClient,
+    tableName: options.tableName,
+    partitionKey: options.partitionKey,
+    sortKey: options.sortKey,
+    filters: options.filters,
+    filterOperator: options.filterOperator,
+    scanIndexForward: options.scanIndexForward,
+    limit: options.limit,
+    maxPages,
+    logPrefix: options.logPrefix,
+  });
 }
 /**
  * Puts an array of items into a DynamoDB table using batch write operations.

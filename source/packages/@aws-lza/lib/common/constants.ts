@@ -69,8 +69,8 @@
  *
  * @example
  * ```typescript
- * // Use in concurrency settings
- * const settings: IConcurrencySettings = {
+ * // Use in batch operation settings
+ * const settings: IBatchOperationSettings = {
  *   maxConcurrentEnvironments: DEFAULT_MAX_CONCURRENT_ENVIRONMENTS
  * };
  *
@@ -79,7 +79,7 @@
  * const aggressiveLimit = DEFAULT_MAX_CONCURRENT_ENVIRONMENTS * 1.5; // 75
  * ```
  *
- * @see {@link IConcurrencySettings.maxConcurrentEnvironments}
+ * @see {@link IBatchOperationSettings.maxConcurrentEnvironments}
  * @constant
  * @default 50
  */
@@ -115,8 +115,25 @@ export const DEFAULT_MAX_CONCURRENT_ENVIRONMENTS = 50;
  * const complexEnvironmentTimeout = DEFAULT_SECURITY_OPERATION_TIMEOUTS_MS * 5; // 5 minutes max
  * ```
  *
- * @see {@link IConcurrencySettings.operationTimeoutMs}
+ * @see {@link IBatchOperationSettings.operationTimeoutMs}
  * @constant
- * @default 60000 (1 minute)
+ * @default 60000 (5 minute)
  */
-export const DEFAULT_SECURITY_OPERATION_TIMEOUTS_MS = 1 * 60000;
+export const DEFAULT_SECURITY_OPERATION_TIMEOUTS_MS = 5 * 60000;
+
+/**
+ * Default batch size for parallel member operations within a single region.
+ *
+ * @description
+ * Controls how many member account API calls (e.g., CreateMember, DeleteMember)
+ * are executed concurrently within a single region. Batches are processed
+ * sequentially, with each batch running its items in parallel via Promise.allSettled.
+ *
+ * This value balances throughput with per-region API rate limits for services
+ * like Macie, GuardDuty, and Security Hub that have relatively low TPS limits
+ * for member management operations.
+ *
+ * @constant
+ * @default 10
+ */
+export const DEFAULT_MEMBER_BATCH_SIZE = 10;

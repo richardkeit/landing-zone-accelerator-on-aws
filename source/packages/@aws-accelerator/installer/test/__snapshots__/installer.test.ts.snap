@@ -1799,6 +1799,22 @@ phases:
                   ],
                 },
                 " $FORCE_BOOTSTRAP
+      - set -e && ./lib/bash/create-module-infrastructure.sh ",
+                {
+                  "Fn::GetAtt": [
+                    "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                    "acceleratorPrefix",
+                  ],
+                },
+                " ",
+                {
+                  "Ref": "AWS::Region",
+                },
+                " ",
+                {
+                  "Ref": "AWS::AccountId",
+                },
+                "
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -5646,6 +5662,22 @@ phases:
                   ],
                 },
                 " $FORCE_BOOTSTRAP
+      - set -e && ./lib/bash/create-module-infrastructure.sh ",
+                {
+                  "Fn::GetAtt": [
+                    "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                    "acceleratorPrefix",
+                  ],
+                },
+                " ",
+                {
+                  "Ref": "AWS::Region",
+                },
+                " ",
+                {
+                  "Ref": "AWS::AccountId",
+                },
+                "
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -9559,6 +9591,22 @@ phases:
                   ],
                 },
                 " $FORCE_BOOTSTRAP
+      - set -e && ./lib/bash/create-module-infrastructure.sh ",
+                {
+                  "Fn::GetAtt": [
+                    "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                    "acceleratorPrefix",
+                  ],
+                },
+                " ",
+                {
+                  "Ref": "AWS::Region",
+                },
+                " ",
+                {
+                  "Ref": "AWS::AccountId",
+                },
+                "
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -13445,6 +13493,22 @@ phases:
                   ],
                 },
                 " $FORCE_BOOTSTRAP
+      - set -e && ./lib/bash/create-module-infrastructure.sh ",
+                {
+                  "Fn::GetAtt": [
+                    "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                    "acceleratorPrefix",
+                  ],
+                },
+                " ",
+                {
+                  "Ref": "AWS::Region",
+                },
+                " ",
+                {
+                  "Ref": "AWS::AccountId",
+                },
+                "
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -17336,6 +17400,22 @@ phases:
                   ],
                 },
                 " $FORCE_BOOTSTRAP
+      - set -e && ./lib/bash/create-module-infrastructure.sh ",
+                {
+                  "Fn::GetAtt": [
+                    "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                    "acceleratorPrefix",
+                  ],
+                },
+                " ",
+                {
+                  "Ref": "AWS::Region",
+                },
+                " ",
+                {
+                  "Ref": "AWS::AccountId",
+                },
+                "
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -21185,6 +21265,22 @@ phases:
                   ],
                 },
                 " $FORCE_BOOTSTRAP
+      - set -e && ./lib/bash/create-module-infrastructure.sh ",
+                {
+                  "Fn::GetAtt": [
+                    "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                    "acceleratorPrefix",
+                  ],
+                },
+                " ",
+                {
+                  "Ref": "AWS::Region",
+                },
+                " ",
+                {
+                  "Ref": "AWS::AccountId",
+                },
+                "
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -25089,6 +25185,22 @@ phases:
                   ],
                 },
                 " $FORCE_BOOTSTRAP
+      - set -e && ./lib/bash/create-module-infrastructure.sh ",
+                {
+                  "Fn::GetAtt": [
+                    "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                    "acceleratorPrefix",
+                  ],
+                },
+                " ",
+                {
+                  "Ref": "AWS::Region",
+                },
+                " ",
+                {
+                  "Ref": "AWS::AccountId",
+                },
+                "
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -29368,6 +29480,22 @@ phases:
                   ],
                 },
                 " $FORCE_BOOTSTRAP
+      - set -e && ./lib/bash/create-module-infrastructure.sh ",
+                {
+                  "Fn::GetAtt": [
+                    "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                    "acceleratorPrefix",
+                  ],
+                },
+                " ",
+                {
+                  "Ref": "AWS::Region",
+                },
+                " ",
+                {
+                  "Ref": "AWS::AccountId",
+                },
+                "
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -33675,6 +33803,22 @@ phases:
                   ],
                 },
                 " $FORCE_BOOTSTRAP
+      - set -e && ./lib/bash/create-module-infrastructure.sh ",
+                {
+                  "Fn::GetAtt": [
+                    "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                    "acceleratorPrefix",
+                  ],
+                },
+                " ",
+                {
+                  "Ref": "AWS::Region",
+                },
+                " ",
+                {
+                  "Ref": "AWS::AccountId",
+                },
+                "
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",

@@ -10,10 +10,10 @@
  *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions
  *  and limitations under the License.
  */
-import { describe, beforeEach, expect, test, vi } from 'vitest';
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { getS3ObjectContent, uploadFileToS3 } from '../../common/s3-functions';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { MODULE_EXCEPTIONS } from '../../common/enums';
+import { getS3ObjectContent, uploadFileToS3 } from '../../common/s3-functions';
 
 vi.mock('../../common/throttle', () => ({
   throttlingBackOff: vi.fn(fn => fn()),
@@ -35,12 +35,17 @@ vi.mock('@aws-sdk/client-s3', () => ({
 }));
 
 vi.mock('crypto', () => ({
-  createHash: vi.fn(() => ({
+  createHash: vi.fn(algorithm => ({
     update: vi.fn().mockReturnThis(),
     digest: vi.fn(encoding => {
       if (encoding === 'hex') {
-        return 'mocked-md5-hash';
+        if (algorithm === 'sha256') {
+          return 'mocked-sha256-hash';
+        } else if (algorithm === 'md5') {
+          return 'mocked-md5-hash';
+        }
       }
+      // For base64 encoding (ContentMD5)
       return Buffer.from('mocked-md5-hash', 'hex');
     }),
   })),
@@ -101,12 +106,15 @@ describe('s3-functions', () => {
   describe('uploadFileToS3', () => {
     test('should upload file to S3 successfully', async () => {
       // Setup
-      const expectedMD5 = 'mocked-md5-hash';
+      const expectedSHA256 = 'mocked-sha256-hash';
       mockSend
         .mockResolvedValueOnce({}) // PutObjectCommand
         .mockResolvedValueOnce({
           // HeadObjectCommand
-          ETag: `"${expectedMD5}"`,
+          Metadata: {
+            sha256: expectedSHA256,
+            md5: 'mocked-md5-hash',
+          },
         });
 
       // Execute
@@ -118,18 +126,21 @@ describe('s3-functions', () => {
       expect(mockSend).toHaveBeenNthCalledWith(2, expect.any(HeadObjectCommand));
     });
 
-    test('should throw error when upload verification fails due to MD5 mismatch', async () => {
+    test('should throw error when upload verification fails due to SHA256 mismatch', async () => {
       // Setup
       mockSend
         .mockResolvedValueOnce({}) // PutObjectCommand
         .mockResolvedValueOnce({
           // HeadObjectCommand
-          ETag: '"different-md5-hash"',
+          Metadata: {
+            sha256: 'different-sha256-hash',
+            md5: 'mocked-md5-hash',
+          },
         });
 
       // Execute & Verify
       await expect(uploadFileToS3(mockS3Client, bucketName, objectPath, fileContent)).rejects.toThrow(
-        `${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: Upload verification failed: MD5 mismatch. Local: mocked-md5-hash, S3: different-md5-hash for  s3://${bucketName}/${objectPath} file.`,
+        `${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: Upload verification failed: SHA256 mismatch. Local: mocked-sha256-hash, S3: different-sha256-hash for  s3://${bucketName}/${objectPath} file.`,
       );
     });
 
@@ -155,14 +166,17 @@ describe('s3-functions', () => {
       );
     });
 
-    test('should handle ETag without quotes', async () => {
+    test('should handle SHA256 from metadata', async () => {
       // Setup
-      const expectedMD5 = 'mocked-md5-hash';
+      const expectedSHA256 = 'mocked-sha256-hash';
       mockSend
         .mockResolvedValueOnce({}) // PutObjectCommand
         .mockResolvedValueOnce({
           // HeadObjectCommand
-          ETag: expectedMD5, // No quotes around ETag
+          Metadata: {
+            sha256: expectedSHA256,
+            md5: 'mocked-md5-hash',
+          },
         });
 
       // Execute
@@ -172,18 +186,18 @@ describe('s3-functions', () => {
       expect(mockSend).toHaveBeenCalledTimes(2);
     });
 
-    test('should handle missing ETag in verification', async () => {
+    test('should handle missing SHA256 in verification', async () => {
       // Setup
       mockSend
         .mockResolvedValueOnce({}) // PutObjectCommand
         .mockResolvedValueOnce({
           // HeadObjectCommand
-          ETag: undefined,
+          Metadata: {},
         });
 
       // Execute & Verify
       await expect(uploadFileToS3(mockS3Client, bucketName, objectPath, fileContent)).rejects.toThrow(
-        `${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: Upload verification failed: MD5 mismatch. Local: mocked-md5-hash, S3: undefined for  s3://${bucketName}/${objectPath} file.`,
+        `${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: Upload verification failed: SHA256 mismatch. Local: mocked-sha256-hash, S3: undefined for  s3://${bucketName}/${objectPath} file.`,
       );
     });
   });

@@ -1,0 +1,127 @@
+# Module Integration Test Jobs
+# ==============================
+#
+# Prerequisites job deploys shared infrastructure (DynamoDB tables in management account,
+# S3 bucket + CMK in log archive account). Module test jobs depend on it via `needs`.
+#
+# All jobs assume role into the management account via AWS_CREDS_TARGET_ROLE.
+# Cross-account access (e.g., log archive) uses the same INTEGRATION_TEST_ROLE_NAME
+# which exists in every account with a trust policy allowing the management account role.
+#
+# Required GitLab CI variables (project/group level):
+#   ACCELERATOR_PREFIX          - e.g. AWSAccelerator
+#   INTEGRATION_TEST_ROLE_NAME  - e.g. LzaIntegrationTestRole
+#   EXECUTE_INTEGRATION_TEST    - "Yes" to enable, "No" to disable
+#   SAMPLE_CONFIG_ENV_MANAGEMENT_ACCOUNT_ID
+#   SAMPLE_CONFIG_ENV_LOGARCHIVE_ACCOUNT_ID
+#
+# Rule Logic
+# ----------
+#
+# Prereq job (integ:prereq):
+#   1. EXECUTE_INTEGRATION_TEST=No  → never run (explicit kill switch)
+#   2. Remote repo (CI_PROJECT_ID=11925) + not integ branch → never run
+#   3. EXECUTE_INTEGRATION_TEST=Yes → always run
+#   4. Otherwise → never
+#   Uses --no-fail-on-empty-changeset so it's a no-op when infra is unchanged.
+#   Always runs when any module job could run, since all module jobs depend on it.
+#
+# Module test jobs (e.g., integ:macie):
+#   1. EXECUTE_INTEGRATION_TEST=No  → never run (explicit kill switch)
+#   2. Remote repo (CI_PROJECT_ID=11925) + not integ branch → never run
+#      (prevents running on main, release, or MR pipelines in the remote)
+#   3. EXECUTE_INTEGRATION_TEST=Yes + module files changed → run
+#   4. Otherwise → never
+#
+#   In forks (different project ID), rule 2 is skipped, so any branch
+#   with EXECUTE_INTEGRATION_TEST=Yes and file changes will trigger the job.
+#   In the remote repo, only the integ branch passes rule 2.
+
+# ============================================================
+# Prerequisites: deploy shared test infrastructure (once)
+# ============================================================
+integ:prereq:aws:us-east-1:
+  stage: pipeline
+  needs: ["accelerator:build"]
+  variables:
+    ENV_NAME: sampleConfig
+    ACCOUNT_ID: "${SAMPLE_CONFIG_ENV_MANAGEMENT_ACCOUNT_ID}"
+    LOGARCHIVE_ACCOUNT_ID: "${SAMPLE_CONFIG_ENV_LOGARCHIVE_ACCOUNT_ID}"
+    PARTITION: aws
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_CREDS_TARGET_ROLE: "arn:${PARTITION}:iam::${ACCOUNT_ID}:role/${INTEGRATION_TEST_ROLE_NAME}"
+  tags:
+    - arch:amd64
+    - size:large
+  script:
+    - wget --progress=dot:mega -O /tmp/awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+    - unzip -q /tmp/awscliv2.zip -d /tmp
+    - /tmp/aws/install
+    - "cd source/packages/@aws-accelerator/accelerator/test/integration/infrastructure"
+    - "bash deploy-integ-prereqs.sh ${ACCELERATOR_PREFIX} ${AWS_DEFAULT_REGION} ${ACCOUNT_ID} ${LOGARCHIVE_ACCOUNT_ID} ${PARTITION} ${INTEGRATION_TEST_ROLE_NAME}"
+  artifacts:
+    reports:
+      dotenv: "source/packages/@aws-accelerator/accelerator/test/integration/infrastructure/integ-prereqs.env"
+    expire_in: 1 day
+  rules:
+    - if: $EXECUTE_INTEGRATION_TEST == "No"
+      when: never
+    # Remote repo: only integ branch
+    - if: $CI_PROJECT_ID == "11925" && $CI_COMMIT_BRANCH != "integ"
+      when: never
+    - if: $EXECUTE_INTEGRATION_TEST == "Yes"
+      when: always
+    - when: never
+
+# ============================================================
+# Macie module integration test
+# ============================================================
+integ:macie:aws:us-east-1:
+  stage: pipeline
+  needs:
+    - job: accelerator:build
+      artifacts: true
+    - job: integ:prereq:aws:us-east-1
+      artifacts: true
+  variables:
+    ENV_NAME: sampleConfig
+    ACCOUNT_ID: "${SAMPLE_CONFIG_ENV_MANAGEMENT_ACCOUNT_ID}"
+    PARTITION: aws
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_CREDS_TARGET_ROLE: "arn:${PARTITION}:iam::${ACCOUNT_ID}:role/${INTEGRATION_TEST_ROLE_NAME}"
+    MANAGEMENT_ACCOUNT_ACCESS_ROLE: "${INTEGRATION_TEST_ROLE_NAME}"
+    # Enable CloudWatch verbose logging — log group created by prereq infrastructure
+    VERBOSE_LOG_GROUP_NAME: "${ACCELERATOR_PREFIX}-Module-Verbose-Logs"
+    PIPELINE_ACCOUNT_ID: "${SAMPLE_CONFIG_ENV_MANAGEMENT_ACCOUNT_ID}"
+    ACCELERATOR_STAGE: "integ-macie"
+    # LOGGING_BUCKET_NAME and LOGGING_BUCKET_KEY_ARN are injected from
+    # the prereq job's dotenv artifact (actual KMS key ARN, not alias).
+  tags:
+    - arch:amd64
+    - size:large
+  script:
+    - "cd source/packages/@aws-accelerator/accelerator"
+    - "yarn test:integration test/integration/modules/macie/index.test.integration.ts"
+  artifacts:
+    when: always
+    reports:
+      junit: "source/packages/@aws-accelerator/accelerator/test-reports/integration-results.xml"
+    expire_in: 7 days
+  timeout: 15m
+  rules:
+    - if: $EXECUTE_INTEGRATION_TEST == "No"
+      when: never
+    # Remote repo: only integ branch
+    - if: $CI_PROJECT_ID == "11925" && $CI_COMMIT_BRANCH != "integ"
+      when: never
+    - if: $EXECUTE_INTEGRATION_TEST == "Yes"
+      changes:
+        - source/packages/@aws-lza/lib/amazon-macie/**/*
+        - source/packages/@aws-accelerator/accelerator/lib/actions/security/amazon-macie*
+        - source/packages/@aws-accelerator/accelerator/test/integration/modules/macie/**/*
+      when: always
+    # Manual trigger when EXECUTE_INTEGRATION_TEST=Yes but no file changes matched
+    - if: $EXECUTE_INTEGRATION_TEST == "Yes"
+      when: manual
+      allow_failure: true
+    - when: never

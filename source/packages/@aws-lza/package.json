@@ -7,11 +7,11 @@
     "name": "Amazon Web Services",
     "url": "https://aws.amazon.com/solutions"
   },
-"main": "dist/index.js",
-"types": "dist/index.d.ts",
- "bin" : {
-  "aws-lza": "bin/aws-lza"
- },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "aws-lza": "bin/aws-lza"
+  },
   "scripts": {
     "cleanup": "tsc --build ./ --clean && rm -rf node_modules && rm -rf dist",
     "cleanup:tsc": "tsc --build ./ --clean",
@@ -20,8 +20,8 @@
     "test:unit": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:clean": "rm -f ./test-reports/*.xml",
-    "lint": "eslint --fix  --max-warnings 0 -c ../../eslint.config.mjs 'lib/**/*.{ts,tsx}' 'bin/**/*.{ts,tsx}' 'test/**/*.{ts,tsx}'",
-    "precommit": "eslint --max-warnings 0 -c ../../eslint.config.mjs 'lib/**/*.{ts,tsx}' 'bin/**/*.{ts,tsx}'",
+    "lint": "eslint --fix  --max-warnings 0 -c ../../eslint.config.mjs lib/ bin/ test/",
+    "precommit": "eslint --max-warnings 0 -c ../../eslint.config.mjs lib/ bin/",
     "prepare": "npm run build",
     "aws-lza": "bin/aws-lza"
   },
@@ -33,12 +33,20 @@
     "@aws-sdk/client-ssm": "3.835.0",
     "@aws-sdk/client-organizations": "3.835.0",
     "@aws-sdk/client-sts": "3.835.0",
+    "@aws-sdk/client-cloudformation": "3.835.0",
     "@aws-sdk/util-retry": "3.374.0",
     "@aws-sdk/client-ec2": "3.835.0",
     "@aws-sdk/client-s3": "3.835.0",
     "@aws-sdk/client-dynamodb": "3.835.0",
     "@aws-sdk/lib-dynamodb": "3.835.0",
     "@aws-sdk/util-dynamodb": "3.835.0",
+    "@aws-sdk/client-macie2": "3.835.0",
+    "@aws-sdk/client-lambda": "3.835.0",
+    "@aws-sdk/client-detective": "3.835.0",
+    "@aws-sdk/client-guardduty": "3.835.0",
+    "@aws-sdk/client-securityhub": "3.835.0",
+    "@aws-sdk/client-service-quotas": "3.835.0",
+    "@aws-sdk/client-cloudwatch-logs": "3.835.0",
     "email-validator": "2.0.4",
     "fs-extra": "11.1.0",
     "winston": "3.8.2",

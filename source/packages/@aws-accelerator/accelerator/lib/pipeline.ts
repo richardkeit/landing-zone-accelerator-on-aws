@@ -19,14 +19,14 @@ import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
+import { ControlTowerLandingZoneConfig } from '@aws-accelerator/config';
 import { Bucket, BucketEncryptionType, PipelineNotification } from '@aws-accelerator/constructs';
+import { CONTROL_TOWER_LANDING_ZONE_VERSION, getGlobalRegion, getNodeVersion } from '@aws-accelerator/utils';
+import { Repository } from '@aws-cdk-extensions/cdk-extensions';
+import { version } from '../../../../package.json';
 import { AcceleratorStage } from './accelerator-stage';
 import * as config_repository from './config-repository';
 import { AcceleratorToolkitCommand } from './toolkit';
-import { Repository } from '@aws-cdk-extensions/cdk-extensions';
-import { CONTROL_TOWER_LANDING_ZONE_VERSION, getGlobalRegion, getNodeVersion } from '@aws-accelerator/utils';
-import { ControlTowerLandingZoneConfig } from '@aws-accelerator/config';
-import { version } from '../../../../package.json';
 export interface AcceleratorPipelineProps {
   readonly toolkitRole: cdk.aws_iam.Role;
   readonly sourceRepository: string;
@@ -473,9 +473,13 @@ export class AcceleratorPipeline extends Construct {
               'env',
               `"\${WORK_DIR}/scripts/prepare-stage.sh"`,
               `cd $WORK_DIR;`,
-              `RUNNER_ARGS="--partition ${cdk.Aws.PARTITION} --region ${cdk.Aws.REGION} --config-dir $CODEBUILD_SRC_DIR_Config --stage $ACCELERATOR_STAGE --prefix ${props.prefixes.accelerator}"`,
-              `if ${this.props.useExistingRoles}; then RUNNER_ARGS="$RUNNER_ARGS --use-existing-roles"; fi`,
-              `set -e && yarn run ts-node ../modules/bin/runner.ts $RUNNER_ARGS;`,
+              `echo "=========================================="`,
+              `echo "Verbose logs are being sent to CloudWatch Logs"`,
+              `echo "Log Group: ${props.prefixes.accelerator}-Module-Verbose-Logs"`,
+              `echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-${props.pipelineAccountId}"`,
+              `echo "For detailed troubleshooting, view logs in CloudWatch Logs console"`,
+              `echo "=========================================="`,
+              `yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ${cdk.Aws.PARTITION} --region ${cdk.Aws.REGION} --stage $ACCELERATOR_STAGE --verbose`,
               `set -e && ./scripts/bootstrap_management_before_prepare.sh ${globalRegion};`,
               `if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
                 mkdir rawDiff;
@@ -640,6 +644,10 @@ export class AcceleratorPipeline extends Construct {
           SkipAcceleratorPrerequisites: {
             type: cdk.aws_codebuild.BuildEnvironmentVariableType.PLAINTEXT,
             value: 'true',
+          },
+          VERBOSE_LOG_GROUP_NAME: {
+            type: codebuild.BuildEnvironmentVariableType.PLAINTEXT,
+            value: `${props.prefixes.accelerator}-Module-Verbose-Logs`,
           },
           ...enableSingleAccountModeEnvVariables,
           ...pipelineAccountEnvVariables,

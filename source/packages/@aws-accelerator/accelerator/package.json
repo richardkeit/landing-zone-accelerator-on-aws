@@ -10,18 +10,24 @@
   },
   "main": "dist/packages/@aws-accelerator/accelerator/index.js",
   "types": "dist/packages/@aws-accelerator/accelerator/index.d.ts",
+  "bin": {
+    "aws-lza": "bin/lza"
+  },
   "scripts": {
     "build": "tsc",
     "cleanup": "tsc --build ./ --clean && rm -rf node_modules && rm -rf dist && rm -rf cdk.out",
     "cleanup:tsc": "tsc --build ./ --clean",
     "lint": "eslint --fix  --max-warnings 0 -c ../../../eslint.config.mjs '**/*.{ts,tsx}' --ignore-pattern \"*.d.ts\" ",
+    "lza": "bin/lza",
     "precommit": "eslint --max-warnings 0 -c ../../../eslint.config.mjs '**/*.{ts,tsx}' --ignore-pattern \"*.d.ts\" ",
     "test:unit": "ACCELERATOR_PREFIX=AWSAccelerator vitest run --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:clean": "rm -f ./test-reports/*.xml",
     "watch": "tsc -w",
     "build-prod": "tsc"
   },
   "dependencies": {
+    "aws-lza": "^0.0.0",
     "@aws-accelerator/config": "^0.0.0",
     "@aws-accelerator/constructs": "^0.0.0",
     "@aws-accelerator/utils": "^0.0.0",
@@ -31,6 +37,7 @@
     "@aws-sdk/client-config-service": "3.835.0",
     "@aws-sdk/client-controltower": "3.940.0",
     "@aws-sdk/client-service-quotas": "3.835.0",
+    "@aws-sdk/client-dynamodb": "3.835.0",
     "@aws-sdk/client-ssm": "3.835.0",
     "@aws-sdk/client-sts": "3.835.0",
     "@aws-sdk/client-ec2": "3.835.0",
@@ -51,6 +58,7 @@
     "yaml": "1.10.2"
   },
   "devDependencies": {
+    "@aws-sdk/client-macie2": "3.835.0",
     "@types/fs-extra": "11.0.1",
     "fast-check": "3.22.0",
     "@types/mri": "1.1.1",

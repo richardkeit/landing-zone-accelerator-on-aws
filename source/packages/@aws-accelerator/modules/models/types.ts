@@ -21,10 +21,10 @@ import {
   ReplacementsConfig,
   SecurityConfig,
 } from '@aws-accelerator/config';
-import { AcceleratorResourcePrefixes } from '../../accelerator/utils/app-utils';
-import { AcceleratorResourceNames } from '../../accelerator/lib/accelerator-resource-names';
 import { Account, Organization } from '@aws-sdk/client-organizations';
 import { AwsCredentialIdentityProvider } from '@aws-sdk/types';
+import { AcceleratorResourceNames } from '../../accelerator/lib/accelerator-resource-names';
+import { AcceleratorResourcePrefixes } from '../../accelerator/utils/app-utils';
 import { AcceleratorModules, AcceleratorModuleStages, ModuleExecutionPhase } from './enums';
 
 /**

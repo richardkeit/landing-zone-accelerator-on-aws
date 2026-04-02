@@ -11,10 +11,10 @@
  *  and limitations under the License.
  */
 
-import { describe, beforeEach, expect, test, vi } from 'vitest';
 import { STSClient } from '@aws-sdk/client-sts';
-import { getCredentials, getGlobalRegion, getCurrentSessionDetails } from '../../../lib/common/sts-functions';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { IAssumeRoleCredential } from '../../../lib/common/interfaces';
+import { getCredentials, getCurrentSessionDetails, getGlobalRegion } from '../../../lib/common/sts-functions';
 
 vi.mock('@aws-sdk/client-sts', () => ({
   STSClient: vi.fn(),
@@ -40,6 +40,12 @@ vi.mock('../../../lib/common/types', () => ({
   },
 }));
 
+vi.mock('../../../lib/common/credential-cache', () => ({
+  credentialCache: {
+    getOrFetch: vi.fn(),
+  },
+}));
+
 const MOCK_CONSTANTS = {
   logPrefix: 'test-prefix',
   accountId: '123456789012',
@@ -59,11 +65,20 @@ const MOCK_CONSTANTS = {
 
 describe('sts-functions', () => {
   let mockExecuteApi: ReturnType<typeof vi.fn>;
+  let mockCredentialCache: { getOrFetch: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const utility = await import('../../../lib/common/utility');
+    const utility = await import('../../../lib/common/utility.js');
     mockExecuteApi = vi.mocked(utility.executeApi);
+
+    const cache = await import('../../../lib/common/credential-cache.js');
+    mockCredentialCache = vi.mocked(cache.credentialCache);
+
+    // Default behavior: credential cache calls the fetcher function immediately
+    mockCredentialCache.getOrFetch.mockImplementation(async (_, fetcher) => {
+      return await fetcher();
+    });
   });
 
   describe('getCredentials', () => {
@@ -285,7 +300,7 @@ describe('sts-functions', () => {
           region: vi.fn().mockResolvedValue('us-west-2'),
         },
       };
-      vi.mocked(STSClient).mockReturnValue(mockClient as STSClient);
+      vi.mocked(STSClient).mockReturnValue(mockClient as unknown as STSClient);
 
       mockExecuteApi.mockResolvedValue({
         Account: MOCK_CONSTANTS.accountId,
@@ -308,7 +323,7 @@ describe('sts-functions', () => {
           region: vi.fn().mockResolvedValue('us-west-2'),
         },
       };
-      vi.mocked(STSClient).mockReturnValue(mockClient as STSClient);
+      vi.mocked(STSClient).mockReturnValue(mockClient as unknown as STSClient);
 
       mockExecuteApi.mockResolvedValue({
         Account: MOCK_CONSTANTS.accountId,
@@ -332,7 +347,7 @@ describe('sts-functions', () => {
           region: vi.fn().mockResolvedValue('us-west-2'),
         },
       };
-      vi.mocked(STSClient).mockReturnValue(mockClient as STSClient);
+      vi.mocked(STSClient).mockReturnValue(mockClient as unknown as STSClient);
 
       mockExecuteApi.mockResolvedValue({
         Arn: 'arn:aws:iam::123456789012:role/TestRole',
@@ -349,7 +364,7 @@ describe('sts-functions', () => {
           region: vi.fn().mockResolvedValue('us-west-2'),
         },
       };
-      vi.mocked(STSClient).mockReturnValue(mockClient as STSClient);
+      vi.mocked(STSClient).mockReturnValue(mockClient as unknown as STSClient);
 
       mockExecuteApi.mockResolvedValue({
         Account: MOCK_CONSTANTS.accountId,
@@ -366,7 +381,7 @@ describe('sts-functions', () => {
           region: vi.fn().mockResolvedValue('us-west-2'),
         },
       };
-      vi.mocked(STSClient).mockReturnValue(mockClient as STSClient);
+      vi.mocked(STSClient).mockReturnValue(mockClient as unknown as STSClient);
 
       mockExecuteApi.mockResolvedValue({
         Account: MOCK_CONSTANTS.accountId,
@@ -385,7 +400,7 @@ describe('sts-functions', () => {
           region: vi.fn().mockResolvedValue('eu-west-1'),
         },
       };
-      vi.mocked(STSClient).mockReturnValue(mockClient as STSClient);
+      vi.mocked(STSClient).mockReturnValue(mockClient as unknown as STSClient);
 
       mockExecuteApi.mockResolvedValue({
         Account: MOCK_CONSTANTS.accountId,
@@ -404,9 +419,10 @@ describe('sts-functions', () => {
           region: vi.fn().mockResolvedValue(undefined),
         },
       };
-      vi.mocked(STSClient).mockReturnValue(mockClient as STSClient);
+      vi.mocked(STSClient).mockReturnValue(mockClient as unknown as STSClient);
 
-      mockExecuteApi.mockResolvedValue({
+      // Explicitly set the mock response for this test
+      mockExecuteApi.mockResolvedValueOnce({
         Account: MOCK_CONSTANTS.accountId,
         Arn: 'arn:aws:iam::123456789012:role/TestRole',
       });

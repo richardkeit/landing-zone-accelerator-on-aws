@@ -16,6 +16,7 @@ import fs from 'fs';
 import path from 'path';
 import { AccountsConfig } from '../lib/accounts-config';
 import { DeploymentTargets } from '../lib/common';
+import { GlobalConfig } from '../lib/global-config';
 import {
   IAlarmSetConfig,
   IAwsConfig,
@@ -23,18 +24,17 @@ import {
   IDocumentConfig,
   ISecurityConfig,
 } from '../lib/models/security-config';
-import { GlobalConfig } from '../lib/global-config';
 import { OrganizationConfig } from '../lib/organization-config';
 import { ReplacementsConfig } from '../lib/replacements-config';
 import {
   AwsConfigRuleSet,
-  EbsDefaultVolumeEncryptionConfig,
-  SecurityConfig,
-  IsPublicSsmDoc,
-  ConfigRule,
-  GuardDutyConfig,
-  SecurityHubConfig,
   BlockPublicDocumentSharingConfig,
+  ConfigRule,
+  EbsDefaultVolumeEncryptionConfig,
+  GuardDutyConfig,
+  IsPublicSsmDoc,
+  SecurityConfig,
+  SecurityHubConfig,
 } from '../lib/security-config';
 import { CommonValidatorFunctions } from './common/common-validator-functions';
 
@@ -124,7 +124,6 @@ export class SecurityConfigValidator {
     );
     this.validateSecurityHubAndConfig(securityConfig, globalConfig.controlTower.enable, errors);
     // Validate expiration for Macie and GuardDuty Lifecycle Rules
-    this.macieLifecycleRules(securityConfig, errors);
     this.guarddutyLifecycleRules(securityConfig, errors);
     // Validate IAM password policy
     this.validateIamPasswordPolicy(securityConfig, errors);
@@ -161,6 +160,9 @@ export class SecurityConfigValidator {
 
     // Validate SecurityHub automation rules
     this.validateSecurityHubAutomationRules(securityConfig, globalConfig, errors);
+
+    // Validate Macie Configuation
+    this.validateMacieConfig(securityConfig, globalConfig, errors);
 
     if (errors.length) {
       throw new Error(`${SecurityConfig.FILENAME} has ${errors.length} issues:\n${errors.join('\n')}`);
@@ -1555,5 +1557,267 @@ export class SecurityConfigValidator {
     );
 
     regionErrors.forEach(error => errors.push(error));
+  }
+
+  /**
+   * Validates Amazon Macie configuration settings for consistency and compliance.
+   *
+   * @description
+   * This method performs comprehensive validation of Amazon Macie configuration within the security
+   * configuration. It orchestrates multiple validation checks to ensure the Macie service is properly
+   * configured across the AWS organization with consistent regional settings and lifecycle policies.
+   *
+   * The validation includes:
+   * - Regional configuration validation (enabled/disabled regions consistency)
+   * - S3 lifecycle rules validation for Macie findings storage
+   * - Cross-validation with global configuration settings
+   * - Consistency checks between different Macie configuration properties
+   *
+   * This method serves as the main entry point for all Macie-related configuration validation
+   * and delegates specific validation tasks to specialized methods.
+   *
+   * @private
+   * @method validateMacieConfig
+   *
+   * @param {SecurityConfig} securityConfig - The complete security configuration object containing Macie settings
+   * @param {GlobalConfig} globalConfig - The global configuration object containing organization-wide settings
+   * @param {string[]} errors - Array to collect validation error messages
+   *
+   * @returns {void} This method does not return a value; it adds validation errors to the errors array
+   *
+   * @throws {Error} Indirectly throws errors by adding them to the errors array, which are later processed by the constructor
+   *
+   * @example
+   * ```typescript
+   * // Example of how this method is called during validation
+   * const securityConfig = {
+   *   centralSecurityServices: {
+   *     macie: {
+   *       enable: true,
+   *       excludeRegions: ['us-west-1'],
+   *       disabledRegions: ['eu-west-1'],
+   *       lifecycleRules: [
+   *         {
+   *           expiration: 90,
+   *           noncurrentVersionExpiration: 30,
+   *           abortIncompleteMultipartUpload: 7
+   *         }
+   *       ]
+   *     }
+   *   }
+   * };
+   *
+   * const globalConfig = {
+   *   enabledRegions: ['us-east-1', 'us-west-2', 'eu-west-1']
+   * };
+   *
+   * const errors: string[] = [];
+   * this.validateMacieConfig(securityConfig, globalConfig, errors);
+   * // errors array will contain any validation issues found
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Example of configuration that would generate validation errors
+   * const invalidConfig = {
+   *   centralSecurityServices: {
+   *     macie: {
+   *       enable: false,
+   *       disabledRegions: ['us-east-1'], // Error: cannot have disabledRegions when enable is false
+   *       excludeRegions: ['us-west-1'],
+   *       lifecycleRules: [
+   *         {
+   *           expiration: 30,
+   *           // Missing noncurrentVersionExpiration - will generate error
+   *           abortIncompleteMultipartUpload: 7
+   *         }
+   *       ]
+   *     }
+   *   }
+   * };
+   * ```
+   *
+   * @see {@link validateMacieRegionConfiguration} For detailed regional configuration validation
+   * @see {@link macieLifecycleRules} For S3 lifecycle rules validation
+   * @see {@link https://docs.aws.amazon.com/macie/latest/user/what-is-macie.html | Amazon Macie User Guide}
+   *
+   * @since 1.0.0
+   */
+  private validateMacieConfig(securityConfig: SecurityConfig, globalConfig: GlobalConfig, errors: string[]) {
+    this.validateMacieRegionConfiguration(securityConfig, globalConfig, errors);
+    this.macieLifecycleRules(securityConfig, errors);
+
+    const macieConfig = securityConfig.centralSecurityServices.macie;
+    if ((macieConfig?.classificationScopeExcludedBuckets?.length ?? 0) > 0 && !macieConfig?.automatedDiscoveryEnabled) {
+      errors.push(
+        'Macie "classificationScopeExcludedBuckets" cannot be specified when "automatedDiscoveryEnabled" is false or undefined.',
+      );
+    }
+  }
+
+  /**
+   * Validates Amazon Macie regional configuration for consistency and compliance.
+   *
+   * @description
+   * This method performs detailed validation of Amazon Macie regional configuration settings
+   * to ensure consistency between enabled/disabled regions and compliance with global
+   * configuration constraints. It validates the relationship between different regional
+   * configuration properties and ensures logical consistency.
+   *
+   * The validation checks include:
+   * - **Service State Consistency**: Ensures `disabledRegions` is not specified when Macie is globally disabled
+   * - **Regional Overlap Detection**: Prevents regions from being specified in both `excludeRegions` and `disabledRegions`
+   * - **Global Configuration Compliance**: Validates that `disabledRegions` only contains regions from `globalConfig.enabledRegions`
+   * - **Duplicate Region Detection**: Ensures no duplicate regions within `excludeRegions` or `disabledRegions` arrays
+   * - **Configuration Logic Validation**: Ensures regional settings make logical sense in the context of the overall configuration
+   *
+   * This method is essential for preventing configuration conflicts that could lead to
+   * deployment failures or unexpected behavior in Macie service deployment across regions.
+   *
+   * @private
+   * @method validateMacieRegionConfiguration
+   *
+   * @param {SecurityConfig} securityConfig - The complete security configuration object
+   * @param {GlobalConfig} globalConfig - Global configuration containing organization-wide settings
+   * @param {string[]} errors - Array to collect validation error messages
+   *
+   * @returns {void} This method does not return a value; validation errors are added to the errors array parameter
+   *
+   * @throws {Error} Indirectly throws by adding validation errors to the errors array
+   *
+   * @example
+   * ```typescript
+   * // Valid Macie regional configuration
+   * const validConfig = {
+   *   centralSecurityServices: {
+   *     macie: {
+   *       enable: true,
+   *       excludeRegions: ['us-west-1', 'ap-southeast-1'],
+   *       disabledRegions: ['eu-central-1'] // Different from excludeRegions
+   *     }
+   *   }
+   * };
+   *
+   * const globalConfig = {
+   *   enabledRegions: ['us-east-1', 'us-west-1', 'us-west-2', 'eu-central-1', 'ap-southeast-1']
+   * };
+   *
+   * const errors: string[] = [];
+   * this.validateMacieRegionConfiguration(validConfig, globalConfig, errors);
+   * // errors array remains empty - configuration is valid
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Invalid configuration examples that would generate errors
+   * const invalidConfigs = [
+   *   {
+   *     // Error: disabledRegions specified when Macie is disabled
+   *     centralSecurityServices: {
+   *       macie: {
+   *         enable: false,
+   *         disabledRegions: ['us-east-1']
+   *       }
+   *     }
+   *   },
+   *   {
+   *     // Error: overlapping regions in excludeRegions and disabledRegions
+   *     centralSecurityServices: {
+   *       macie: {
+   *         enable: true,
+   *         excludeRegions: ['us-west-1'],
+   *         disabledRegions: ['us-west-1'] // Same region in both arrays
+   *       }
+   *     }
+   *   },
+   *   {
+   *     // Error: disabledRegions contains region not in globalConfig.enabledRegions
+   *     centralSecurityServices: {
+   *       macie: {
+   *         enable: true,
+   *         disabledRegions: ['ap-northeast-3'] // Not in enabledRegions
+   *       }
+   *     }
+   *   },
+   *   {
+   *     // Error: duplicate regions in disabledRegions
+   *     centralSecurityServices: {
+   *       macie: {
+   *         enable: true,
+   *         disabledRegions: ['us-east-1', 'us-east-1']
+   *       }
+   *     }
+   *   }
+   * ];
+   * ```
+   *
+   * @remarks
+   * **Regional Configuration Logic:**
+   * - `excludeRegions`: Regions where Macie will not be deployed at all
+   * - `disabledRegions`: Regions where Macie will be deployed but kept in disabled state
+   * - These two properties serve different purposes and cannot overlap
+   * - All specified regions must be within the globally enabled regions
+   *
+   * **Validation Error Categories:**
+   * 1. **Logic Errors**: Inconsistent enable/disable state configurations
+   * 2. **Overlap Errors**: Same region specified in multiple conflicting properties
+   * 3. **Scope Errors**: Regions specified outside of globally enabled regions
+   * 4. **Duplicate Errors**: Same region specified multiple times in the same property
+   *
+   * @see {@link validateMacieConfig} For the parent validation method that calls this function
+   *
+   * @since 1.0.0
+   */
+  private validateMacieRegionConfiguration(
+    securityConfig: SecurityConfig,
+    globalConfig: GlobalConfig,
+    errors: string[],
+  ): void {
+    const macieConfig = securityConfig.centralSecurityServices.macie;
+
+    if (!macieConfig) {
+      return;
+    }
+
+    // Check disableRegions not present when service set to disable
+    if (!macieConfig.enable && macieConfig.disabledRegions && macieConfig.disabledRegions.length > 0) {
+      errors.push(`Macie configuration cannot include "disabledRegions" when enable is false.`);
+    }
+
+    // Check for overlapping regions between excludeRegions and disabledRegions
+    if (macieConfig.excludeRegions && macieConfig.disabledRegions) {
+      const overlappingRegions = macieConfig.excludeRegions.filter(region =>
+        macieConfig.disabledRegions!.includes(region),
+      );
+
+      if (overlappingRegions.length > 0) {
+        errors.push(
+          `Macie configuration has overlapping regions between "excludeRegions" and "disabledRegions": [${overlappingRegions.join(', ')}]. Regions cannot be specified in both properties.`,
+        );
+      }
+    }
+
+    // Check that disabledRegions only contains regions from globalConfig.enabledRegions
+    if (macieConfig.disabledRegions && macieConfig.disabledRegions.length > 0) {
+      const invalidRegions = macieConfig.disabledRegions.filter(
+        region => !globalConfig.enabledRegions.includes(region),
+      );
+
+      if (invalidRegions.length > 0) {
+        errors.push(
+          `Macie "disabledRegions" contains invalid regions: [${invalidRegions.join(', ')}]. Only enabled regions from global config are allowed.`,
+        );
+      }
+    }
+
+    // Check for duplicate regions within disabledRegions
+    if (macieConfig.disabledRegions && this.hasDuplicates(macieConfig.disabledRegions)) {
+      errors.push(`Macie "disabledRegions" contains duplicate regions. Each region should be specified only once.`);
+    }
+
+    // Check for duplicate regions within excludeRegions
+    if (macieConfig.excludeRegions && this.hasDuplicates(macieConfig.excludeRegions)) {
+      errors.push(`Macie "excludeRegions" contains duplicate regions. Each region should be specified only once.`);
+    }
   }
 }

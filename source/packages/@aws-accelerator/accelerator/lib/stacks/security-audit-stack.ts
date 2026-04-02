@@ -75,8 +75,12 @@ export class SecurityAuditStack extends AcceleratorStack {
 
     //
     // Macie configuration
+    // Only create custom resources if Macie module is skipped
+    // When module runs successfully, it manages Macie via API calls
     //
-    this.configureMacie();
+    if (this.createMacieCustomResource) {
+      this.configureMacie();
+    }
 
     //
     // GuardDuty configuration
@@ -147,10 +151,10 @@ export class SecurityAuditStack extends AcceleratorStack {
    */
   private configureMacie() {
     this.logger.debug(
-      `centralSecurityServices.macie.enable: ${this.props.securityConfig.centralSecurityServices.macie.enable}`,
+      `centralSecurityServices.macie.enable: ${this.props.securityConfig.centralSecurityServices.macie?.enable}`,
     );
 
-    if (this.props.securityConfig.centralSecurityServices.macie.enable) {
+    if (this.props.securityConfig.centralSecurityServices.macie?.enable) {
       this.logger.info(`Configuring Macie`);
 
       if (

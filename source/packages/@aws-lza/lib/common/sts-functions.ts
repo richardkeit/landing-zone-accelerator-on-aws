@@ -45,12 +45,13 @@
  * ```
  */
 
-import path from 'path';
 import { AssumeRoleCommand, GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
-import { IAssumeRoleCredential, AssumeRoleCredentialType, ISessionContext } from './interfaces';
-import { executeApi, setRetryStrategy } from './utility';
-import { MODULE_EXCEPTIONS } from './types';
+import path from 'node:path';
+import { credentialCache } from './credential-cache';
+import { AssumeRoleCredentialType, IAssumeRoleCredential, ISessionContext } from './interfaces';
 import { createLogger } from './logger';
+import { MODULE_EXCEPTIONS } from './types';
+import { executeApi, setRetryStrategy } from './utility';
 
 /**
  * Logger instance for STS functions with file-based context.
@@ -171,58 +172,68 @@ export async function getCredentials(options: {
   const roleArn =
     options.assumeRoleArn ?? `arn:${options.partition}:iam::${options.accountId}:role/${options.assumeRoleName}`;
 
-  const client: STSClient = new STSClient({
-    region: options.region,
-    customUserAgent: options.solutionId,
-    retryStrategy: setRetryStrategy(),
-    credentials: options.credentials,
-  });
+  // Create cache key for credential caching
+  const cacheKey = `${options.accountId}-${options.region}-${roleArn}`;
 
-  const currentSessionResponse = await executeApi(
-    'GetCallerIdentityCommand',
-    {},
-    () => client.send(new GetCallerIdentityCommand({})),
-    logger,
+  // Use credential cache with atomic in-flight request tracking
+  return await credentialCache.getOrFetch(
+    cacheKey,
+    async () => {
+      const client: STSClient = new STSClient({
+        region: options.region,
+        customUserAgent: options.solutionId,
+        retryStrategy: setRetryStrategy(),
+        credentials: options.credentials,
+      });
+
+      const currentSessionResponse = await executeApi(
+        'GetCallerIdentityCommand',
+        {},
+        () => client.send(new GetCallerIdentityCommand({})),
+        logger,
+        options.logPrefix,
+      );
+
+      if (currentSessionResponse.Arn === roleArn) {
+        logger.info(`Already in target environment assume role credential not required`, options.logPrefix);
+        return undefined;
+      }
+
+      const commandName = 'AssumeRoleCommand';
+      const parameters = { RoleArn: roleArn, RoleSessionName: options.sessionName ?? 'AcceleratorAssumeRole' };
+      const response = await executeApi(
+        commandName,
+        parameters,
+        () => client.send(new AssumeRoleCommand(parameters)),
+        logger,
+        options.logPrefix,
+      );
+
+      //
+      // Validate response
+      if (!response.Credentials) {
+        throw new Error(`${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: AssumeRoleCommand did not return Credentials`);
+      }
+
+      if (!response.Credentials.AccessKeyId) {
+        throw new Error(`${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: AssumeRoleCommand did not return AccessKeyId`);
+      }
+      if (!response.Credentials.SecretAccessKey) {
+        throw new Error(`${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: AssumeRoleCommand did not return SecretAccessKey`);
+      }
+      if (!response.Credentials.SessionToken) {
+        throw new Error(`${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: AssumeRoleCommand did not return SessionToken`);
+      }
+
+      return {
+        accessKeyId: response.Credentials.AccessKeyId,
+        secretAccessKey: response.Credentials.SecretAccessKey,
+        sessionToken: response.Credentials.SessionToken,
+        expiration: response.Credentials.Expiration,
+      };
+    },
     options.logPrefix,
   );
-
-  if (currentSessionResponse.Arn === roleArn) {
-    logger.info(`Already in target environment assume role credential not required`, options.logPrefix);
-    return undefined;
-  }
-
-  const commandName = 'AssumeRoleCommand';
-  const parameters = { RoleArn: roleArn, RoleSessionName: options.sessionName ?? 'AcceleratorAssumeRole' };
-  const response = await executeApi(
-    commandName,
-    parameters,
-    () => client.send(new AssumeRoleCommand(parameters)),
-    logger,
-    options.logPrefix,
-  );
-
-  //
-  // Validate response
-  if (!response.Credentials) {
-    throw new Error(`${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: AssumeRoleCommand did not return Credentials`);
-  }
-
-  if (!response.Credentials.AccessKeyId) {
-    throw new Error(`${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: AssumeRoleCommand did not return AccessKeyId`);
-  }
-  if (!response.Credentials.SecretAccessKey) {
-    throw new Error(`${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: AssumeRoleCommand did not return SecretAccessKey`);
-  }
-  if (!response.Credentials.SessionToken) {
-    throw new Error(`${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: AssumeRoleCommand did not return SessionToken`);
-  }
-
-  return {
-    accessKeyId: response.Credentials.AccessKeyId,
-    secretAccessKey: response.Credentials.SecretAccessKey,
-    sessionToken: response.Credentials.SessionToken,
-    expiration: response.Credentials.Expiration,
-  };
 }
 
 /**

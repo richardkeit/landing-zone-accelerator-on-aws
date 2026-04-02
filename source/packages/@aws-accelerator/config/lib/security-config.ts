@@ -88,13 +88,115 @@ export class ResourcePolicyEnforcementConfig implements i.IResourcePolicyEnforce
   readonly networkPerimeter: NetworkPerimeterConfig | undefined = undefined;
 }
 
+/**
+ * Configuration class for Amazon Macie service settings.
+ *
+ * @remarks
+ * This class implements the IMacieConfig interface and provides configuration
+ * options for enabling and managing Amazon Macie across AWS accounts and regions.
+ * Amazon Macie is a data security service that discovers sensitive data using
+ * machine learning and pattern matching, provides visibility into data security risks,
+ * and enables automated protection against those risks.
+ */
 export class MacieConfig implements i.IMacieConfig {
+  /**
+   * Override existing state check for Macie module execution.
+   *
+   * @remarks
+   * When set to true, forces the LZA security Macie module to execute regardless of previous state checks.
+   * This flag bypasses the normal state validation that determines whether the Macie module should run
+   * based on its current configuration state. Use with caution as this may result in unnecessary resource operations.
+   *
+   * @defaultValue false
+   */
+  readonly overrideExisting: boolean = false;
+
+  /**
+   * Whether to enable Amazon Macie service.
+   * @defaultValue false
+   */
   readonly enable = false;
-  readonly excludeRegions: string[] = [];
+
+  /**
+   * List of AWS regions to exclude from service configuration.
+   *
+   * @remarks
+   * Specifies AWS regions where LZA will not configure the security service at all.
+   * These regions are completely skipped during service deployment and management,
+   * regardless of whether the service is enabled or disabled.
+   *
+   * @defaultValue undefined
+   */
+  readonly excludeRegions: string[] | undefined = undefined;
+
+  /**
+   * List of AWS regions where the service should be disabled.
+   *
+   * @remarks
+   * Specifies AWS regions where the security service will be explicitly disabled when the service
+   * is enabled (enable: true). Only applicable when enable: true.
+   * Cannot overlap with regions specified in excludeRegions.
+   *
+   * @defaultValue undefined
+   */
+  readonly disabledRegions: string[] | undefined = undefined;
+
+  /**
+   * Frequency for publishing policy findings.
+   *
+   * @remarks
+   * Specifies how often to publish updates to policy findings for the account.
+   * This includes publishing updates to Security Hub and Amazon EventBridge.
+   *
+   * @defaultValue 'FIFTEEN_MINUTES'
+   */
   readonly policyFindingsPublishingFrequency = 'FIFTEEN_MINUTES';
+
+  /**
+   * Whether to publish sensitive data findings to Security Hub.
+   *
+   * @remarks
+   * If set to true, Amazon Macie automatically publishes all sensitive data findings
+   * that weren't suppressed by a findings filter.
+   *
+   * @defaultValue false
+   */
   readonly publishSensitiveDataFindings = false;
-  readonly publishPolicyFindings: boolean | undefined = undefined;
+
+  /**
+   * Whether to publish policy findings.
+   * @defaultValue undefined
+   */
+  readonly publishPolicyFindings = false;
+
+  /**
+   * S3 lifecycle rules for Macie findings storage.
+   * @defaultValue undefined
+   */
   readonly lifecycleRules: t.LifeCycleRule[] | undefined = undefined;
+
+  /**
+   * Whether to enable automated sensitive data discovery on the delegated admin account.
+   *
+   * @remarks
+   * When true, automated discovery continuously samples and analyzes S3 objects across
+   * member accounts to detect sensitive data without requiring manual job creation.
+   *
+   * @defaultValue true
+   */
+  readonly automatedDiscoveryEnabled: boolean = true;
+
+  /**
+   * S3 buckets to exclude from automated sensitive data discovery.
+   *
+   * @remarks
+   * Only applicable when `automatedDiscoveryEnabled` is true.
+   * Applied on the delegated admin account using REPLACE operation.
+   * Provide the full, resolved bucket names — no placeholders.
+   *
+   * @defaultValue undefined
+   */
+  readonly classificationScopeExcludedBuckets: i.IClassificationScopeExcludedBucketConfig[] | undefined = undefined;
 }
 
 export class GuardDutyS3ProtectionConfig implements i.IGuardDutyS3ProtectionConfig {
@@ -326,7 +428,7 @@ export class CentralSecurityServicesConfig implements i.ICentralSecurityServices
   readonly ssmSettings: SsmSettingsConfig | undefined = undefined;
   readonly scpRevertChangesConfig: ScpRevertChangesConfig = new ScpRevertChangesConfig();
   readonly snsSubscriptions: SnsSubscriptionConfig[] = [];
-  readonly macie: MacieConfig = new MacieConfig();
+  readonly macie: MacieConfig | undefined = undefined;
   readonly guardduty: GuardDutyConfig = new GuardDutyConfig();
   readonly auditManager: AuditManagerConfig | undefined = undefined;
   readonly detective: DetectiveConfig | undefined = undefined;

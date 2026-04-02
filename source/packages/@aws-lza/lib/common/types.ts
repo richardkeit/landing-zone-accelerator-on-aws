@@ -26,6 +26,7 @@
  */
 
 import { Account } from '@aws-sdk/client-organizations';
+import { IAssumeRoleCredential } from './interfaces';
 
 /**
  * Enumeration of module exception types for error handling
@@ -64,7 +65,14 @@ export type OrderedAccountListType = {
 };
 
 /**
- * Type definition for security module operation states
+ * Type definition for security module operation actions (verb form)
+ * Used to specify which operation to perform
+ */
+export type SecurityModuleOperationAction = 'enable' | 'disable';
+
+/**
+ * Type definition for security module operation states (past tense)
+ * Used in responses to indicate what operation was performed
  */
 export type SecurityModuleOperationType = 'enabled' | 'disabled';
 
@@ -111,3 +119,62 @@ export enum DynamoDBFilterOperator {
   /** Value list membership */
   IN = 'in',
 }
+
+/**
+ * Configuration properties for AWS SDK client initialization.
+ *
+ * @description
+ * Provides standardized configuration options for creating AWS SDK clients across
+ * the LZA modules. This type ensures consistent client configuration patterns
+ * and supports cross-account operations through credential management.
+ *
+ * @example
+ * ```typescript
+ * // Basic client configuration
+ * const clientProps: SdkClientPropsType = {
+ *   region: 'us-east-1',
+ *   customUserAgent: 'AwsSolution/SO0199/1.0.0'
+ * };
+ *
+ * // Cross-account client configuration
+ * const crossAccountProps: SdkClientPropsType = {
+ *   region: 'us-west-2',
+ *   customUserAgent: 'AwsSolution/SO0199/1.0.0',
+ *   credentials: {
+ *     accessKeyId: 'AKIA...',
+ *     secretAccessKey: 'secret...',
+ *     sessionToken: 'token...'
+ *   }
+ * };
+ *
+ * // Usage with Organizations client
+ * const accounts = await getOrganizationAccounts(logPrefix, undefined, clientProps);
+ * ```
+ *
+ * @see {@link IAssumeRoleCredential} For credential structure details
+ */
+export type SdkClientPropsType = {
+  /**
+   * AWS region for SDK client operations.
+   *
+   * @example 'us-east-1', 'eu-west-1', 'ap-southeast-2'
+   */
+  region?: string;
+
+  /**
+   * Custom user agent string for AWS API calls.
+   * Used for tracking and identifying LZA operations in AWS CloudTrail logs.
+   *
+   * @example 'AwsSolution/SO0199/1.0.0'
+   */
+  customUserAgent?: string;
+
+  /**
+   * Cross-account credentials for assume role operations.
+   * When provided, the SDK client will use these credentials instead of
+   * the default credential chain for cross-account access.
+   *
+   * @see {@link IAssumeRoleCredential}
+   */
+  credentials?: IAssumeRoleCredential;
+};

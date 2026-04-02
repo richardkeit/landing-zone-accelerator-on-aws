@@ -11,9 +11,9 @@
  *  and limitations under the License.
  */
 
-import { describe, beforeEach, expect, test, vi } from 'vitest';
-import { Macie2Client, MacieStatus, AccessDeniedException } from '@aws-sdk/client-macie2';
-import { enableMacie, isMacieEnabled, disableMacie, listAdminAccounts } from '../../../lib/amazon-macie/functions';
+import { AccessDeniedException, Macie2Client, MacieStatus } from '@aws-sdk/client-macie2';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { disableMacie, enableMacie, isMacieEnabled, listAdminAccounts } from '../../../lib/amazon-macie/functions';
 
 vi.mock('@aws-sdk/client-macie2', () => ({
   Macie2Client: vi.fn(),
@@ -48,7 +48,7 @@ describe('amazon-macie functions', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const utility = await import('../../../lib/common/utility');
+    const utility = await import('../../../lib/common/utility.js');
     const macie = await import('@aws-sdk/client-macie2');
     mockExecuteApi = vi.mocked(utility.executeApi);
     mockWaitUntil = vi.mocked(utility.waitUntil);
@@ -88,6 +88,13 @@ describe('amazon-macie functions', () => {
       expect(mockWaitUntil).toHaveBeenCalledWith(
         expect.any(Function),
         'Could not get confirmation that macie was enabled',
+        expect.objectContaining({
+          info: expect.any(Function),
+          dryRun: expect.any(Function),
+          commandExecution: expect.any(Function),
+          commandSuccess: expect.any(Function),
+        }),
+        logPrefix,
       );
     });
   });
@@ -150,8 +157,8 @@ describe('amazon-macie functions', () => {
   describe('listAdminAccounts', () => {
     test('should list admin accounts successfully', async () => {
       const mockAccounts = [
-        { accountId: '123456789012', status: 'ENABLED' },
-        { accountId: '123456789013', status: 'ENABLED' },
+        { accountId: 'XXXXXXXXXXXX', status: 'ENABLED' },
+        { accountId: 'YYYYYYYYYYYY', status: 'ENABLED' },
       ];
 
       const mockPaginator = {
@@ -186,7 +193,7 @@ describe('amazon-macie functions', () => {
       const mockPaginator = {
         [Symbol.asyncIterator]: async function* () {
           yield { adminAccounts: undefined };
-          yield { adminAccounts: [{ accountId: '123456789012', status: 'ENABLED' }] };
+          yield { adminAccounts: [{ accountId: 'XXXXXXXXXXXX', status: 'ENABLED' }] };
         },
       };
 
@@ -194,7 +201,7 @@ describe('amazon-macie functions', () => {
 
       const result = await listAdminAccounts(mockClient, logPrefix);
 
-      expect(result).toEqual([{ accountId: '123456789012', status: 'ENABLED' }]);
+      expect(result).toEqual([{ accountId: 'XXXXXXXXXXXX', status: 'ENABLED' }]);
     });
   });
 });

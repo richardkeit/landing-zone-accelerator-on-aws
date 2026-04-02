@@ -10,6 +10,7 @@
   },
   "workspaces": {
     "packages": [
+      "./packages/@aws-lza",
       "./packages/@aws-accelerator/accelerator",
       "./packages/@aws-accelerator/accelerator/lib/lambdas/*",
       "./packages/@aws-accelerator/config",
@@ -29,6 +30,8 @@
       "./packages/@aws-cdk-extensions/cdk-extensions"
     ],
     "nohoist": [
+      "**/aws-lza/**",
+      "aws-lza/**",
       "**/deepmerge",
       "**/deepmerge/**",
       "**/npmlog",

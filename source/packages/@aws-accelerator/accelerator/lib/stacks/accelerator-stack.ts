@@ -11,14 +11,6 @@
  *  and limitations under the License.
  */
 
-import * as cdk from 'aws-cdk-lib';
-import { NagSuppressions } from 'cdk-nag';
-import { pascalCase } from 'change-case';
-import { Construct } from 'constructs';
-import * as fs from 'fs';
-import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import * as winston from 'winston';
 import {
   AccountConfig,
   AccountsConfig,
@@ -46,14 +38,22 @@ import {
 } from '@aws-accelerator/config';
 import { KeyLookup, S3LifeCycleRule, ServiceLinkedRole } from '@aws-accelerator/constructs';
 import {
-  PrincipalOrgIdConditionType,
   createLogger,
   policyReplacements,
+  PrincipalOrgIdConditionType,
   SsmParameterPath,
   SsmResourceType,
 } from '@aws-accelerator/utils';
-import { AcceleratorResourcePrefixes } from '../../utils/app-utils';
+import * as cdk from 'aws-cdk-lib';
+import { NagSuppressions } from 'cdk-nag';
+import { pascalCase } from 'change-case';
+import { Construct } from 'constructs';
+import * as fs from 'fs';
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import * as winston from 'winston';
 import { version } from '../../../../../package.json';
+import { AcceleratorResourcePrefixes } from '../../utils/app-utils';
 
 import { AcceleratorResourceNames } from '../accelerator-resource-names';
 
@@ -243,6 +243,26 @@ export abstract class AcceleratorStack extends cdk.Stack {
   protected nagSuppressionInputs: NagSuppressionDetailType[] = [];
 
   /**
+   * Flag indicating whether Macie custom resources should be created in CloudFormation stacks.
+   *
+   * When true: Macie module is skipped, custom resources handle Macie configuration via CloudFormation.
+   * When false: Macie module manages resources via API calls, custom resources are not needed.
+   *
+   * Override via SkipMacie environment variable (set to 'true' to skip module and create custom resources).
+   */
+  protected createMacieCustomResource: boolean;
+
+  /**
+   * Flag indicating whether the entire stack resources retention module is skipped.
+   *
+   * When true: Entire retention module is skipped, all custom resources should remain as safety net.
+   * When false: Retention module runs, individual service modules control their resources.
+   *
+   * Set via SKIP_STACK_RESOURCES_RETENTION_MODULE environment variable (set to 'true' to skip entire module).
+   */
+  protected skipResourcesRetentionModule: boolean;
+
+  /**
    * Accelerator SSM parameters
    * This array is used to store SSM parameters that are created per-stack.
    */
@@ -362,6 +382,69 @@ export abstract class AcceleratorStack extends cdk.Stack {
     // Set if S3 access log bucket is enabled
     //
     this.isAccessLogsBucketEnabled = this.accessLogsBucketEnabled();
+
+    //
+    // Initialize module skip flags from environment variables
+    //
+    // Two-level control hierarchy for service custom resources:
+    // 1. SKIP_STACK_RESOURCES_RETENTION_MODULE - Skips entire retention module (all services)
+    //    This is a global flag that affects all services and is not expected to change frequently.
+    //
+    // 2. SKIP_{SERVICE}_MODULE - Skips individual service module (both retention and API)
+    //    Service-specific flags are added below as new services are migrated.
+    //    Examples: SKIP_MACIE_MODULE, SKIP_GUARDDUTY_MODULE, SKIP_SECURITYHUB_MODULE
+    //
+    // Custom resources are removed ONLY when BOTH conditions are false (full migration path):
+    // - Retention module runs (SKIP_STACK_RESOURCES_RETENTION_MODULE=false)
+    // - Service module runs (SKIP_{SERVICE}_MODULE=false)
+    //
+    // Otherwise, custom resources are kept as a safety net.
+    //
+
+    /**
+     * Initialize global retention module skip flag.
+     *
+     * This flag controls whether the centralized stack resources retention module runs.
+     * When true, the entire retention module is skipped and all service custom resources
+     * remain in place as a safety net.
+     *
+     * This configuration is stable and not expected to change after initial setup.
+     *
+     * @remarks
+     * Environment variable: SKIP_STACK_RESOURCES_RETENTION_MODULE=true
+     * Default: false (retention module runs)
+     */
+    this.skipResourcesRetentionModule = process.env['SKIP_STACK_RESOURCES_RETENTION_MODULE']?.toLowerCase() === 'true';
+
+    /**
+     * Initialize service-specific custom resource flags.
+     *
+     * Each service flag determines whether CloudFormation custom resources should be created
+     * for that service. Custom resources are created when:
+     * 1. The global retention module is skipped (skipResourcesRetentionModule=true), OR
+     * 2. The specific service module is skipped (SKIP_{SERVICE}_MODULE=true)
+     *
+     * This section will grow as new services are migrated from CFN custom resources to API modules.
+     *
+     * @remarks
+     * Pattern for each service:
+     * ```typescript
+     * this.create{Service}CustomResource = false;
+     * if (this.skipResourcesRetentionModule || process.env['SKIP_{SERVICE}_MODULE']?.toLowerCase() === 'true') {
+     *   this.create{Service}CustomResource = true;
+     * }
+     * ```
+     *
+     * Current services:
+     * - Macie: SKIP_MACIE_MODULE
+     *
+     */
+
+    // Macie custom resources
+    this.createMacieCustomResource = false;
+    if (this.skipResourcesRetentionModule || process.env['SKIP_MACIE_MODULE']?.toLowerCase() === 'true') {
+      this.createMacieCustomResource = true;
+    }
   }
 
   /**
@@ -740,7 +823,7 @@ export abstract class AcceleratorStack extends cdk.Stack {
   protected createMacieServiceLinkedRole(key: { cloudwatch?: cdk.aws_kms.IKey; lambda?: cdk.aws_kms.IKey }) {
     if (
       this.props.organizationConfig.enable &&
-      this.props.securityConfig.centralSecurityServices.macie.enable &&
+      this.props.securityConfig.centralSecurityServices.macie?.enable &&
       this.serviceLinkedRoleSupportedPartitionList.includes(this.props.partition)
     ) {
       this.createServiceLinkedRole(ServiceLinkedRoleType.MACIE, { cloudwatch: key.cloudwatch, lambda: key.lambda });
@@ -1061,7 +1144,7 @@ export abstract class AcceleratorStack extends cdk.Stack {
         }
         break;
       case ServiceLinkedRoleType.MACIE:
-        if (this.props.organizationConfig.enable && this.props.securityConfig.centralSecurityServices.macie.enable) {
+        if (this.props.organizationConfig.enable && this.props.securityConfig.centralSecurityServices.macie?.enable) {
           this.logger.debug('Create MacieServiceLinkedRole');
           serviceLinkedRole = new ServiceLinkedRole(this, 'MacieServiceLinkedRole', {
             awsServiceName: 'macie.amazonaws.com',

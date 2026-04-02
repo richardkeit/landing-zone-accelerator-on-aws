@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+
+const hasVerbose = process.argv.includes('--verbose') || process.argv.includes('-v');
+const existingLogLevel = process.env.LOG_LEVEL;
+if (hasVerbose) {
+    process.env.LOG_LEVEL = 'info';
+} else {
+    // Only set default if not already set by the variable
+    process.env.LOG_LEVEL = existingLogLevel || 'error';
+}
+
+const { spawn } = require('child_process');
+const path = require('path');
+
+const child = spawn('npx', ['ts-node', path.join(__dirname, '../lib/', 'runner.ts'), ...process.argv.slice(2)], {
+    stdio: 'inherit',
+    env: process.env
+});
+
+child.on('exit', (code) => process.exit(code));

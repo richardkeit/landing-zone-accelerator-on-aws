@@ -11,7 +11,6 @@
  *  and limitations under the License.
  */
 
-import { describe, beforeEach, expect, test, vi } from 'vitest';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   Account,
@@ -20,33 +19,49 @@ import {
   AWSOrganizationsNotInUseException,
   OrganizationsClient,
 } from '@aws-sdk/client-organizations';
-import {
-  getOrganizationAccounts,
-  isManagementAccount,
-  getOrganizationAccountsFromSourceTable,
-} from '../../../lib/common/organizations-functions';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { IModuleOrganizationsDataSource } from '../../../lib/common/interfaces';
+import {
+  deregisterDelegatedAdministrator,
+  getDelegatedAdministratorAccountId,
+  getOrganizationAccounts,
+  getOrganizationAccountsFromSourceTable,
+  getOrganizationDetails,
+  isManagementAccount,
+} from '../../../lib/common/organizations-functions';
+import { MODULE_EXCEPTIONS } from '../../../lib/common/types';
 
 // Mock dependencies
-vi.mock('@aws-sdk/client-organizations', () => ({
-  OrganizationsClient: vi.fn(),
-  DescribeOrganizationCommand: vi.fn(),
-  paginateListAccounts: vi.fn(),
-  AWSOrganizationsNotInUseException: vi.fn(),
-  AccountStatus: {},
-  AccountJoinedMethod: {},
-}));
+vi.mock('@aws-sdk/client-organizations', () => {
+  const AccountNotRegisteredException = vi.fn();
+  AccountNotRegisteredException.prototype.name = 'AccountNotRegisteredException';
+
+  return {
+    OrganizationsClient: vi.fn(),
+    DescribeOrganizationCommand: vi.fn(),
+    ListDelegatedAdministratorsCommand: vi.fn(),
+    DeregisterDelegatedAdministratorCommand: vi.fn(),
+    paginateListAccounts: vi.fn(),
+    AWSOrganizationsNotInUseException: vi.fn(),
+    AccountNotRegisteredException,
+    AccountStatus: {},
+    AccountJoinedMethod: {},
+  };
+});
 
 vi.mock('../../../lib/common/utility', () => ({
   executeApi: vi.fn(),
+  setRetryStrategy: vi.fn(() => ({})),
 }));
 
 vi.mock('../../../lib/common/logger', () => ({
   createLogger: vi.fn(() => ({
     info: vi.fn(),
     error: vi.fn(),
+    warn: vi.fn(),
     commandExecution: vi.fn(),
     commandSuccess: vi.fn(),
+    dryRun: vi.fn(),
   })),
 }));
 
@@ -57,25 +72,25 @@ vi.mock('../../../lib/common/dynamodb-table-functions', () => ({
 // Mock constants
 const MOCK_CONSTANTS = {
   logPrefix: 'test-prefix',
-  managementAccountId: '123456789012',
+  managementAccountId: 'XXXXXXXXXXXX',
   organizationId: 'o-test123456',
   accounts: [
     {
-      Id: '111111111111',
+      Id: 'YYYYYYYYYYYY',
       Name: 'Account1',
       Email: 'account1@example.com',
       Status: 'ACTIVE' as AccountStatus,
       JoinedMethod: 'INVITED' as AccountJoinedMethod,
-      Arn: 'arn:aws:organizations::123456789012:account/o-test123456/111111111111',
+      Arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/YYYYYYYYYYYY',
       JoinedTimestamp: new Date('2023-01-01T00:00:00Z'),
     },
     {
-      Id: '222222222222',
+      Id: 'ZZZZZZZZZZZZ',
       Name: 'Account2',
       Email: 'account2@example.com',
       Status: 'ACTIVE' as AccountStatus,
       JoinedMethod: 'CREATED' as AccountJoinedMethod,
-      Arn: 'arn:aws:organizations::123456789012:account/o-test123456/222222222222',
+      Arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/ZZZZZZZZZZZZ',
       JoinedTimestamp: new Date('2023-01-02T00:00:00Z'),
     },
   ] as Account[],
@@ -86,24 +101,24 @@ const MOCK_CONSTANTS = {
   } as IModuleOrganizationsDataSource,
   tableData: [
     {
-      awsKey: '111111111111',
+      awsKey: 'YYYYYYYYYYYY',
       acceleratorKey: 'account1@example.com',
       dataType: 'mandatoryAccount',
       dataBag: JSON.stringify({
         name: 'Account1',
-        arn: 'arn:aws:organizations::123456789012:account/o-test123456/111111111111',
+        arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/YYYYYYYYYYYY',
         status: 'ACTIVE',
         joinedMethod: 'INVITED',
         joinedTimestamp: '2023-01-01T00:00:00Z',
       }),
     },
     {
-      awsKey: '222222222222',
+      awsKey: 'ZZZZZZZZZZZZ',
       acceleratorKey: 'account2@example.com',
       dataType: 'workloadAccount',
       dataBag: JSON.stringify({
         name: 'Account2',
-        arn: 'arn:aws:organizations::123456789012:account/o-test123456/222222222222',
+        arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/ZZZZZZZZZZZZ',
         status: 'ACTIVE',
         joinedMethod: 'CREATED',
         joinedTimestamp: '2023-01-02T00:00:00Z',
@@ -120,8 +135,8 @@ describe('organizations-functions', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const utility = await import('../../../lib/common/utility');
-    const dynamodbFunctions = await import('../../../lib/common/dynamodb-table-functions');
+    const utility = await import('../../../lib/common/utility.js');
+    const dynamodbFunctions = await import('../../../lib/common/dynamodb-table-functions.js');
     const organizations = await import('@aws-sdk/client-organizations');
 
     mockExecuteApi = vi.mocked(utility.executeApi);
@@ -140,7 +155,7 @@ describe('organizations-functions', () => {
 
       mockPaginateListAccounts.mockReturnValue(mockPaginator);
 
-      const result = await getOrganizationAccounts(new OrganizationsClient({}), MOCK_CONSTANTS.logPrefix);
+      const result = await getOrganizationAccounts(MOCK_CONSTANTS.logPrefix, new OrganizationsClient({}));
 
       expect(result).toEqual(MOCK_CONSTANTS.accounts);
       expect(mockPaginateListAccounts).toHaveBeenCalledWith(
@@ -158,7 +173,7 @@ describe('organizations-functions', () => {
 
       mockPaginateListAccounts.mockReturnValue(mockPaginator);
 
-      const result = await getOrganizationAccounts(new OrganizationsClient({}), MOCK_CONSTANTS.logPrefix);
+      const result = await getOrganizationAccounts(MOCK_CONSTANTS.logPrefix, new OrganizationsClient({}));
 
       expect(result).toEqual([]);
     });
@@ -173,7 +188,7 @@ describe('organizations-functions', () => {
 
       mockPaginateListAccounts.mockReturnValue(mockPaginator);
 
-      const result = await getOrganizationAccounts(new OrganizationsClient({}), MOCK_CONSTANTS.logPrefix);
+      const result = await getOrganizationAccounts(MOCK_CONSTANTS.logPrefix, new OrganizationsClient({}));
 
       expect(result).toEqual([MOCK_CONSTANTS.accounts[0]]);
     });
@@ -189,10 +204,38 @@ describe('organizations-functions', () => {
 
       mockPaginateListAccounts.mockReturnValue(mockPaginator);
 
-      const result = await getOrganizationAccounts(new OrganizationsClient({}), MOCK_CONSTANTS.logPrefix);
+      const result = await getOrganizationAccounts(MOCK_CONSTANTS.logPrefix, new OrganizationsClient({}));
 
       expect(result).toHaveLength(2);
       expect(result).toEqual(MOCK_CONSTANTS.accounts);
+    });
+
+    test('should create client with clientProps when no client provided', async () => {
+      const mockPaginator = {
+        [Symbol.asyncIterator]: async function* () {
+          yield { Accounts: [MOCK_CONSTANTS.accounts[0]] };
+        },
+      };
+
+      mockPaginateListAccounts.mockReturnValue(mockPaginator);
+
+      const clientProps = {
+        region: 'us-east-1',
+        customUserAgent: 'test-agent',
+        credentials: {
+          accessKeyId: 'test-accessKeyId',
+          secretAccessKey: 'test-secretAccessKey',
+          sessionToken: 'test-sessionToken',
+        },
+      };
+
+      const result = await getOrganizationAccounts(MOCK_CONSTANTS.logPrefix, undefined, clientProps);
+
+      expect(result).toEqual([MOCK_CONSTANTS.accounts[0]]);
+      expect(mockPaginateListAccounts).toHaveBeenCalledWith(
+        { client: expect.any(OrganizationsClient) },
+        { MaxResults: 20 },
+      );
     });
   });
 
@@ -254,11 +297,8 @@ describe('organizations-functions', () => {
     });
 
     test('should return false when AWSOrganizationsNotInUseException is thrown', async () => {
-      const notInUseError = new AWSOrganizationsNotInUseException({
-        message: 'Organization not in use',
-        $metadata: {},
-      });
-      mockExecuteApi.mockRejectedValue(notInUseError);
+      // Mock executeApi to return undefined for expected exceptions (as the function expects)
+      mockExecuteApi.mockResolvedValue(undefined);
 
       const result = await isManagementAccount(
         new OrganizationsClient({}),
@@ -279,9 +319,100 @@ describe('organizations-functions', () => {
     });
   });
 
+  describe('getOrganizationDetails', () => {
+    test('should return organization details successfully', async () => {
+      const mockOrganization = {
+        Id: MOCK_CONSTANTS.organizationId,
+        Arn: `arn:aws:organizations::${MOCK_CONSTANTS.managementAccountId}:organization/${MOCK_CONSTANTS.organizationId}`,
+        FeatureSet: 'ALL',
+        MasterAccountArn: `arn:aws:organizations::${MOCK_CONSTANTS.managementAccountId}:account/${MOCK_CONSTANTS.organizationId}/${MOCK_CONSTANTS.managementAccountId}`,
+        MasterAccountId: MOCK_CONSTANTS.managementAccountId,
+        MasterAccountEmail: 'master@example.com',
+      };
+
+      mockExecuteApi.mockResolvedValue({
+        Organization: mockOrganization,
+      });
+
+      const result = await getOrganizationDetails(MOCK_CONSTANTS.logPrefix);
+
+      expect(result).toEqual(mockOrganization);
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'DescribeOrganizationCommand',
+        {},
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+        [AWSOrganizationsNotInUseException],
+      );
+    });
+
+    test('should return organization details with custom client', async () => {
+      const mockOrganization = {
+        Id: MOCK_CONSTANTS.organizationId,
+        MasterAccountId: MOCK_CONSTANTS.managementAccountId,
+      };
+
+      mockExecuteApi.mockResolvedValue({
+        Organization: mockOrganization,
+      });
+
+      const customClient = new OrganizationsClient({});
+      const result = await getOrganizationDetails(MOCK_CONSTANTS.logPrefix, customClient);
+
+      expect(result).toEqual(mockOrganization);
+    });
+
+    test('should return organization details with client props', async () => {
+      const mockOrganization = {
+        Id: MOCK_CONSTANTS.organizationId,
+        MasterAccountId: MOCK_CONSTANTS.managementAccountId,
+      };
+
+      mockExecuteApi.mockResolvedValue({
+        Organization: mockOrganization,
+      });
+
+      const clientProps = {
+        region: 'us-east-1',
+        customUserAgent: 'test-agent',
+      };
+
+      const result = await getOrganizationDetails(MOCK_CONSTANTS.logPrefix, undefined, clientProps);
+
+      expect(result).toEqual(mockOrganization);
+    });
+
+    test('should throw error when organization details are missing', async () => {
+      mockExecuteApi.mockResolvedValue({
+        Organization: undefined,
+      });
+
+      await expect(getOrganizationDetails(MOCK_CONSTANTS.logPrefix)).rejects.toThrow(
+        "AWS Organization couldn't fetch organization details",
+      );
+    });
+
+    test('should return undefined when AWSOrganizationsNotInUseException is thrown', async () => {
+      // Mock executeApi to return undefined for expected exceptions (as the function expects)
+      mockExecuteApi.mockResolvedValue(undefined);
+
+      const result = await getOrganizationDetails(MOCK_CONSTANTS.logPrefix);
+
+      expect(result).toBeUndefined();
+    });
+
+    test('should throw other errors', async () => {
+      const otherError = new Error('Some other error');
+      mockExecuteApi.mockRejectedValue(otherError);
+
+      await expect(getOrganizationDetails(MOCK_CONSTANTS.logPrefix)).rejects.toThrow('Some other error');
+    });
+  });
+
   describe('getOrganizationAccountsFromSourceTable', () => {
     test('should retrieve accounts from source table successfully', async () => {
-      mockQueryDynamoDBTable.mockResolvedValue(MOCK_CONSTANTS.tableData);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: MOCK_CONSTANTS.tableData });
 
       const result = await getOrganizationAccountsFromSourceTable({
         client: new DynamoDBClient({}),
@@ -291,19 +422,19 @@ describe('organizations-functions', () => {
 
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({
-        Id: '111111111111',
+        Id: 'YYYYYYYYYYYY',
         Email: 'account1@example.com',
         Name: 'Account1',
-        Arn: 'arn:aws:organizations::123456789012:account/o-test123456/111111111111',
+        Arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/YYYYYYYYYYYY',
         Status: 'ACTIVE',
         JoinedMethod: 'INVITED',
         JoinedTimestamp: new Date('2023-01-01T00:00:00Z'),
       });
       expect(result[1]).toEqual({
-        Id: '222222222222',
+        Id: 'ZZZZZZZZZZZZ',
         Email: 'account2@example.com',
         Name: 'Account2',
-        Arn: 'arn:aws:organizations::123456789012:account/o-test123456/222222222222',
+        Arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/ZZZZZZZZZZZZ',
         Status: 'ACTIVE',
         JoinedMethod: 'CREATED',
         JoinedTimestamp: new Date('2023-01-02T00:00:00Z'),
@@ -315,11 +446,12 @@ describe('organizations-functions', () => {
         logPrefix: MOCK_CONSTANTS.logPrefix,
         filters: MOCK_CONSTANTS.organizationsDataSource.filters,
         filterOperator: MOCK_CONSTANTS.organizationsDataSource.filterOperator,
+        pagination: { enabled: true },
       });
     });
 
     test('should throw error when no data found in table', async () => {
-      mockQueryDynamoDBTable.mockResolvedValue(undefined);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: undefined });
 
       await expect(
         getOrganizationAccountsFromSourceTable({
@@ -331,7 +463,7 @@ describe('organizations-functions', () => {
     });
 
     test('should throw error when no data found in table with no filters', async () => {
-      mockQueryDynamoDBTable.mockResolvedValue(undefined);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: undefined });
 
       await expect(
         getOrganizationAccountsFromSourceTable({
@@ -353,7 +485,7 @@ describe('organizations-functions', () => {
         },
       ];
 
-      mockQueryDynamoDBTable.mockResolvedValue(tableDataWithInvalidType);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: tableDataWithInvalidType });
 
       const result = await getOrganizationAccountsFromSourceTable({
         client: new DynamoDBClient({}),
@@ -373,7 +505,7 @@ describe('organizations-functions', () => {
         },
       ];
 
-      mockQueryDynamoDBTable.mockResolvedValue(tableDataWithMissingAwsKey);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: tableDataWithMissingAwsKey });
 
       await expect(
         getOrganizationAccountsFromSourceTable({
@@ -387,13 +519,13 @@ describe('organizations-functions', () => {
     test('should throw error when acceleratorKey is missing', async () => {
       const tableDataWithMissingAcceleratorKey = [
         {
-          awsKey: '111111111111',
+          awsKey: 'YYYYYYYYYYYY',
           dataType: 'mandatoryAccount',
           dataBag: JSON.stringify({ name: 'Account1' }),
         },
       ];
 
-      mockQueryDynamoDBTable.mockResolvedValue(tableDataWithMissingAcceleratorKey);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: tableDataWithMissingAcceleratorKey });
 
       await expect(
         getOrganizationAccountsFromSourceTable({
@@ -409,13 +541,13 @@ describe('organizations-functions', () => {
     test('should throw error when dataBag is missing', async () => {
       const tableDataWithMissingDataBag = [
         {
-          awsKey: '111111111111',
+          awsKey: 'YYYYYYYYYYYY',
           acceleratorKey: 'account1@example.com',
           dataType: 'mandatoryAccount',
         },
       ];
 
-      mockQueryDynamoDBTable.mockResolvedValue(tableDataWithMissingDataBag);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: tableDataWithMissingDataBag });
 
       await expect(
         getOrganizationAccountsFromSourceTable({
@@ -431,14 +563,14 @@ describe('organizations-functions', () => {
     test('should throw error when dataBag contains invalid JSON', async () => {
       const tableDataWithInvalidJson = [
         {
-          awsKey: '111111111111',
+          awsKey: 'YYYYYYYYYYYY',
           acceleratorKey: 'account1@example.com',
           dataType: 'mandatoryAccount',
           dataBag: 'invalid json',
         },
       ];
 
-      mockQueryDynamoDBTable.mockResolvedValue(tableDataWithInvalidJson);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: tableDataWithInvalidJson });
 
       await expect(
         getOrganizationAccountsFromSourceTable({
@@ -452,14 +584,14 @@ describe('organizations-functions', () => {
     test('should handle minimal account data', async () => {
       const minimalTableData = [
         {
-          awsKey: '111111111111',
+          awsKey: 'YYYYYYYYYYYY',
           acceleratorKey: 'account1@example.com',
           dataType: 'mandatoryAccount',
           dataBag: JSON.stringify({}), // Empty dataBag
         },
       ];
 
-      mockQueryDynamoDBTable.mockResolvedValue(minimalTableData);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: minimalTableData });
 
       const result = await getOrganizationAccountsFromSourceTable({
         client: new DynamoDBClient({}),
@@ -469,7 +601,7 @@ describe('organizations-functions', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
-        Id: '111111111111',
+        Id: 'YYYYYYYYYYYY',
         Email: 'account1@example.com',
       });
     });
@@ -477,7 +609,7 @@ describe('organizations-functions', () => {
     test('should handle partial account data', async () => {
       const partialTableData = [
         {
-          awsKey: '111111111111',
+          awsKey: 'YYYYYYYYYYYY',
           acceleratorKey: 'account1@example.com',
           dataType: 'mandatoryAccount',
           dataBag: JSON.stringify({
@@ -487,7 +619,7 @@ describe('organizations-functions', () => {
         },
       ];
 
-      mockQueryDynamoDBTable.mockResolvedValue(partialTableData);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: partialTableData });
 
       const result = await getOrganizationAccountsFromSourceTable({
         client: new DynamoDBClient({}),
@@ -497,7 +629,7 @@ describe('organizations-functions', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
-        Id: '111111111111',
+        Id: 'YYYYYYYYYYYY',
         Email: 'account1@example.com',
         Name: 'Account1',
         Status: 'ACTIVE',
@@ -505,7 +637,7 @@ describe('organizations-functions', () => {
     });
 
     test('should handle both mandatoryAccount and workloadAccount types', async () => {
-      mockQueryDynamoDBTable.mockResolvedValue(MOCK_CONSTANTS.tableData);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: MOCK_CONSTANTS.tableData });
 
       const result = await getOrganizationAccountsFromSourceTable({
         client: new DynamoDBClient({}),
@@ -514,8 +646,8 @@ describe('organizations-functions', () => {
       });
 
       expect(result).toHaveLength(2);
-      expect(result.some(account => account.Id === '111111111111')).toBe(true);
-      expect(result.some(account => account.Id === '222222222222')).toBe(true);
+      expect(result.some(account => account.Id === 'YYYYYYYYYYYY')).toBe(true);
+      expect(result.some(account => account.Id === 'ZZZZZZZZZZZZ')).toBe(true);
     });
   });
 
@@ -529,25 +661,16 @@ describe('organizations-functions', () => {
       ];
 
       for (const { dataType, expected } of validTypes) {
-        const tableData = expected
-          ? [
-              {
-                awsKey: '111111111111',
-                acceleratorKey: 'account1@example.com',
-                dataType,
-                dataBag: JSON.stringify({ name: 'Account1' }),
-              },
-            ]
-          : [
-              {
-                awsKey: '111111111111',
-                acceleratorKey: 'account1@example.com',
-                dataType,
-                dataBag: JSON.stringify({ name: 'Account1' }),
-              },
-            ];
+        const tableData = [
+          {
+            awsKey: 'YYYYYYYYYYYY',
+            acceleratorKey: 'account1@example.com',
+            dataType,
+            dataBag: JSON.stringify({ name: 'Account1' }),
+          },
+        ];
 
-        mockQueryDynamoDBTable.mockResolvedValue(tableData);
+        mockQueryDynamoDBTable.mockResolvedValue({ items: tableData });
 
         const result = await getOrganizationAccountsFromSourceTable({
           client: new DynamoDBClient({}),
@@ -569,7 +692,7 @@ describe('organizations-functions', () => {
       ];
 
       for (const testCase of testCases) {
-        mockQueryDynamoDBTable.mockResolvedValue([testCase.data]);
+        mockQueryDynamoDBTable.mockResolvedValue({ items: [testCase.data] });
 
         await expect(
           getOrganizationAccountsFromSourceTable({
@@ -591,14 +714,14 @@ describe('organizations-functions', () => {
       const mockItem = {
         get awsKey() {
           callCount++;
-          return callCount === 1 ? '111111111111' : null; // First call returns value, second returns null
+          return callCount === 1 ? 'YYYYYYYYYYYY' : null; // First call returns value, second returns null
         },
         acceleratorKey: 'account1@example.com',
         dataType: 'mandatoryAccount',
         dataBag: JSON.stringify({ name: 'Account1' }),
       };
 
-      mockQueryDynamoDBTable.mockResolvedValue([mockItem]);
+      mockQueryDynamoDBTable.mockResolvedValue({ items: [mockItem] });
 
       await expect(
         getOrganizationAccountsFromSourceTable({
@@ -607,6 +730,294 @@ describe('organizations-functions', () => {
           logPrefix: MOCK_CONSTANTS.logPrefix,
         }),
       ).rejects.toThrow("Missing required field 'awsKey' for account item in source table, unable to get account id");
+    });
+  });
+
+  describe('getDelegatedAdministratorAccountId', () => {
+    test('should return delegated administrator account ID when one exists', async () => {
+      const mockResponse = {
+        DelegatedAdministrators: [
+          {
+            Id: 'AAAAAAAAAAAA',
+            Arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/AAAAAAAAAAAA',
+            Email: 'admin@example.com',
+            Name: 'Admin Account',
+            Status: 'ACTIVE',
+            JoinedMethod: 'INVITED',
+            JoinedTimestamp: new Date('2023-01-01T00:00:00Z'),
+            DelegationEnabledDate: new Date('2023-01-01T00:00:00Z'),
+          },
+        ],
+      };
+
+      mockExecuteApi.mockResolvedValue(mockResponse);
+
+      const result = await getDelegatedAdministratorAccountId(
+        new OrganizationsClient({}),
+        'macie.amazonaws.com',
+        MOCK_CONSTANTS.logPrefix,
+      );
+
+      expect(result).toBe('AAAAAAAAAAAA');
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'ListDelegatedAdministratorsCommand',
+        { ServicePrincipal: 'macie.amazonaws.com' },
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+      );
+    });
+
+    test('should return undefined when no delegated administrator exists', async () => {
+      const mockResponse = {
+        DelegatedAdministrators: [],
+      };
+
+      mockExecuteApi.mockResolvedValue(mockResponse);
+
+      const result = await getDelegatedAdministratorAccountId(
+        new OrganizationsClient({}),
+        'macie.amazonaws.com',
+        MOCK_CONSTANTS.logPrefix,
+      );
+
+      expect(result).toBeUndefined();
+    });
+
+    test('should return undefined when DelegatedAdministrators is undefined', async () => {
+      const mockResponse = {};
+
+      mockExecuteApi.mockResolvedValue(mockResponse);
+
+      const result = await getDelegatedAdministratorAccountId(
+        new OrganizationsClient({}),
+        'macie.amazonaws.com',
+        MOCK_CONSTANTS.logPrefix,
+      );
+
+      expect(result).toBeUndefined();
+    });
+
+    test('should throw error when multiple delegated administrators exist', async () => {
+      const mockResponse = {
+        DelegatedAdministrators: [
+          {
+            Id: 'AAAAAAAAAAAA',
+            Arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/AAAAAAAAAAAA',
+            Email: 'admin1@example.com',
+            Name: 'Admin Account 1',
+          },
+          {
+            Id: 'BBBBBBBBBBBB',
+            Arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/BBBBBBBBBBBB',
+            Email: 'admin2@example.com',
+            Name: 'Admin Account 2',
+          },
+        ],
+      };
+
+      mockExecuteApi.mockResolvedValue(mockResponse);
+
+      await expect(
+        getDelegatedAdministratorAccountId(
+          new OrganizationsClient({}),
+          'macie.amazonaws.com',
+          MOCK_CONSTANTS.logPrefix,
+        ),
+      ).rejects.toThrow(
+        `${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: Multiple delegated administrators found for service macie.amazonaws.com: AAAAAAAAAAAA, BBBBBBBBBBBB`,
+      );
+    });
+
+    test('should work with different service principals', async () => {
+      const mockResponse = {
+        DelegatedAdministrators: [
+          {
+            Id: 'CCCCCCCCCCCC',
+            Name: 'SecurityHub Admin',
+          },
+        ],
+      };
+
+      mockExecuteApi.mockResolvedValue(mockResponse);
+
+      const result = await getDelegatedAdministratorAccountId(
+        new OrganizationsClient({}),
+        'securityhub.amazonaws.com',
+        MOCK_CONSTANTS.logPrefix,
+      );
+
+      expect(result).toBe('CCCCCCCCCCCC');
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'ListDelegatedAdministratorsCommand',
+        { ServicePrincipal: 'securityhub.amazonaws.com' },
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+      );
+    });
+
+    test('should propagate executeApi errors', async () => {
+      const apiError = new Error('API Error');
+      mockExecuteApi.mockRejectedValue(apiError);
+
+      await expect(
+        getDelegatedAdministratorAccountId(
+          new OrganizationsClient({}),
+          'macie.amazonaws.com',
+          MOCK_CONSTANTS.logPrefix,
+        ),
+      ).rejects.toThrow('API Error');
+    });
+  });
+
+  describe('deregisterDelegatedAdministrator', () => {
+    test('should deregister delegated administrator successfully', async () => {
+      mockExecuteApi.mockResolvedValue({});
+
+      await deregisterDelegatedAdministrator(
+        new OrganizationsClient({}),
+        'AAAAAAAAAAAA',
+        'macie.amazonaws.com',
+        false,
+        MOCK_CONSTANTS.logPrefix,
+      );
+
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'DeregisterDelegatedAdministratorCommand',
+        {
+          AccountId: 'AAAAAAAAAAAA',
+          ServicePrincipal: 'macie.amazonaws.com',
+        },
+        expect.any(Function),
+        expect.objectContaining({
+          info: expect.any(Function),
+          warn: expect.any(Function),
+          error: expect.any(Function),
+        }),
+        MOCK_CONSTANTS.logPrefix,
+        expect.arrayContaining([expect.any(Function)]),
+      );
+    });
+
+    test('should perform dry run without making API call', async () => {
+      await deregisterDelegatedAdministrator(
+        new OrganizationsClient({}),
+        'AAAAAAAAAAAA',
+        'macie.amazonaws.com',
+        true,
+        MOCK_CONSTANTS.logPrefix,
+      );
+
+      expect(mockExecuteApi).not.toHaveBeenCalled();
+    });
+
+    test('should work with different service principals', async () => {
+      mockExecuteApi.mockResolvedValue({});
+
+      await deregisterDelegatedAdministrator(
+        new OrganizationsClient({}),
+        'CCCCCCCCCCCC',
+        'securityhub.amazonaws.com',
+        false,
+        MOCK_CONSTANTS.logPrefix,
+      );
+
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'DeregisterDelegatedAdministratorCommand',
+        {
+          AccountId: 'CCCCCCCCCCCC',
+          ServicePrincipal: 'securityhub.amazonaws.com',
+        },
+        expect.any(Function),
+        expect.objectContaining({
+          info: expect.any(Function),
+          warn: expect.any(Function),
+          error: expect.any(Function),
+        }),
+        MOCK_CONSTANTS.logPrefix,
+        expect.arrayContaining([expect.any(Function)]),
+      );
+    });
+
+    test('should work with different account IDs', async () => {
+      mockExecuteApi.mockResolvedValue({});
+
+      await deregisterDelegatedAdministrator(
+        new OrganizationsClient({}),
+        'YYYYYYYYYYYY',
+        'guardduty.amazonaws.com',
+        false,
+        MOCK_CONSTANTS.logPrefix,
+      );
+
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'DeregisterDelegatedAdministratorCommand',
+        {
+          AccountId: 'YYYYYYYYYYYY',
+          ServicePrincipal: 'guardduty.amazonaws.com',
+        },
+        expect.any(Function),
+        expect.objectContaining({
+          info: expect.any(Function),
+          warn: expect.any(Function),
+          error: expect.any(Function),
+        }),
+        MOCK_CONSTANTS.logPrefix,
+        expect.arrayContaining([expect.any(Function)]),
+      );
+    });
+
+    test('should propagate executeApi errors', async () => {
+      const apiError = new Error('Deregistration failed');
+      mockExecuteApi.mockRejectedValue(apiError);
+
+      await expect(
+        deregisterDelegatedAdministrator(
+          new OrganizationsClient({}),
+          'AAAAAAAAAAAA',
+          'macie.amazonaws.com',
+          false,
+          MOCK_CONSTANTS.logPrefix,
+        ),
+      ).rejects.toThrow('Deregistration failed');
+    });
+
+    test('should handle empty response from API', async () => {
+      mockExecuteApi.mockResolvedValue(undefined);
+
+      await expect(
+        deregisterDelegatedAdministrator(
+          new OrganizationsClient({}),
+          'AAAAAAAAAAAA',
+          'macie.amazonaws.com',
+          false,
+          MOCK_CONSTANTS.logPrefix,
+        ),
+      ).resolves.not.toThrow();
+    });
+
+    test('should handle AccountNotRegisteredException as expected behavior', async () => {
+      const { AccountNotRegisteredException } = await import('@aws-sdk/client-organizations');
+      const accountNotRegisteredException = new AccountNotRegisteredException({
+        message: 'Account is not a registered delegated administrator',
+        $metadata: {},
+      });
+      mockExecuteApi.mockRejectedValue(accountNotRegisteredException);
+
+      // Should not throw - this is expected behavior
+      await expect(
+        deregisterDelegatedAdministrator(
+          new OrganizationsClient({}),
+          'AAAAAAAAAAAA',
+          'macie.amazonaws.com',
+          false,
+          MOCK_CONSTANTS.logPrefix,
+        ),
+      ).resolves.not.toThrow();
+
+      // Verify executeApi was called (this covers the catch block)
+      expect(mockExecuteApi).toHaveBeenCalled();
     });
   });
 });

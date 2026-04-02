@@ -26,8 +26,15 @@
  * - Concurrency and performance settings
  */
 
-import { DynamoDBFilterOperator, DynamoDBLogicalOperator, MODULE_STATE_CODE } from './types';
+import { Account } from '@aws-sdk/client-organizations';
 import type { AwsCredentialIdentityProvider } from '@aws-sdk/types';
+import {
+  DynamoDBFilterOperator,
+  DynamoDBLogicalOperator,
+  MODULE_STATE_CODE,
+  OrderedAccountListType,
+  SecurityModuleOperationType,
+} from './types';
 /**
  * Represents an AWS environment (account-region combination) for accelerator operations
  */
@@ -179,13 +186,24 @@ export interface IModuleResponse<T = unknown> {
 }
 
 /**
- * Concurrency and performance settings for batch operations
+ * Batch operation settings for concurrency and performance
  */
-export interface IConcurrencySettings {
+export interface IBatchOperationSettings {
   /** Maximum number of concurrent account-region environments */
   readonly maxConcurrentEnvironments?: number;
   /** Timeout in milliseconds for individual operations */
   readonly operationTimeoutMs?: number;
+}
+
+/**
+ * Required batch operation settings for internal processing layers
+ * Used by batch-processor and regional-error-wrapper to ensure all settings are resolved
+ */
+export interface IRequiredBatchOperationSettings {
+  /** Maximum number of concurrent account-region environments */
+  readonly maxConcurrentEnvironments: number;
+  /** Timeout in milliseconds for individual operations */
+  readonly operationTimeoutMs: number;
 }
 
 /**
@@ -194,4 +212,224 @@ export interface IConcurrencySettings {
 export enum AcceleratorModuleName {
   /** Amazon Macie security module */
   AMAZON_MACIE = 'amazon-macie',
+}
+
+/**
+ * Regional operation error information for batch processing failures
+ */
+export interface IRegionOperationError {
+  /** AWS region where the error occurred */
+  region: string;
+  /** Account ID where the error occurred */
+  accountId: string;
+  /** Account name where the error occurred */
+  accountName: string;
+  /** AWS error name (e.g., UnrecognizedClientException) */
+  errorName: string;
+  /** Detailed error message */
+  errorMessage: string;
+}
+
+/**
+ * Base configuration interface for AWS security services
+ *
+ * Provides common configuration properties shared across multiple AWS security services
+ * such as Amazon Macie, GuardDuty, Security Hub, and Detective. This interface ensures
+ * consistency in configuration structure and reduces code duplication.
+ *
+ * @example
+ * ```typescript
+ * // Extending for a specific security service
+ * interface IMacieConfiguration extends ISecurityBaseConfig {
+ *   readonly findingPublishingFrequency?: 'FIFTEEN_MINUTES' | 'ONE_HOUR' | 'SIX_HOURS';
+ * }
+ *
+ * const macieConfig: IMacieConfiguration = {
+ *   accountAccessRoleName: 'AWSControlTowerExecution',
+ *   enable: true,
+ *   delegatedAdminAccountId: 'XXXXXXXXXXXX'
+ * };
+ * ```
+ */
+export interface ISecurityBaseConfig {
+  /**
+   * IAM role name for cross-account access
+   *
+   * Specifies the IAM role that will be assumed for cross-account operations.
+   * This role must exist in all target accounts and have the necessary permissions
+   * for the security service operations.
+   *
+   * @example 'AWSControlTowerExecution'
+   */
+  readonly accountAccessRoleName: string;
+
+  /**
+   * Whether to enable or disable the security service
+   *
+   * Controls the overall enablement state of the security service across
+   * the organization. When set to false, the service will be disabled
+   * in all accounts and regions.
+   *
+   * @default true
+   */
+  readonly enable: boolean;
+
+  /**
+   * Account ID for delegated administrator
+   *
+   * Specifies the AWS account ID that will serve as the delegated administrator
+   * for the security service. This account will have administrative privileges
+   * to manage the service across all member accounts in the organization.
+   *
+   * @example 'XXXXXXXXXXXX'
+   */
+  readonly delegatedAdminAccountId: string;
+}
+/**
+ * Base interface for security service module requests
+ *
+ * Extends the standard module request interface with security service configuration.
+ * This interface ensures all security service requests have the required configuration
+ * structure while maintaining type safety.
+ *
+ * @template TConfiguration - Type of the security service configuration (extends ISecurityBaseConfig)
+ */
+/**
+ * Generic security operation context for AWS security services
+ *
+ * Provides a shared context interface that carries common data across security service operations.
+ * This interface uses generic type parameters to support different module request types while
+ * maintaining type safety and consistency across all AWS security services.
+ *
+ * @template TModuleRequest - Type of the module request (IMacieModuleRequest, IGuardDutyModuleRequest, etc.)
+ *
+ * @example
+ * ```typescript
+ * // Usage with Macie
+ * type IMacieContext = ISecurityOperationContext<IMacieModuleRequest>;
+ *
+ * // Usage with GuardDuty (future)
+ * type IGuardDutyContext = ISecurityOperationContext<IGuardDutyModuleRequest>;
+ * ```
+ */
+export interface ISecurityOperationContext<TModuleRequest extends IModuleRequest> {
+  /** Module name for logging and identification */
+  moduleName: string;
+
+  /** AWS service name for Organizations API (e.g., 'macie.amazonaws.com') */
+  serviceName: string;
+
+  /** Logging prefix for the invoker */
+  invokerLogPrefix: string;
+
+  /** Management account ID */
+  managementAccountId: string;
+
+  /** List of organization accounts */
+  organizationAccounts: Account[];
+
+  /** Regions where service should be enabled */
+  enabledRegions: string[];
+
+  /** Regions where service should be disabled */
+  disabledRegions: string[];
+
+  /** Ordered accounts for enable operations */
+  enableOrderAccounts: OrderedAccountListType[];
+
+  /** Ordered accounts for disable operations */
+  disableOrderAccounts: OrderedAccountListType[];
+
+  /** Accounts requiring final cleanup */
+  finalCleanupAccounts: Account[];
+
+  /** Resolved batch operation settings */
+  resolvedBatchOperationSettings: IRequiredBatchOperationSettings;
+
+  /** Module-specific request properties */
+  props: TModuleRequest;
+}
+
+/**
+ * Base response interface for AWS security service modules
+ *
+ * Provides common response structure shared across all security services.
+ * Each service extends this interface and adds its service-specific configuration.
+ *
+ * @example
+ * ```typescript
+ * // Macie extends and adds sessionConfig
+ * export interface IMacieModuleResponse extends ISecurityServiceModuleResponse {
+ *   sessionConfig: IMacieSessionResponse[];
+ * }
+ *
+ * // GuardDuty extends and adds detectorConfig
+ * export interface IGuardDutyModuleResponse extends ISecurityServiceModuleResponse {
+ *   detectorConfig: IGuardDutyDetectorResponse[];
+ * }
+ * ```
+ */
+export interface ISecurityServiceModuleResponse {
+  /** Organization admin configuration results */
+  organizationAdminConfig: IOrganizationAdminResponse[];
+  /** Delegated admin account configuration results */
+  delegatedAdminAccountConfig: IDelegatedAccountResponse[];
+  /** List of account:region environments where operations completed successfully (only present when there are failures) */
+  successfulEnvs?: string[];
+  /** List of account:region environments where operations failed (only present when there are failures) */
+  failedEnvironments?: string[];
+  /** Detailed error information for each failed region (only present when there are failures) */
+  environmentErrors?: IRegionOperationError[];
+}
+
+/**
+ * Organization admin configuration data
+ * Used by handlers to return organization admin setup information (data only, no operation/regions)
+ */
+export interface IOrganizationAdminData extends Record<string, unknown> {
+  /** Management account ID */
+  managementAccountId: string;
+  /** Delegated administrator account ID */
+  delegatedAdminAccountId: string;
+}
+
+/**
+ * Delegated account configuration data
+ * Used by handlers to return delegated admin member information (data only, no operation/regions)
+ */
+export interface IDelegatedAccountData extends Record<string, unknown> {
+  /** Administrator account ID */
+  adminAccountId: string;
+  /** List of member account IDs */
+  memberAccountIds: string[];
+}
+
+/**
+ * Generic organization admin response interface
+ * Used across all security services for organization-level configuration (final merged response)
+ */
+export interface IOrganizationAdminResponse {
+  /** Type of operation performed (enabled/disabled) */
+  operation: SecurityModuleOperationType;
+  /** List of regions where operation was performed */
+  regions: string[];
+  /** Management account ID */
+  managementAccountId: string;
+  /** Delegated administrator account ID */
+  delegatedAdminAccountId: string;
+}
+
+/**
+ * Generic delegated account response interface
+ * Used across all security services for delegated admin configuration (final merged response)
+ */
+export interface IDelegatedAccountResponse {
+  /** Type of operation performed (enabled/disabled) */
+  operation: SecurityModuleOperationType;
+  /** List of regions where operation was performed */
+  regions: string[];
+  /** Administrator account ID */
+  adminAccountId: string;
+  /** List of member account IDs */
+  memberAccountIds: string[];
 }

@@ -119,6 +119,8 @@ before_script:
 
 include:
   # - '.gitlab/jobs/ci-job-definitions.yml'
+  # Module integration test jobs
+  - '.gitlab/jobs/security/integ-test.yaml'
   # Mirror jobs for CodeCommit replication
   - '.gitlab/jobs/mirror-job.yaml'
   - '.gitlab/jobs/mirror-universal-config-repo.yaml'

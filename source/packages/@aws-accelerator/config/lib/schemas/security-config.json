@@ -296,7 +296,7 @@
         },
         "macie": {
           "$ref": "#/definitions/IMacieConfig",
-          "description": "Configuration for Amazon Macie data security and privacy service across you organization."
+          "description": "Amazon Macie is a data security service that discovers, classifies, and protects sensitive data\nstored in Amazon S3. When configured, Macie automatically scans S3 buckets to identify personally\nidentifiable information (PII), financial data, and other sensitive content types."
         },
         "s3PublicAccessBlock": {
           "$ref": "#/definitions/IS3PublicAccessBlockConfig",
@@ -331,10 +331,31 @@
         "delegatedAdminAccount",
         "ebsDefaultVolumeEncryption",
         "s3PublicAccessBlock",
-        "macie",
         "guardduty",
         "securityHub",
         "ssmAutomation"
+      ],
+      "type": "object"
+    },
+    "IClassificationScopeExcludedBucketConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for S3 buckets in a specific region to exclude from Macie automated sensitive data discovery.\nGroups multiple bucket names under a single region to avoid repeating the region for each bucket.\n\nThe Macie UpdateClassificationScope API is regional — it only accepts buckets that exist\nin the current AWS Region. The `region` field is required so the solution can filter the\nexclusion list per-region and send only region-local buckets to each regional API call.",
+      "properties": {
+        "names": {
+          "description": "List of S3 bucket names to exclude from automated sensitive data discovery in this region. Each must be the exact, resolved bucket name — no placeholders.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "region": {
+          "description": "AWS region where the buckets reside (e.g., `us-east-1`, `eu-west-1`). Required because the Macie API validates that each bucket exists in the target region.\n\nWhen enabling Macie in a new region for the first time, the bucket inventory may take up to 24 hours to populate. Verify the buckets appear in the Macie S3 bucket inventory in the AWS Console before adding them here to avoid `ValidationException` errors.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "names",
+        "region"
       ],
       "type": "object"
     },
@@ -1170,12 +1191,31 @@
       "additionalProperties": false,
       "description": "Configuration for Amazon Macie, a data security service that discovers, classifies, and protects sensitive data.\nUse this configuration to enable Amazon Macie within your AWS Organization along with it's reporting configuration.",
       "properties": {
+        "automatedDiscoveryEnabled": {
+          "default": true,
+          "description": "When true, automated discovery continuously samples and analyzes S3 objects across\nmember accounts to detect sensitive data without requiring manual job creation.\nWhen false, explicitly disables automated discovery.",
+          "type": "boolean"
+        },
+        "classificationScopeExcludedBuckets": {
+          "description": "Specifies S3 buckets that Macie should not analyze during automated sensitive data discovery.\nThe exclusion list is applied on the delegated admin account and applies to all member accounts.\nInternally uses REPLACE operation to ensure the exclusion list matches the declared state.\n\nEach entry requires the bucket name and the AWS region where the bucket resides.\nThe Macie UpdateClassificationScope API is regional — it only accepts buckets that exist\nin the current AWS Region. The solution filters this list per-region automatically.",
+          "items": {
+            "$ref": "#/definitions/IClassificationScopeExcludedBucketConfig"
+          },
+          "type": "array"
+        },
+        "disabledRegions": {
+          "description": "Specifies AWS regions where the security service will be explicitly disabled when the service\nis enabled (`enable: true`). LZA will enable the service in all `enabledRegions` defined in the\nglobal config, except those listed in `excludeRegions` and `disabledRegions`.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "enable": {
           "description": "Controls whether AWS Macie is enabled across your organization",
           "type": "boolean"
         },
         "excludeRegions": {
-          "description": "List of AWS Region names to be excluded from configuring Amazon Macie.",
+          "description": "Specifies AWS regions where LZA will not configure the security service at all.\nThese regions are completely skipped during service deployment and management,\nregardless of whether the service is enabled or disabled.",
           "items": {
             "type": "string"
           },
@@ -1188,8 +1228,13 @@
           },
           "type": "array"
         },
+        "overrideExisting": {
+          "default": false,
+          "description": "When set to true, forces the LZA security Macie module to execute regardless of previous state checks.\nThis flag bypasses the normal state validation that determines whether the Macie module should run\nbased on its current configuration state.",
+          "type": "boolean"
+        },
         "policyFindingsPublishingFrequency": {
-          "description": "Specifies how frequently findings are published to Security Hub. Possible values: FIFTEEN_MINUTES, ONE_HOUR, or SIX_HOURS",
+          "description": "Specifies how frequently findings are published to Security Hub. Possible values: FIFTEEN_MINUTES, ONE_HOUR, or SIX_HOURS\n\nDefault value is FIFTEEN_MINUTES",
           "enum": [
             "FIFTEEN_MINUTES",
             "ONE_HOUR",
@@ -1198,7 +1243,7 @@
           "type": "string"
         },
         "publishPolicyFindings": {
-          "description": "Specifies whether to publish findings to Security Hub and EventBridge",
+          "description": "Specifies whether to publish findings to Security Hub and EventBridge Default value is false.",
           "type": "boolean"
         },
         "publishSensitiveDataFindings": {
@@ -1207,8 +1252,7 @@
         }
       },
       "required": [
-        "enable",
-        "publishSensitiveDataFindings"
+        "enable"
       ],
       "type": "object"
     },

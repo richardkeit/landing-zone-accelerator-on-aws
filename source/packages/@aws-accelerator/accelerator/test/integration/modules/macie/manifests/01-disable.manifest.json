@@ -1,0 +1,30 @@
+{
+    "name": "disable",
+    "description": "Disable Macie across the organization — full teardown",
+    "order": 1,
+    "moduleConfig": {
+        "enable": false,
+        "delegatedAdminAccount": "Audit",
+        "boundary": {
+            "regions": [
+                "us-east-1",
+                "us-west-2",
+                "eu-west-1"
+            ]
+        },
+        "regionFilters": {
+            "ignoredRegions": [
+                "eu-west-1"
+            ],
+            "disabledRegions": []
+        },
+        "policyFindingsPublishingFrequency": "FIFTEEN_MINUTES",
+        "publishSensitiveDataFindings": false,
+        "publishPolicyFindings": false
+    },
+    "expectedAssertions": {
+        "macieSessionEnabled": false,
+        "delegatedAdminRemoved": true,
+        "regionIgnored": "eu-west-1"
+    }
+}

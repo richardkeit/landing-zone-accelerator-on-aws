@@ -2,6 +2,7 @@
   "$schema": "node_modules/lerna/schemas/lerna-schema.json",
   "version": "2.0.0",
   "packages": [
+    "packages/@aws-lza",
     "packages/@aws-accelerator/accelerator",
     "packages/@aws-accelerator/accelerator/lib/lambdas/*",
     "packages/@aws-accelerator/config",

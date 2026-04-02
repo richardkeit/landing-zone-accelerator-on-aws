@@ -11,11 +11,11 @@
  *  and limitations under the License.
  */
 
-import { AcceleratorStage } from '../lib/accelerator-stage';
-import { describe, test } from 'vitest';
-import { snapShotTest } from './snapshot-test';
 import { Template } from 'aws-cdk-lib/assertions';
+import { afterAll, beforeAll, describe, test } from 'vitest';
+import { AcceleratorStage } from '../lib/accelerator-stage';
 import { Create, memoize } from './accelerator-test-helpers';
+import { snapShotTest } from './snapshot-test';
 
 const testNamePrefix = 'Construct(OrganizationsStack): ';
 
@@ -93,4 +93,19 @@ describe('backup policies', () => {
     template.resourceCountIs('Custom::CreatePolicy', 2);
     template.resourceCountIs('Custom::AttachPolicy', 4);
   });
+});
+
+// Test with SKIP_MACIE_MODULE environment variable set
+describe('OrganizationsStack with SkipMacie', () => {
+  beforeAll(() => {
+    // Set environment variable before creating the stack
+    process.env['SKIP_MACIE_MODULE'] = 'true';
+  });
+
+  afterAll(() => {
+    delete process.env['SKIP_MACIE_MODULE'];
+  });
+
+  const getStackWithSkipMacie = memoize(Create.stackProvider(`Management-us-east-1`, AcceleratorStage.ORGANIZATIONS));
+  snapShotTest('Construct(OrganizationsStack with SkipMacie): ', getStackWithSkipMacie);
 });

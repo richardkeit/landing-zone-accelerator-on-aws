@@ -11,10 +11,10 @@
  *  and limitations under the License.
  */
 
-import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AccountsConfig } from '../lib/accounts-config';
 import { ReplacementsConfig } from '../lib/replacements-config';
 import {
@@ -24,6 +24,7 @@ import {
   AuditManagerDefaultReportsDestinationConfig,
   AwsConfigAggregation,
   AwsConfigRuleSet,
+  BlockPublicDocumentSharingConfig,
   ConfigRule,
   DetectiveConfig,
   DocumentConfig,
@@ -40,7 +41,6 @@ import {
   SecurityHubLoggingConfig,
   SecurityHubStandardConfig,
   SnsSubscriptionConfig,
-  BlockPublicDocumentSharingConfig,
   SsmSettingsConfig,
 } from '../lib/security-config';
 import { SNAPSHOT_CONFIG } from './config-test-helper';
@@ -57,11 +57,11 @@ describe('SecurityConfig', () => {
     });
 
     it('has expected macie configuration', () => {
-      expect(securityConfigFromFile.centralSecurityServices.macie.enable).toBe(true);
+      expect(securityConfigFromFile.centralSecurityServices.macie?.enable).toBe(true);
       // that field is missing, so it's undefined. Ideally, it should be false as indicated by the code
-      expect(securityConfigFromFile.centralSecurityServices.macie.publishPolicyFindings).toBe(undefined);
-      expect(securityConfigFromFile.centralSecurityServices.macie.publishSensitiveDataFindings).toBe(true);
-      expect(securityConfigFromFile.centralSecurityServices.macie.policyFindingsPublishingFrequency).toBe(
+      expect(securityConfigFromFile.centralSecurityServices.macie?.publishPolicyFindings).toBe(undefined);
+      expect(securityConfigFromFile.centralSecurityServices.macie?.publishSensitiveDataFindings).toBe(true);
+      expect(securityConfigFromFile.centralSecurityServices.macie?.policyFindingsPublishingFrequency).toBe(
         'FIFTEEN_MINUTES',
       );
     });
@@ -452,8 +452,8 @@ keyManagementService:
       }).toThrow();
     });
 
-    it('should reject configuration missing required enable property', () => {
-      const invalidConfig = `
+    it('should accept configuration missing optional publishSensitiveDataFindings property', () => {
+      const validConfig = `
 centralSecurityServices:
   delegatedAdminAccount: Audit
   ebsDefaultVolumeEncryption:
@@ -466,6 +466,7 @@ centralSecurityServices:
       excludeAccounts: []
   macie:
     enable: false
+    # publishSensitiveDataFindings is now optional
   guardduty:
     enable: false
     s3Protection:
@@ -500,9 +501,10 @@ cloudWatch:
 keyManagementService:
   keySets: []
 `;
-      expect(() => {
-        SecurityConfig.loadFromString(invalidConfig, replacementsConfig);
-      }).toThrow();
+      const securityConfig = SecurityConfig.loadFromString(validConfig, replacementsConfig);
+      expect(securityConfig).toBeDefined();
+      expect(securityConfig!.centralSecurityServices.macie?.enable).toBe(false);
+      expect(securityConfig!.centralSecurityServices.macie?.publishSensitiveDataFindings).toBeUndefined();
     });
 
     it('should accept configuration when ssmSettings property is missing and default to undefined', () => {

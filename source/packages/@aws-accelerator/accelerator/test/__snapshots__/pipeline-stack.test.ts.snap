@@ -2386,6 +2386,11 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 1`] = `
               "Type": "PLAINTEXT",
               "Value": "true",
             },
+            {
+              "Name": "VERBOSE_LOG_GROUP_NAME",
+              "Type": "PLAINTEXT",
+              "Value": "AWSAccelerator-Module-Verbose-Logs",
+            },
           ],
           "Image": "aws/codebuild/standard:7.0",
           "ImagePullCredentialsType": "CODEBUILD",
@@ -2425,7 +2430,13 @@ phases:
       - env
       - '"\${WORK_DIR}/scripts/prepare-stage.sh"'
       - cd $WORK_DIR;
-      - RUNNER_ARGS="--partition ",
+      - echo "=========================================="
+      - echo "Verbose logs are being sent to CloudWatch Logs"
+      - 'echo "Log Group: AWSAccelerator-Module-Verbose-Logs"'
+      - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
+      - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
+      - echo "=========================================="
+      - yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
                 },
@@ -2433,9 +2444,7 @@ phases:
                 {
                   "Ref": "AWS::Region",
                 },
-                " --config-dir $CODEBUILD_SRC_DIR_Config --stage $ACCELERATOR_STAGE --prefix AWSAccelerator"
-      - if false; then RUNNER_ARGS="$RUNNER_ARGS --use-existing-roles"; fi
-      - set -e && yarn run ts-node ../modules/bin/runner.ts $RUNNER_ARGS;
+                " --stage $ACCELERATOR_STAGE --verbose
       - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
@@ -5376,6 +5385,11 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 2`] = `
               "Type": "PLAINTEXT",
               "Value": "true",
             },
+            {
+              "Name": "VERBOSE_LOG_GROUP_NAME",
+              "Type": "PLAINTEXT",
+              "Value": "AWSAccelerator-Module-Verbose-Logs",
+            },
           ],
           "Image": "aws/codebuild/standard:7.0",
           "ImagePullCredentialsType": "CODEBUILD",
@@ -5415,7 +5429,13 @@ phases:
       - env
       - '"\${WORK_DIR}/scripts/prepare-stage.sh"'
       - cd $WORK_DIR;
-      - RUNNER_ARGS="--partition ",
+      - echo "=========================================="
+      - echo "Verbose logs are being sent to CloudWatch Logs"
+      - 'echo "Log Group: AWSAccelerator-Module-Verbose-Logs"'
+      - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
+      - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
+      - echo "=========================================="
+      - yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
                 },
@@ -5423,9 +5443,7 @@ phases:
                 {
                   "Ref": "AWS::Region",
                 },
-                " --config-dir $CODEBUILD_SRC_DIR_Config --stage $ACCELERATOR_STAGE --prefix AWSAccelerator"
-      - if false; then RUNNER_ARGS="$RUNNER_ARGS --use-existing-roles"; fi
-      - set -e && yarn run ts-node ../modules/bin/runner.ts $RUNNER_ARGS;
+                " --stage $ACCELERATOR_STAGE --verbose
       - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
@@ -7912,6 +7930,11 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 3`] = `
               "Type": "PLAINTEXT",
               "Value": "true",
             },
+            {
+              "Name": "VERBOSE_LOG_GROUP_NAME",
+              "Type": "PLAINTEXT",
+              "Value": "AWSAccelerator-Module-Verbose-Logs",
+            },
           ],
           "Image": "aws/codebuild/standard:7.0",
           "ImagePullCredentialsType": "CODEBUILD",
@@ -7951,7 +7974,13 @@ phases:
       - env
       - '"\${WORK_DIR}/scripts/prepare-stage.sh"'
       - cd $WORK_DIR;
-      - RUNNER_ARGS="--partition ",
+      - echo "=========================================="
+      - echo "Verbose logs are being sent to CloudWatch Logs"
+      - 'echo "Log Group: AWSAccelerator-Module-Verbose-Logs"'
+      - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
+      - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
+      - echo "=========================================="
+      - yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
                 },
@@ -7959,9 +7988,7 @@ phases:
                 {
                   "Ref": "AWS::Region",
                 },
-                " --config-dir $CODEBUILD_SRC_DIR_Config --stage $ACCELERATOR_STAGE --prefix AWSAccelerator"
-      - if false; then RUNNER_ARGS="$RUNNER_ARGS --use-existing-roles"; fi
-      - set -e && yarn run ts-node ../modules/bin/runner.ts $RUNNER_ARGS;
+                " --stage $ACCELERATOR_STAGE --verbose
       - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
@@ -10679,6 +10706,11 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 4`] = `
               "Type": "PLAINTEXT",
               "Value": "true",
             },
+            {
+              "Name": "VERBOSE_LOG_GROUP_NAME",
+              "Type": "PLAINTEXT",
+              "Value": "AWSAccelerator-Module-Verbose-Logs",
+            },
           ],
           "Image": "aws/codebuild/standard:7.0",
           "ImagePullCredentialsType": "CODEBUILD",
@@ -10718,7 +10750,13 @@ phases:
       - env
       - '"\${WORK_DIR}/scripts/prepare-stage.sh"'
       - cd $WORK_DIR;
-      - RUNNER_ARGS="--partition ",
+      - echo "=========================================="
+      - echo "Verbose logs are being sent to CloudWatch Logs"
+      - 'echo "Log Group: AWSAccelerator-Module-Verbose-Logs"'
+      - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
+      - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
+      - echo "=========================================="
+      - yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
                 },
@@ -10726,9 +10764,7 @@ phases:
                 {
                   "Ref": "AWS::Region",
                 },
-                " --config-dir $CODEBUILD_SRC_DIR_Config --stage $ACCELERATOR_STAGE --prefix AWSAccelerator"
-      - if false; then RUNNER_ARGS="$RUNNER_ARGS --use-existing-roles"; fi
-      - set -e && yarn run ts-node ../modules/bin/runner.ts $RUNNER_ARGS;
+                " --stage $ACCELERATOR_STAGE --verbose
       - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
@@ -13215,6 +13251,11 @@ exports[`PipelineStack customS3Path > Construct(PipelineStack):  Snapshot Test 1
               "Type": "PLAINTEXT",
               "Value": "true",
             },
+            {
+              "Name": "VERBOSE_LOG_GROUP_NAME",
+              "Type": "PLAINTEXT",
+              "Value": "AWSAccelerator-Module-Verbose-Logs",
+            },
           ],
           "Image": "aws/codebuild/standard:7.0",
           "ImagePullCredentialsType": "CODEBUILD",
@@ -13254,7 +13295,13 @@ phases:
       - env
       - '"\${WORK_DIR}/scripts/prepare-stage.sh"'
       - cd $WORK_DIR;
-      - RUNNER_ARGS="--partition ",
+      - echo "=========================================="
+      - echo "Verbose logs are being sent to CloudWatch Logs"
+      - 'echo "Log Group: AWSAccelerator-Module-Verbose-Logs"'
+      - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
+      - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
+      - echo "=========================================="
+      - yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
                 },
@@ -13262,9 +13309,7 @@ phases:
                 {
                   "Ref": "AWS::Region",
                 },
-                " --config-dir $CODEBUILD_SRC_DIR_Config --stage $ACCELERATOR_STAGE --prefix AWSAccelerator"
-      - if false; then RUNNER_ARGS="$RUNNER_ARGS --use-existing-roles"; fi
-      - set -e && yarn run ts-node ../modules/bin/runner.ts $RUNNER_ARGS;
+                " --stage $ACCELERATOR_STAGE --verbose
       - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then

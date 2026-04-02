@@ -25,15 +25,42 @@
  * - Organization and session management structures
  */
 
-import { FindingPublishingFrequency } from '@aws-sdk/client-macie2';
+import { ClassificationScopeUpdateOperation, FindingPublishingFrequency } from '@aws-sdk/client-macie2';
 import {
-  IConcurrencySettings,
+  IBatchOperationSettings,
   IModuleBoundary,
-  IModuleRequest,
   IModuleOrganizationsDataSource,
   IModuleRegionFilters,
+  IModuleRequest,
+  ISecurityBaseConfig,
+  ISecurityServiceModuleResponse,
 } from '../common/interfaces';
 import { SecurityModuleOperationType } from '../common/types';
+
+/**
+ * S3 bucket with its region for classification scope exclusion.
+ * Each bucket must be excluded in the Macie region where it resides,
+ * since UpdateClassificationScope only accepts buckets in the current AWS Region.
+ */
+export interface IClassificationScopeBucketConfig {
+  /** Full name of the S3 bucket */
+  readonly name: string;
+  /** AWS region where the bucket resides */
+  readonly region: string;
+}
+
+/**
+ * S3 classification scope exclusion configuration for automated sensitive data discovery.
+ * Defines which S3 buckets to exclude from automated discovery analysis.
+ * Buckets are region-aware so they can be filtered per-region before calling the API.
+ * Executed only on the delegated admin account.
+ */
+export interface IClassificationScopeExclusion {
+  /** S3 buckets with their regions to exclude from automated sensitive data discovery */
+  readonly buckets: readonly IClassificationScopeBucketConfig[];
+  /** How to apply the changes to the exclusion list */
+  readonly operation: ClassificationScopeUpdateOperation;
+}
 
 /**
  * S3 destination configuration for Macie findings and exports
@@ -58,13 +85,7 @@ export interface IMacieModuleDataSources {
 /**
  * Complete configuration interface for Amazon Macie module operations
  */
-export interface IMacieConfiguration {
-  /** IAM role name for cross-account access */
-  readonly accountAccessRoleName: string;
-  /** Whether to enable or disable Macie */
-  readonly enable: boolean;
-  /** Account ID for delegated administrator */
-  readonly delegatedAdminAccountId: string;
+export interface IMacieConfiguration extends ISecurityBaseConfig {
   /** Frequency for publishing policy findings */
   readonly policyFindingsPublishingFrequency: FindingPublishingFrequency;
   /** Whether to publish sensitive data findings to Security Hub */
@@ -77,10 +98,24 @@ export interface IMacieConfiguration {
   readonly regionFilters?: IModuleRegionFilters;
   /** Optional boundary configuration for operation scope */
   readonly boundary?: IModuleBoundary;
-  /** Optional concurrency settings for batch operations */
-  readonly concurrency?: IConcurrencySettings;
+  /** Optional batch operation settings for concurrency and timeout */
+  readonly batchOperationSettings?: IBatchOperationSettings;
   /** Optional data source configurations */
   readonly dataSources?: IMacieModuleDataSources;
+  /**
+   * When true, enables automated sensitive data discovery on the delegated admin account.
+   * Automated discovery continuously samples and analyzes S3 objects across member accounts
+   * to detect sensitive data without requiring manual job creation.
+   *
+   * When false, explicitly disables automated discovery on the delegated admin account.
+   */
+  readonly automatedDiscoveryEnabled: boolean;
+  /**
+   * Optional S3 classification scope exclusion settings for automated sensitive data discovery.
+   * Defines which S3 buckets to exclude from automated discovery analysis.
+   * Only applied on the delegated admin account.
+   */
+  readonly classificationScopeExclusion?: IClassificationScopeExclusion;
 }
 
 /**
@@ -92,46 +127,15 @@ export interface IMacieModuleRequest extends IModuleRequest {
 }
 
 /**
- * Base response interface for Macie operations
+ * Macie session configuration response interface
  */
-interface IMacieBaseResponse {
+export interface IMacieSessionResponse {
   /** Type of operation performed (enabled/disabled) */
   operation: SecurityModuleOperationType;
   /** List of regions where operation was performed */
   regions: string[];
-}
-
-/**
- * Account-level response interface extending base response
- */
-interface IMacieAccountResponse extends IMacieBaseResponse {
   /** List of account IDs affected by the operation */
   accountIds: string[];
-}
-/**
- * Organization admin configuration response interface
- */
-export interface IMacieOrganizationAdminResponse extends IMacieBaseResponse {
-  /** Management account ID */
-  managementAccountId: string;
-  /** Delegated administrator account ID */
-  delegatedAdminAccountId: string;
-}
-
-/**
- * Delegated account configuration response interface
- */
-export interface IMacieDelegatedAccountResponse extends IMacieBaseResponse {
-  /** Administrator account ID */
-  adminAccountId: string;
-  /** List of member account IDs */
-  memberAccountIds: string[];
-}
-
-/**
- * Macie session configuration response interface
- */
-export interface IMacieSessionResponse extends IMacieAccountResponse {
   /** Whether sensitive data findings are published */
   publishSensitiveDataFindings?: boolean;
   /** Frequency of finding publication */
@@ -141,13 +145,10 @@ export interface IMacieSessionResponse extends IMacieAccountResponse {
 }
 
 /**
- * Complete Macie module response interface containing all configuration results
+ * Complete Macie module response interface
+ * Extends base security service response with Macie-specific session configuration
  */
-export interface IMacieModuleResponse {
-  /** Organization admin configuration results */
-  organizationAdminConfig: IMacieOrganizationAdminResponse[];
-  /** Delegated admin account configuration results */
-  delegatedAdminAccountConfig: IMacieDelegatedAccountResponse[];
+export interface IMacieModuleResponse extends ISecurityServiceModuleResponse {
   /** Session configuration results */
   sessionConfig: IMacieSessionResponse[];
 }

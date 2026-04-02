@@ -13,12 +13,12 @@
 
 /* eslint @typescript-eslint/no-explicit-any: 0 */
 
-import { describe, expect, vi, it, afterEach, beforeEach } from 'vitest';
 import * as cdk from 'aws-cdk-lib';
+import { Template } from 'aws-cdk-lib/assertions';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AcceleratorStackProps } from '../../lib/stacks/accelerator-stack';
 import { SecurityStack } from '../../lib/stacks/security-stack';
 import { createAcceleratorStackProps, createSecurityStackProps } from './stack-props-test-helper';
-import { Template } from 'aws-cdk-lib/assertions';
-import { AcceleratorStackProps } from '../../lib/stacks/accelerator-stack';
 
 describe('SecurityStack - Macie Configuration', () => {
   let app: cdk.App;
@@ -47,7 +47,7 @@ describe('SecurityStack - Macie Configuration', () => {
     expect(Object.keys(customResources).length).toBe(0);
   });
 
-  it('should create Macie resources in non-excluded regions', () => {
+  it('should not create Macie resources in non-excluded regions', () => {
     const baseProps = createSecurityServicesProps(
       { macie: true },
       { env: { region: 'us-east-1', account: '00000001' } },
@@ -64,7 +64,7 @@ describe('SecurityStack - Macie Configuration', () => {
     });
     const { template } = createSecurityStackWithTemplate('test-security-stack-macie-normal', props);
     const macieResources = template.findResources('Custom::MaciePutClassificationExportConfiguration');
-    expect(Object.keys(macieResources).length).toBe(1);
+    expect(Object.keys(macieResources).length).toBe(0);
   });
 
   it('should not create Macie resources in excluded regions', () => {
@@ -611,7 +611,7 @@ describe('SecurityStack - Resource Count Validation', () => {
     expect(Object.keys(customResources).length).toBe(0);
   });
 
-  it('should create more Lambda functions when Macie is enabled', () => {
+  it('should create no Lambda functions when Macie is enabled', () => {
     const propsDisabled = createSecurityServicesProps({
       macie: false,
       guardduty: false,
@@ -633,7 +633,7 @@ describe('SecurityStack - Resource Count Validation', () => {
     const lambdasEnabled = templateEnabled.findResources('AWS::Lambda::Function');
     const enabledCount = Object.keys(lambdasEnabled).length;
 
-    expect(enabledCount).toBeGreaterThan(disabledCount);
+    expect(enabledCount).toBe(disabledCount);
   });
 
   it('should create more resources when services are enabled vs disabled', () => {

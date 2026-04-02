@@ -11,15 +11,21 @@
  *  and limitations under the License.
  */
 
-import { describe, beforeEach, expect, test, vi } from 'vitest';
-import { SSMClient, ParameterNotFound } from '@aws-sdk/client-ssm';
-import { getParametersValue, ITargetAccountConfig } from '../../../lib/common/ssm-functions';
+import { ParameterNotFound, ParameterType, SSMClient } from '@aws-sdk/client-ssm';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { IAssumeRoleCredential } from '../../../lib/common/interfaces';
+import { getParametersValue, ITargetAccountConfig, putParametersValue } from '../../../lib/common/ssm-functions';
 
 vi.mock('@aws-sdk/client-ssm', () => ({
   SSMClient: vi.fn(),
   GetParametersCommand: vi.fn(),
+  PutParameterCommand: vi.fn(),
   ParameterNotFound: vi.fn(),
+  ParameterType: {
+    STRING: 'String',
+    STRING_LIST: 'StringList',
+    SECURE_STRING: 'SecureString',
+  },
 }));
 
 vi.mock('../../../lib/common/utility', () => ({
@@ -57,7 +63,7 @@ const MOCK_CONSTANTS = {
     expiration: new Date('2024-01-01T00:00:00Z'),
   } as IAssumeRoleCredential,
   targetAccount: {
-    accountId: '123456789012',
+    accountId: 'test-account-xxx',
     region: 'us-west-2',
     partition: 'aws',
     assumeRoleName: 'TestRole',
@@ -65,6 +71,10 @@ const MOCK_CONSTANTS = {
   mockParameters: [
     { Name: '/test/param1', Value: 'value1', Type: 'String' },
     { Name: '/test/param2', Value: 'value2', Type: 'String' },
+  ],
+  putParameters: [
+    { name: '/test/param1', value: 'value1', type: 'String' as ParameterType, description: 'Test parameter 1' },
+    { name: '/test/param2', value: 'value2', type: 'SecureString' as ParameterType, description: 'Test parameter 2' },
   ],
 };
 
@@ -274,6 +284,246 @@ describe('ssm-functions', () => {
         retryStrategy: {},
         credentials: MOCK_CONSTANTS.credentials,
       });
+    });
+  });
+
+  describe('putParametersValue', () => {
+    test('should put parameters to current account', async () => {
+      mockExecuteApi.mockResolvedValue({});
+
+      await putParametersValue(MOCK_CONSTANTS.putParameters, MOCK_CONSTANTS.region, MOCK_CONSTANTS.logPrefix);
+
+      expect(mockExecuteApi).toHaveBeenCalledTimes(2);
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'PutParameterCommand',
+        {
+          Name: '/test/param1',
+          Value: 'value1',
+          Type: ParameterType.STRING,
+          Description: 'Test parameter 1',
+          Overwrite: true,
+        },
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+      );
+    });
+
+    test('should put parameters to target account', async () => {
+      mockGetCredentials.mockResolvedValue(MOCK_CONSTANTS.credentials);
+      mockExecuteApi.mockResolvedValue({});
+
+      await putParametersValue(
+        MOCK_CONSTANTS.putParameters,
+        MOCK_CONSTANTS.region,
+        MOCK_CONSTANTS.logPrefix,
+        MOCK_CONSTANTS.targetAccount,
+        MOCK_CONSTANTS.solutionId,
+      );
+
+      expect(mockGetCredentials).toHaveBeenCalledWith({
+        accountId: MOCK_CONSTANTS.targetAccount.accountId,
+        region: MOCK_CONSTANTS.targetAccount.region,
+        logPrefix: MOCK_CONSTANTS.logPrefix,
+        solutionId: MOCK_CONSTANTS.solutionId,
+        partition: MOCK_CONSTANTS.targetAccount.partition,
+        assumeRoleName: MOCK_CONSTANTS.targetAccount.assumeRoleName,
+        credentials: undefined,
+      });
+      expect(mockExecuteApi).toHaveBeenCalledTimes(2);
+    });
+
+    test('should use provided credentials for target account', async () => {
+      mockGetCredentials.mockResolvedValue(MOCK_CONSTANTS.credentials);
+      mockExecuteApi.mockResolvedValue({});
+
+      await putParametersValue(
+        MOCK_CONSTANTS.putParameters,
+        MOCK_CONSTANTS.region,
+        MOCK_CONSTANTS.logPrefix,
+        MOCK_CONSTANTS.targetAccount,
+        MOCK_CONSTANTS.solutionId,
+        MOCK_CONSTANTS.credentials,
+      );
+
+      expect(mockGetCredentials).toHaveBeenCalledWith({
+        accountId: MOCK_CONSTANTS.targetAccount.accountId,
+        region: MOCK_CONSTANTS.targetAccount.region,
+        logPrefix: MOCK_CONSTANTS.logPrefix,
+        solutionId: MOCK_CONSTANTS.solutionId,
+        partition: MOCK_CONSTANTS.targetAccount.partition,
+        assumeRoleName: MOCK_CONSTANTS.targetAccount.assumeRoleName,
+        credentials: MOCK_CONSTANTS.credentials,
+      });
+    });
+
+    test('should use provided credentials for current account', async () => {
+      mockExecuteApi.mockResolvedValue({});
+
+      await putParametersValue(
+        MOCK_CONSTANTS.putParameters,
+        MOCK_CONSTANTS.region,
+        MOCK_CONSTANTS.logPrefix,
+        undefined,
+        MOCK_CONSTANTS.solutionId,
+        MOCK_CONSTANTS.credentials,
+      );
+
+      expect(mockExecuteApi).toHaveBeenCalledTimes(2);
+    });
+
+    test('should use default parameter type STRING when not specified', async () => {
+      mockExecuteApi.mockResolvedValue({});
+
+      const paramsWithoutType = [{ name: '/test/param1', value: 'value1', description: 'Test parameter' }];
+
+      await putParametersValue(paramsWithoutType, MOCK_CONSTANTS.region, MOCK_CONSTANTS.logPrefix);
+
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'PutParameterCommand',
+        {
+          Name: '/test/param1',
+          Value: 'value1',
+          Type: 'String',
+          Description: 'Test parameter',
+          Overwrite: true,
+        },
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+      );
+    });
+
+    test('should respect overwrite parameter when set to false', async () => {
+      mockExecuteApi.mockResolvedValue({});
+
+      await putParametersValue(
+        MOCK_CONSTANTS.putParameters,
+        MOCK_CONSTANTS.region,
+        MOCK_CONSTANTS.logPrefix,
+        undefined,
+        undefined,
+        undefined,
+        false,
+      );
+
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'PutParameterCommand',
+        expect.objectContaining({
+          Overwrite: false,
+        }),
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+      );
+    });
+
+    test('should handle single parameter put', async () => {
+      mockExecuteApi.mockResolvedValue({});
+
+      const singleParam = [MOCK_CONSTANTS.putParameters[0]];
+
+      await putParametersValue(singleParam, MOCK_CONSTANTS.region, MOCK_CONSTANTS.logPrefix);
+
+      expect(mockExecuteApi).toHaveBeenCalledTimes(1);
+    });
+
+    test('should create SSM client with correct configuration for current account', async () => {
+      mockExecuteApi.mockResolvedValue({});
+
+      await putParametersValue(
+        MOCK_CONSTANTS.putParameters,
+        MOCK_CONSTANTS.region,
+        MOCK_CONSTANTS.logPrefix,
+        undefined,
+        MOCK_CONSTANTS.solutionId,
+      );
+
+      expect(SSMClient).toHaveBeenCalledWith({
+        region: MOCK_CONSTANTS.region,
+        customUserAgent: MOCK_CONSTANTS.solutionId,
+        retryStrategy: {},
+        credentials: undefined,
+      });
+    });
+
+    test('should create SSM client with target region for cross-account access', async () => {
+      mockGetCredentials.mockResolvedValue(MOCK_CONSTANTS.credentials);
+      mockExecuteApi.mockResolvedValue({});
+
+      await putParametersValue(
+        MOCK_CONSTANTS.putParameters,
+        MOCK_CONSTANTS.region,
+        MOCK_CONSTANTS.logPrefix,
+        MOCK_CONSTANTS.targetAccount,
+      );
+
+      expect(SSMClient).toHaveBeenCalledWith({
+        region: MOCK_CONSTANTS.targetAccount.region,
+        customUserAgent: undefined,
+        retryStrategy: {},
+        credentials: MOCK_CONSTANTS.credentials,
+      });
+    });
+
+    test('should handle parameters without description', async () => {
+      mockExecuteApi.mockResolvedValue({});
+
+      const paramsWithoutDescription = [{ name: '/test/param1', value: 'value1', type: 'String' as ParameterType }];
+
+      await putParametersValue(paramsWithoutDescription, MOCK_CONSTANTS.region, MOCK_CONSTANTS.logPrefix);
+
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'PutParameterCommand',
+        {
+          Name: '/test/param1',
+          Value: 'value1',
+          Type: 'String',
+          Description: undefined,
+          Overwrite: true,
+        },
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+      );
+    });
+
+    test('should handle multiple parameters with different types', async () => {
+      mockExecuteApi.mockResolvedValue({});
+
+      const mixedParams = [
+        { name: '/test/string', value: 'value1', type: 'String' as ParameterType },
+        { name: '/test/secure', value: 'value2', type: 'SecureString' as ParameterType },
+        { name: '/test/list', value: 'value3', type: 'StringList' as ParameterType },
+      ];
+
+      await putParametersValue(mixedParams, MOCK_CONSTANTS.region, MOCK_CONSTANTS.logPrefix);
+
+      expect(mockExecuteApi).toHaveBeenCalledTimes(3);
+      expect(mockExecuteApi).toHaveBeenNthCalledWith(
+        1,
+        'PutParameterCommand',
+        expect.objectContaining({ Type: 'String' }),
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+      );
+      expect(mockExecuteApi).toHaveBeenNthCalledWith(
+        2,
+        'PutParameterCommand',
+        expect.objectContaining({ Type: 'SecureString' }),
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+      );
+      expect(mockExecuteApi).toHaveBeenNthCalledWith(
+        3,
+        'PutParameterCommand',
+        expect.objectContaining({ Type: 'StringList' }),
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+      );
     });
   });
 });

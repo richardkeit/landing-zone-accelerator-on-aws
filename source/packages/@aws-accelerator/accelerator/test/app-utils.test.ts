@@ -12,14 +12,14 @@
  */
 
 import { AccountsConfig, OrganizationConfig } from '@aws-accelerator/config';
+import { DescribeVpcEndpointsCommand, DescribeVpcsCommand, EC2Client } from '@aws-sdk/client-ec2';
+import { AssumeRoleCommand, GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { mockClient } from 'aws-sdk-client-mock';
-import { EC2Client, DescribeVpcsCommand, DescribeVpcEndpointsCommand } from '@aws-sdk/client-ec2';
-import { STSClient, AssumeRoleCommand, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
-import { AcceleratorResourcePrefixes, setResourcePrefixes, setAcceleratorEnvironment } from '../utils/app-utils';
-import { describe, expect, test, vi } from 'vitest';
 import * as path from 'path';
+import { describe, expect, test, vi } from 'vitest';
 import { AcceleratorStage } from '../lib/accelerator-stage';
 import { AcceleratorStackProps } from '../lib/stacks/accelerator-stack';
+import { AcceleratorResourcePrefixes, setAcceleratorEnvironment, setResourcePrefixes } from '../utils/app-utils';
 
 function testAppUtils() {
   const context = {

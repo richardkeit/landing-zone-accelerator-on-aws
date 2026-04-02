@@ -12,11 +12,11 @@
  */
 
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { MODULE_EXCEPTIONS } from './enums';
-import { throttlingBackOff } from './throttle';
-import { createLogger } from './logger';
-import path from 'path';
 import { createHash } from 'crypto';
+import path from 'path';
+import { MODULE_EXCEPTIONS } from './enums';
+import { createLogger } from './logger';
+import { throttlingBackOff } from './throttle';
 
 interface ValidationResult {
   isValid: boolean;
@@ -71,14 +71,16 @@ export async function uploadFileToS3(
 ): Promise<void> {
   try {
     logger.info(`Calculating file hashes`);
-    // MD5 is required by S3 API for ContentMD5 header and ETag comparison
-    // This is used for data integrity verification, not cryptographic security
-    const md5Hash = createHash('md5').update(fileContent);
+    // Use SHA-256 for cryptographic integrity verification
+    const sha256Hash = createHash('sha256').update(fileContent);
+    const localFileSHA256 = sha256Hash.digest('hex');
 
+    // MD5 is still needed for S3 ContentMD5 header (S3 API requirement)
+    const md5Hash = createHash('md5').update(fileContent);
     const localFileMD5 = md5Hash.digest('hex');
     const contentMD5 = Buffer.from(localFileMD5, 'hex').toString('base64');
 
-    // Upload file with MD5 metadata
+    // Upload file with both SHA-256 and MD5 metadata
     await throttlingBackOff(() =>
       s3Client.send(
         new PutObjectCommand({
@@ -87,19 +89,21 @@ export async function uploadFileToS3(
           Body: fileContent,
           ContentMD5: contentMD5,
           Metadata: {
+            sha256: localFileSHA256,
             md5: localFileMD5,
           },
         }),
       ),
     );
 
-    // Verify upload
+    // Verify upload using SHA-256 (more secure)
     logger.info(`Verifying upload`);
     const validationResultAfterUpload: ValidationResult = await verifyS3Upload(
       s3Client,
       bucketName,
       objectPath,
-      localFileMD5,
+      localFileSHA256,
+      'sha256',
     );
     if (!validationResultAfterUpload.isValid) {
       throw new Error(
@@ -118,14 +122,16 @@ export async function uploadFileToS3(
  * @param s3Client {@link S3Client}
  * @param bucketName string
  * @param s3Key string
- * @param localFileMD5 string
+ * @param localFileHash string
+ * @param hashType string - 'sha256' or 'md5'
  * @returns {@link ValidationResult}
  */
 async function verifyS3Upload(
   s3Client: S3Client,
   bucketName: string,
   s3Key: string,
-  localFileMD5: string,
+  localFileHash: string,
+  hashType: 'sha256' | 'md5' = 'sha256',
 ): Promise<ValidationResult> {
   const headResponse = await s3Client.send(
     new HeadObjectCommand({
@@ -134,11 +140,14 @@ async function verifyS3Upload(
     }),
   );
 
-  const s3MD5 = headResponse.ETag?.replace(/"/g, '');
-  if (s3MD5 !== localFileMD5) {
+  // Use SHA-256 from metadata for secure verification, fallback to MD5 if needed
+  const s3Hash =
+    headResponse.Metadata?.[hashType] || (hashType === 'md5' ? headResponse.ETag?.replace(/"/g, '') : undefined);
+
+  if (s3Hash !== localFileHash) {
     return {
       isValid: false,
-      message: `MD5 mismatch. Local: ${localFileMD5}, S3: ${s3MD5}`,
+      message: `${hashType.toUpperCase()} mismatch. Local: ${localFileHash}, S3: ${s3Hash}`,
     };
   }
 

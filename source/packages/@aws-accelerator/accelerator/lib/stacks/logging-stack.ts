@@ -19,6 +19,7 @@ import { pascalCase } from 'pascal-case';
 import path from 'path';
 import { DEFAULT_LAMBDA_RUNTIME } from '../../../utils/lib/lambda';
 
+import * as t from '@aws-accelerator/config';
 import {
   AccessLogBucketConfig,
   AseaResourceType,
@@ -29,7 +30,6 @@ import {
   SnsTopicConfig,
   VpcFlowLogsConfig,
 } from '@aws-accelerator/config';
-import * as t from '@aws-accelerator/config';
 import {
   Bucket,
   BucketEncryption,
@@ -57,10 +57,11 @@ import {
   AcceleratorImportedBucketType,
   AwsPrincipalAccessesType,
   BucketAccessType,
-  PrincipalOrgIdConditionType,
   OptInRegions,
+  PrincipalOrgIdConditionType,
 } from '@aws-accelerator/utils';
 
+import { StreamMode } from 'aws-cdk-lib/aws-kinesis';
 import {
   AcceleratorKeyType,
   AcceleratorStack,
@@ -68,7 +69,6 @@ import {
   CloudWatchDataProtectionIdentifiers,
   NagSuppressionRuleIds,
 } from './accelerator-stack';
-import { StreamMode } from 'aws-cdk-lib/aws-kinesis';
 
 export type cloudwatchExclusionProcessedItem = {
   account: string;
@@ -1592,7 +1592,7 @@ export class LoggingStack extends AcceleratorStack {
   private createCentralLogsBucketPrincipalAndPrefixes(): CentralLogsBucketPrincipalAndPrefixesType {
     const awsPrincipalAccesses: AwsPrincipalAccessesType[] = [];
     const bucketPrefixes: string[] = [];
-    if (this.props.securityConfig.centralSecurityServices.macie.enable) {
+    if (this.props.securityConfig.centralSecurityServices.macie?.enable) {
       awsPrincipalAccesses.push({
         name: 'Macie',
         principal: 'macie.amazonaws.com',

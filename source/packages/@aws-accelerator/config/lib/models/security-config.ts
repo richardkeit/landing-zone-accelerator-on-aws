@@ -361,39 +361,198 @@ export interface IKeyConfig {
  * @example
  * ```
  * macie:
+ *     overrideExisting: false
  *     enable: true
  *     excludeRegions: []
+ *     disabledRegions: []
  *     policyFindingsPublishingFrequency: FIFTEEN_MINUTES
  *     publishSensitiveDataFindings: true
  * ```
  */
 export interface IMacieConfig {
   /**
+   * (OPTIONAL) Override existing state check for Macie module execution
+   *
+   * @description
+   * When set to true, forces the LZA security Macie module to execute regardless of previous state checks.
+   * This flag bypasses the normal state validation that determines whether the Macie module should run
+   * based on its current configuration state.
+   *
+   * @remarks
+   * - Default value is `undefined` (treated as `false`)
+   * - When `false` or `undefined`, normal state checks determine Macie module execution
+   * - When `true`, Macie module will always execute, ignoring previous state
+   * - Use with caution as this may result in unnecessary resource operations
+   *
+   * @default false
+   */
+  readonly overrideExisting?: boolean;
+  /**
    * Controls whether AWS Macie is enabled across your organization
    */
   readonly enable: boolean;
   /**
-   * List of AWS Region names to be excluded from configuring Amazon Macie.
+   * (OPTIONAL) List of AWS regions to exclude from service configuration
+   *
+   * @description
+   * Specifies AWS regions where LZA will not configure the security service at all.
+   * These regions are completely skipped during service deployment and management,
+   * regardless of whether the service is enabled or disabled.
+   *
+   * @remarks
+   * - Applicable for both `enable: true` and `enable: false`
+   * - Regions listed here will not have any service configuration applied
+   * - Cannot overlap with regions specified in `disabledRegions`
+   * - Takes precedence over all other regional configurations
+   *
+   * @example
+   * ```
+   * excludeRegions: ['us-west-1', 'eu-north-1']
+   * ```
+   *
+   * @throws {ValidationError} When regions overlap with `disabledRegions`
    */
   readonly excludeRegions?: string[];
   /**
+   * (OPTIONAL) List of AWS regions where the service should be disabled
+   *
+   * @description
+   * Specifies AWS regions where the security service will be explicitly disabled when the service
+   * is enabled (`enable: true`). LZA will enable the service in all `enabledRegions` defined in the
+   * global config, except those listed in `excludeRegions` and `disabledRegions`.
+   *
+   * @remarks
+   * - Only applicable when `enable: true`
+   * - Cannot overlap with regions specified in `excludeRegions`
+   * - Service will be enabled in: (enabledRegions from global config) - (excludeRegions) - (disabledRegions)
+   * - Service will be disabled in: (disabledRegions)
+   * - Service will not be configured in: (excludeRegions)
+   *
+   * @example
+   * ```
+   * disabledRegions: ['us-west-1', 'eu-north-1']
+   * ```
+   *
+   * @throws {ValidationError} When specified with `enable: false`
+   * @throws {ValidationError} When regions overlap with `excludeRegions`
+   */
+  readonly disabledRegions?: string[];
+  /**
    * Specifies how frequently findings are published to Security Hub.
    * Possible values: FIFTEEN_MINUTES, ONE_HOUR, or SIX_HOURS
+   *
+   * Default value is FIFTEEN_MINUTES
    */
   readonly policyFindingsPublishingFrequency?: 'FIFTEEN_MINUTES' | 'ONE_HOUR' | 'SIX_HOURS';
   /**
    * Specifies whether to publish sensitive data findings to Security Hub. If you set this value to true, Amazon Macie automatically publishes all sensitive data findings that weren't suppressed by a findings filter.
    * Default value is false.
    */
-  readonly publishSensitiveDataFindings: boolean;
+  readonly publishSensitiveDataFindings?: boolean;
   /**
    * Specifies whether to publish findings to Security Hub and EventBridge
+   * Default value is false.
    */
   readonly publishPolicyFindings?: boolean;
   /**
    * Declaration of S3 Lifecycle rules that automatically manage the retention and deletion for Macie findings reports stored in S3.
    */
   readonly lifecycleRules?: t.ILifecycleRule[] | undefined;
+  /**
+   * (OPTIONAL) Enables automated sensitive data discovery on the delegated admin account.
+   *
+   * @description
+   * When true, automated discovery continuously samples and analyzes S3 objects across
+   * member accounts to detect sensitive data without requiring manual job creation.
+   * When false, explicitly disables automated discovery.
+   *
+   * @default true
+   */
+  readonly automatedDiscoveryEnabled?: boolean;
+  /**
+   * (OPTIONAL) S3 buckets to exclude from automated sensitive data discovery.
+   *
+   * @description
+   * Specifies S3 buckets that Macie should not analyze during automated sensitive data discovery.
+   * The exclusion list is applied on the delegated admin account and applies to all member accounts.
+   * Internally uses REPLACE operation to ensure the exclusion list matches the declared state.
+   *
+   * Each entry requires the bucket name and the AWS region where the bucket resides.
+   * The Macie UpdateClassificationScope API is regional — it only accepts buckets that exist
+   * in the current AWS Region. The solution filters this list per-region automatically.
+   *
+   * @remarks
+   * - Only applicable when `automatedDiscoveryEnabled` is `true`
+   * - Applied only on the delegated admin account
+   * - Each bucket must exist and be visible in Macie's S3 bucket inventory.
+   *   After enabling Macie and creating member accounts, there may be a brief delay
+   *   (seconds to minutes) before cross-account buckets appear in the inventory.
+   *   The solution retries automatically with exponential backoff to handle this.
+   * - **New region timing**: When enabling Macie in a new region for the first time,
+   *   the initial S3 bucket inventory scan can take significantly longer (up to 24 hours)
+   *   before cross-account buckets become visible. For new regions, it is recommended to
+   *   first deploy with Macie enabled (without bucket exclusions), wait for the bucket
+   *   inventory to populate (verify in the Macie S3 bucket inventory in the AWS Console),
+   *   and then add the bucket exclusions in a subsequent deployment.
+   *   This avoids `ValidationException` errors from the UpdateClassificationScope API.
+   *
+   * @see {@link https://docs.aws.amazon.com/macie/latest/user/monitoring-s3-how-it-works.html | How Macie monitors Amazon S3 data security} for details on bucket inventory refresh timing
+   *
+   * @example
+   * ```
+   * classificationScopeExcludedBuckets:
+   *   - names:
+   *       - aws-controltower-logs-123456789012-us-east-1
+   *       - aws-accelerator-s3-access-logs-123456789012-us-east-1
+   *     region: us-east-1
+   *   - names:
+   *       - my-custom-bucket
+   *     region: us-west-2
+   * ```
+   *
+   * @throws {ValidationError} When specified with `automatedDiscoveryEnabled: false`
+   */
+  readonly classificationScopeExcludedBuckets?: IClassificationScopeExcludedBucketConfig[];
+}
+
+/**
+ * *{@link SecurityConfig} / {@link CentralSecurityServicesConfig} / {@link MacieConfig} / {@link ClassificationScopeExcludedBucketConfig}*
+ *
+ * @description
+ * Configuration for S3 buckets in a specific region to exclude from Macie automated sensitive data discovery.
+ * Groups multiple bucket names under a single region to avoid repeating the region for each bucket.
+ *
+ * The Macie UpdateClassificationScope API is regional — it only accepts buckets that exist
+ * in the current AWS Region. The `region` field is required so the solution can filter the
+ * exclusion list per-region and send only region-local buckets to each regional API call.
+ *
+ * @example
+ * ```
+ * classificationScopeExcludedBuckets:
+ *   - names:
+ *       - aws-accelerator-s3-access-logs-123456789012-us-east-1
+ *       - aws-accelerator-central-logs-123456789012-us-east-1
+ *     region: us-east-1
+ *   - names:
+ *       - aws-accelerator-s3-access-logs-123456789012-us-west-2
+ *     region: us-west-2
+ * ```
+ */
+export interface IClassificationScopeExcludedBucketConfig {
+  /**
+   * List of S3 bucket names to exclude from automated sensitive data discovery in this region.
+   * Each must be the exact, resolved bucket name — no placeholders.
+   */
+  readonly names: string[];
+  /**
+   * AWS region where the buckets reside (e.g., `us-east-1`, `eu-west-1`).
+   * Required because the Macie API validates that each bucket exists in the target region.
+   *
+   * When enabling Macie in a new region for the first time, the bucket inventory may take
+   * up to 24 hours to populate. Verify the buckets appear in the Macie S3 bucket inventory
+   * in the AWS Console before adding them here to avoid `ValidationException` errors.
+   */
+  readonly region: string;
 }
 
 /**
@@ -1872,27 +2031,32 @@ export interface ICentralSecurityServicesConfig {
    */
   readonly snsSubscriptions?: ISnsSubscriptionConfig[];
   /**
-   * Configuration for Amazon Macie data security and privacy service across you organization.
+   * (OPTIONAL) Configuration for Amazon Macie data security and privacy service across your organization.
+   *
+   * @description
+   * Amazon Macie is a data security service that discovers, classifies, and protects sensitive data
+   * stored in Amazon S3. When configured, Macie automatically scans S3 buckets to identify personally
+   * identifiable information (PII), financial data, and other sensitive content types.
    *
    * @remarks
-   * Accelerator uses this parameter to configure Amazon Macie across your organization.
-   * When enabled, Macie will scan S3 buckets for sensitive data and publish findings to Security Hub.
-   * You can configure the frequency of policy findings updates and enable sensitive data findings publishing.
-   *
-   * To enable Macie in every region where the accelerator is deployed, set the policy findings
-   * publishing frequency to fifteen minutes, and enable publishing of sensitive data findings
-   * to Security Hub, you need to provide the below configuration for this parameter.
+   * - When not specified, Amazon Macie will not be configured or enabled in your organization
+   * - Accelerator uses this parameter to configure Amazon Macie across your organization
+   * - When enabled, Macie will scan S3 buckets for sensitive data and publish findings to Security Hub
+   * - You can configure the frequency of policy findings updates and enable sensitive data findings publishing
+   * - Macie operates on a per-region basis and will be deployed to all enabled regions unless excluded
    *
    * @example
    * ```
    * macie:
-   *     enable: true
-   *     excludeRegions: []
-   *     policyFindingsPublishingFrequency: FIFTEEN_MINUTES
-   *     publishSensitiveDataFindings: true
+   *   enable: true
+   *   excludeRegions: []
+   *   policyFindingsPublishingFrequency: FIFTEEN_MINUTES
+   *   publishSensitiveDataFindings: true
    * ```
+   *
+   * @see https://docs.aws.amazon.com/macie/latest/user/what-is-macie.html
    */
-  readonly macie: IMacieConfig;
+  readonly macie?: IMacieConfig;
   /**
    * Configuration for Amazon GuardDuty threat detection service across your organization.
    * GuardDuty provides intelligent threat detection using machine learning to identify

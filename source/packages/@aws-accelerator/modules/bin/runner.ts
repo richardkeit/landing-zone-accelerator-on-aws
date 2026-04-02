@@ -13,14 +13,14 @@
 
 import path from 'path';
 import { createStatusLogger } from '../../../@aws-lza/common/logger';
-import { validateAndGetRunnerParameters } from '../lib/functions';
 import { ModuleRunner } from '../index';
+import { validateAndGetRunnerParameters } from '../lib/functions';
 
 const statusLogger = createStatusLogger([path.parse(path.basename(__filename)).name]);
 
 process.on('unhandledRejection', reason => {
   console.error(reason);
-  // eslint-disable-next-line no-process-exit
+
   process.exit(1);
 });
 
@@ -45,14 +45,21 @@ async function main(): Promise<string> {
   try {
     const status = await main();
     statusLogger.info(status);
-  } catch (err) {
-    statusLogger.error(err);
+    // Exit cleanly — ModuleRunner transitively loads @aws-lza/lib/common/logger via
+    // modules/index.ts -> @aws-lza/index, which initializes a CloudWatchLogsTransport
+    // with setInterval when VERBOSE_LOG_GROUP_NAME is set. Without process.exit(),
+    // that interval keeps the Node.js event loop alive indefinitely.
+
+    process.exit(0);
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    statusLogger.error(errorMessage);
     throw err;
   }
 })();
 
 process.on('unhandledRejection', reason => {
   console.error(reason);
-  // eslint-disable-next-line no-process-exit
+
   process.exit(1);
 });

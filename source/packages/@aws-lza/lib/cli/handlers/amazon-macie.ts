@@ -29,6 +29,7 @@
 import { configureMacie } from '../../../lib/amazon-macie/macie';
 
 import { IMacieConfiguration, IMacieModuleRequest, IMacieModuleResponse } from '../../../lib/amazon-macie/interfaces';
+import { IModuleResponse } from '../../common/interfaces';
 import {
   CliExecutionParameterType,
   ConfigurationObjectType,
@@ -37,7 +38,6 @@ import {
   logError,
   logErrorAndExit,
 } from './root';
-import { IModuleResponse } from '../../common/interfaces';
 
 /**
  * Abstract command handler class for Amazon Macie CLI operations
@@ -88,6 +88,8 @@ export abstract class MacieCommand {
         ...(config['regionFilters'] && { regionFilters: config['regionFilters'] }),
         ...(config['boundary'] && { boundary: config['boundary'] }),
         ...(config['dataSources'] && { dataSources: config['dataSources'] }),
+        ...(config['batchOperationSettings'] && { batchOperationSettings: config['batchOperationSettings'] }),
+        automatedDiscoveryEnabled: config['automatedDiscoveryEnabled'] ?? false,
       },
     };
   }
@@ -142,10 +144,18 @@ export abstract class MacieCommand {
       return false;
     }
 
+    if (config['automatedDiscoveryEnabled'] !== undefined && typeof config['automatedDiscoveryEnabled'] !== 'boolean') {
+      logError('(ConfigValidation): config.automatedDiscoveryEnabled must be a boolean');
+      return false;
+    }
+
     if (!MacieCommand.validateBoundaryConfig(config)) {
       return false;
     }
     if (!MacieCommand.validateDataSourcesConfig(config)) {
+      return false;
+    }
+    if (!MacieCommand.validateBatchOperationSettingsConfig(config)) {
       return false;
     }
     return true;
@@ -227,6 +237,43 @@ export abstract class MacieCommand {
       if (config['regionFilters']['disabledRegions'] && !Array.isArray(config['regionFilters']['disabledRegions'])) {
         logError('(ConfigValidation): config.regionFilters.disabledRegions must be an array');
         return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Validates batch operation settings configuration section
+   * @param config - Configuration object containing batch operation settings
+   * @returns Boolean indicating if batch operation settings configuration is valid
+   */
+  private static validateBatchOperationSettingsConfig(config: ConfigurationObjectType): boolean {
+    if (config['batchOperationSettings']) {
+      if (typeof config['batchOperationSettings'] !== 'object') {
+        logError('(ConfigValidation): config.batchOperationSettings must be an object');
+        return false;
+      }
+      if (config['batchOperationSettings']['maxConcurrentEnvironments'] !== undefined) {
+        if (typeof config['batchOperationSettings']['maxConcurrentEnvironments'] !== 'number') {
+          logError('(ConfigValidation): config.batchOperationSettings.maxConcurrentEnvironments must be a number');
+          return false;
+        }
+        if (config['batchOperationSettings']['maxConcurrentEnvironments'] <= 0) {
+          logError(
+            '(ConfigValidation): config.batchOperationSettings.maxConcurrentEnvironments must be greater than 0',
+          );
+          return false;
+        }
+      }
+      if (config['batchOperationSettings']['operationTimeoutMs'] !== undefined) {
+        if (typeof config['batchOperationSettings']['operationTimeoutMs'] !== 'number') {
+          logError('(ConfigValidation): config.batchOperationSettings.operationTimeoutMs must be a number');
+          return false;
+        }
+        if (config['batchOperationSettings']['operationTimeoutMs'] <= 0) {
+          logError('(ConfigValidation): config.batchOperationSettings.operationTimeoutMs must be greater than 0');
+          return false;
+        }
       }
     }
     return true;

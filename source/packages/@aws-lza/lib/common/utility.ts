@@ -27,9 +27,10 @@
  */
 
 import { ConfiguredRetryStrategy } from '@aws-sdk/util-retry';
-import { AcceleratorAccountType, MODULE_EXCEPTIONS } from './types';
-import { IconLogger } from './logger';
 import { IModuleRegionFilters } from './interfaces';
+import { IconLogger } from './logger';
+import { throttlingBackOff } from './throttle';
+import { AcceleratorAccountType, MODULE_EXCEPTIONS } from './types';
 
 /**
  * Creates an asynchronous delay for the specified number of minutes
@@ -44,6 +45,8 @@ export async function delay(minutes: number) {
  * Waits until a predicate condition is met with configurable retry logic
  * @param predicate - Async function that returns true when condition is met
  * @param error - Error message to throw if retry limit exceeded
+ * @param logger - Logger for progress updates
+ * @param logPrefix - Log prefix for progress updates
  * @param retryLimit - Maximum number of retry attempts (default: 5)
  * @param queryIntervalMinutes - Minutes to wait between retries (default: 1)
  * @param delayFn - Optional custom delay function (default: delay)
@@ -52,9 +55,11 @@ export async function delay(minutes: number) {
 export async function waitUntil(
   predicate: () => Promise<boolean>,
   error: string,
+  logger: IconLogger,
+  logPrefix: string,
   retryLimit = 5,
   queryIntervalMinutes = 1,
-  delayFn: (minutes: number) => Promise<unknown> = delay, // Use Promise<any> for flexibility
+  delayFn: (minutes: number) => Promise<unknown> = delay,
 ): Promise<void> {
   let retryCount = 0;
   while (retryCount <= retryLimit) {
@@ -62,13 +67,17 @@ export async function waitUntil(
       return;
     }
     if (retryCount < retryLimit) {
+      logger.info(
+        `⏳ Status check ${retryCount + 1}/${retryLimit + 1} - waiting ${queryIntervalMinutes} minute(s) before next check...`,
+        logPrefix,
+      );
       await delayFn(queryIntervalMinutes);
     }
     retryCount += 1;
-    if (retryCount > retryLimit) {
-      throw new Error(`${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: ${error}`);
-    }
   }
+
+  // If we exit the loop without returning, we've exceeded the retry limit
+  throw new Error(`${MODULE_EXCEPTIONS.SERVICE_EXCEPTION}: ${error}`);
 }
 
 /**
@@ -102,7 +111,9 @@ export async function executeApi<T>(
 ): Promise<T> {
   try {
     logger.info(`Executing ${commandName} with arguments: ${JSON.stringify(parameters)}`, logPrefix);
-    const result = await apiCall();
+    // Wrap the API call with throttling backoff
+    const result = await throttlingBackOff(apiCall);
+
     logger.info(`Successfully executed ${commandName}`, logPrefix);
     return result;
   } catch (error) {
@@ -173,5 +184,71 @@ export function validateRegionFilters(
       logger.error(message, logPrefix);
       throw new Error(message);
     }
+  }
+}
+
+/**
+ * Processes items in parallel batches with error collection.
+ *
+ * Splits the input array into chunks of `batchSize` and runs each chunk
+ * concurrently using `Promise.allSettled`. Batches are executed sequentially
+ * to control concurrency and avoid API throttling. Errors are collected
+ * across all batches and thrown as a single aggregated error at the end.
+ *
+ * @template T - Type of items to process
+ * @param items - Array of items to process
+ * @param batchSize - Number of items to process concurrently per batch
+ * @param handler - Async function to execute for each item
+ * @param logger - Logger instance for progress logging
+ * @param logPrefix - Prefix for log messages
+ * @throws Error with aggregated failure details if any items fail
+ *
+ * @example
+ * ```typescript
+ * await processInBatches(
+ *   accounts,
+ *   10,
+ *   async (account) => { await createMember(client, account); },
+ *   logger,
+ *   logPrefix,
+ * );
+ * ```
+ */
+export async function processInBatches<T>(
+  items: T[],
+  batchSize: number,
+  handler: (item: T) => Promise<void>,
+  logger: IconLogger,
+  logPrefix: string,
+): Promise<void> {
+  const totalBatches = Math.ceil(items.length / batchSize);
+  const errors: { index: number; error: unknown }[] = [];
+
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchNumber = Math.floor(i / batchSize) + 1;
+
+    logger.info(`Processing batch ${batchNumber} of ${totalBatches} (${batch.length} items)`, logPrefix);
+
+    const results = await Promise.allSettled(batch.map(handler));
+
+    for (let j = 0; j < results.length; j++) {
+      if (results[j].status === 'rejected') {
+        const reason = (results[j] as PromiseRejectedResult).reason;
+        errors.push({ index: i + j, error: reason });
+        logger.error(
+          `Batch item ${i + j} failed: ${reason instanceof Error ? reason.message : String(reason)}`,
+          logPrefix,
+        );
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(
+      `${errors.length} of ${items.length} batch operations failed: ${errors
+        .map(e => (e.error instanceof Error ? e.error.message : String(e.error)))
+        .join('; ')}`,
+    );
   }
 }

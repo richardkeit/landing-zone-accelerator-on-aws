@@ -38,7 +38,7 @@ import {
 } from '@aws-sdk/client-macie2';
 import { executeApi, waitUntil } from '../common/utility';
 
-import path from 'path';
+import path from 'node:path';
 import { createLogger } from '../common/logger';
 
 const logger = createLogger([path.parse(path.basename(__filename)).name]);
@@ -62,9 +62,14 @@ export async function enableMacie(client: Macie2Client, dryRun: boolean, logPref
 
   logger.info(`Waiting for Macie to be enabled`, logPrefix);
 
-  waitUntil(() => {
-    return isMacieEnabled(client, logPrefix);
-  }, 'Could not get confirmation that macie was enabled');
+  await waitUntil(
+    () => {
+      return isMacieEnabled(client, logPrefix);
+    },
+    'Could not get confirmation that macie was enabled',
+    logger,
+    logPrefix,
+  );
 }
 
 /**
