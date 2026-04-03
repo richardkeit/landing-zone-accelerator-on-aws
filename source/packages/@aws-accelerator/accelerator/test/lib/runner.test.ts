@@ -167,38 +167,42 @@ vi.mock('aws-lza', () => ({
   },
 }));
 
-vi.mock('@aws-sdk/client-organizations', () => ({
-  OrganizationsClient: vi.fn().mockImplementation(() => ({
-    send: vi.fn().mockImplementation(command => {
-      // Mock different responses based on command type
-      if (command.constructor.name === 'DescribeOrganizationCommand') {
-        return Promise.resolve({
-          Organization: {
-            Id: 'o-example123456',
-            Arn: 'arn:aws:organizations::123456789012:organization/o-example123456',
-            FeatureSet: 'ALL',
-            MasterAccountArn: 'arn:aws:organizations::123456789012:account/o-example123456/123456789012',
-            MasterAccountId: '123456789012',
-            MasterAccountEmail: 'test@example.com',
-          },
-        });
-      }
-      return Promise.resolve({});
+vi.mock('@aws-sdk/client-organizations', async importOriginal => {
+  const actual = await importOriginal<typeof import('@aws-sdk/client-organizations')>();
+  return {
+    ...actual,
+    OrganizationsClient: vi.fn().mockImplementation(() => ({
+      send: vi.fn().mockImplementation(command => {
+        // Mock different responses based on command type
+        if (command.constructor.name === 'DescribeOrganizationCommand') {
+          return Promise.resolve({
+            Organization: {
+              Id: 'o-example123456',
+              Arn: 'arn:aws:organizations::123456789012:organization/o-example123456',
+              FeatureSet: 'ALL',
+              MasterAccountArn: 'arn:aws:organizations::123456789012:account/o-example123456/123456789012',
+              MasterAccountId: '123456789012',
+              MasterAccountEmail: 'test@example.com',
+            },
+          });
+        }
+        return Promise.resolve({});
+      }),
+    })),
+    DescribeOrganizationCommand: vi.fn(),
+    paginateListAccounts: vi.fn().mockReturnValue({
+      async *[Symbol.asyncIterator]() {
+        yield { Accounts: [] };
+      },
     }),
-  })),
-  DescribeOrganizationCommand: vi.fn(),
-  paginateListAccounts: vi.fn().mockReturnValue({
-    async *[Symbol.asyncIterator]() {
-      yield { Accounts: [] };
+    AWSOrganizationsNotInUseException: class extends Error {
+      constructor(message: string) {
+        super(message);
+        this.name = 'AWSOrganizationsNotInUseException';
+      }
     },
-  }),
-  AWSOrganizationsNotInUseException: class extends Error {
-    constructor(message: string) {
-      super(message);
-      this.name = 'AWSOrganizationsNotInUseException';
-    }
-  },
-}));
+  };
+});
 
 vi.mock('@aws-sdk/client-ssm', () => ({
   SSMClient: vi.fn().mockImplementation(() => ({
