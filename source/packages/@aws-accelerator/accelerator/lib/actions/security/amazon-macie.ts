@@ -513,6 +513,19 @@ export abstract class AmazonMacie {
       logPrefix,
     );
 
+    // Early exit if retention module was skipped — custom resources are still managing Macie
+    if (process.env['SKIP_STACK_RESOURCES_RETENTION_MODULE']?.toLowerCase() === 'true') {
+      const message = `Skipping module ${params.moduleItem.name} as stack resources retention module is skipped. Macie custom resources remain active.`;
+      AmazonMacie.statusLogger.info(message, logPrefix);
+      return {
+        status: MODULE_STATE_CODE.SKIPPED,
+        summary: message,
+        timestamp: new Date().toISOString(),
+        moduleName: params.moduleItem.name,
+        dryRun: params.runnerParameters.dryRun,
+      };
+    }
+
     // Early exit if Macie is not enabled in the security configuration
     if (!params.moduleRunnerParameters.configs.securityConfig.centralSecurityServices.macie) {
       const message = `Skipping module ${params.moduleItem.name} as Macie is not enabled.`;

@@ -292,6 +292,13 @@ describe('common-config utils', () => {
             globalRegion: 'us-east-1',
           },
         },
+        moduleRunnerParameters: {
+          configs: {
+            accountsConfig: {
+              getManagementAccountId: () => '123456789012',
+            },
+          },
+        },
       } as unknown as ModuleParams;
 
       const result = getCfnRetentionBucketName(mockParams);
@@ -307,11 +314,18 @@ describe('common-config utils', () => {
             globalRegion: 'eu-central-1',
           },
         },
+        moduleRunnerParameters: {
+          configs: {
+            accountsConfig: {
+              getManagementAccountId: () => 'YYYYYYYYYYYY',
+            },
+          },
+        },
       } as unknown as ModuleParams;
 
       const result = getCfnRetentionBucketName(mockParams);
 
-      expect(result).toBe('cdk-accel-assets-XXXXXXXXXXXX-eu-central-1');
+      expect(result).toBe('cdk-accel-assets-YYYYYYYYYYYY-eu-central-1');
     });
   });
 
@@ -319,7 +333,7 @@ describe('common-config utils', () => {
     it('should return table name from SSM parameter', async () => {
       const { getParametersValue } = await import('aws-lza');
       const { getOrganizationSourceTableName: getTableName } = await import(
-        '../../../../lib/actions/utils/common-config'
+        '../../../../lib/actions/utils/common-config.js'
       );
 
       (getParametersValue as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -342,7 +356,7 @@ describe('common-config utils', () => {
     it('should pass solutionId and credentials when provided', async () => {
       const { getParametersValue } = await import('aws-lza');
       const { getOrganizationSourceTableName: getTableName } = await import(
-        '../../../../lib/actions/utils/common-config'
+        '../../../../lib/actions/utils/common-config.js'
       );
 
       (getParametersValue as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -371,7 +385,7 @@ describe('common-config utils', () => {
     it('should throw error when parameter is not found', async () => {
       const { getParametersValue } = await import('aws-lza');
       const { getOrganizationSourceTableName: getTableName } = await import(
-        '../../../../lib/actions/utils/common-config'
+        '../../../../lib/actions/utils/common-config.js'
       );
 
       (getParametersValue as ReturnType<typeof vi.fn>).mockResolvedValue([]);
@@ -384,7 +398,7 @@ describe('common-config utils', () => {
     it('should throw error when parameter value is undefined', async () => {
       const { getParametersValue } = await import('aws-lza');
       const { getOrganizationSourceTableName: getTableName } = await import(
-        '../../../../lib/actions/utils/common-config'
+        '../../../../lib/actions/utils/common-config.js'
       );
 
       (getParametersValue as ReturnType<typeof vi.fn>).mockResolvedValue([{ Value: undefined }]);

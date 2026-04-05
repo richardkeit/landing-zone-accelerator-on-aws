@@ -938,7 +938,7 @@ export abstract class StackResources {
       const allAccountIds = params.moduleRunnerParameters.organizationAccounts.map(account => account.Id!);
       const accountAccessRoleName = params.moduleRunnerParameters.configs.globalConfig.managementAccountAccessRole;
       const s3BucketName = getCfnRetentionBucketName(params);
-      const bucketRegion = params.moduleRunnerParameters.configs.globalConfig.homeRegion;
+      const bucketRegion = params.runnerParameters.sessionContext.globalRegion;
 
       // Process each stack prefix and its service configurations
       for (const [stackPrefix, serviceConfigs] of Object.entries(stackResourceMap)) {

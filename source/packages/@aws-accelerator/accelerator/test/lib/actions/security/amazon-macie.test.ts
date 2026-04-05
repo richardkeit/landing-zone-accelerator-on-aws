@@ -224,6 +224,19 @@ describe('AmazonMacie', () => {
   };
 
   describe('configure - basic functionality', () => {
+    it('should skip module when stack resources retention module is skipped', async () => {
+      process.env['SKIP_STACK_RESOURCES_RETENTION_MODULE'] = 'true';
+      const params = createMockModuleParams();
+
+      const result = await AmazonMacie.configure(params);
+
+      expect(result.status).toBe('SKIPPED');
+      expect(result.summary).toContain('stack resources retention module is skipped');
+      expect(result.moduleName).toBe(AcceleratorModules.MACIE);
+      expect(result.dryRun).toBe(false);
+      delete process.env['SKIP_STACK_RESOURCES_RETENTION_MODULE'];
+    });
+
     it('should skip module when Macie is not enabled', async () => {
       const params = createMockModuleParams({
         configs: {

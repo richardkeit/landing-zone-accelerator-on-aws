@@ -283,7 +283,8 @@ export function getPrincipalOrgIdCondition(params: ModuleParams): { [key: string
  * ```
  */
 export function getCfnRetentionBucketName(params: ModuleParams): string {
-  return `cdk-accel-assets-${params.runnerParameters.sessionContext.invokingAccountId}-${params.runnerParameters.sessionContext.globalRegion}`;
+  const managementAccountId = params.moduleRunnerParameters.configs.accountsConfig.getManagementAccountId();
+  return `cdk-accel-assets-${managementAccountId}-${params.runnerParameters.sessionContext.globalRegion}`;
 }
 
 /**
