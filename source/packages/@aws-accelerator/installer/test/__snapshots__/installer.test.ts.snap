@@ -1814,7 +1814,7 @@ phases:
                 {
                   "Ref": "AWS::AccountId",
                 },
-                "
+                " $ENABLE_EXTERNAL_PIPELINE_ACCOUNT $ACCELERATOR_QUALIFIER
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -5677,7 +5677,7 @@ phases:
                 {
                   "Ref": "AWS::AccountId",
                 },
-                "
+                " $ENABLE_EXTERNAL_PIPELINE_ACCOUNT $ACCELERATOR_QUALIFIER
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -9606,7 +9606,7 @@ phases:
                 {
                   "Ref": "AWS::AccountId",
                 },
-                "
+                " $ENABLE_EXTERNAL_PIPELINE_ACCOUNT $ACCELERATOR_QUALIFIER
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -13508,7 +13508,7 @@ phases:
                 {
                   "Ref": "AWS::AccountId",
                 },
-                "
+                " $ENABLE_EXTERNAL_PIPELINE_ACCOUNT $ACCELERATOR_QUALIFIER
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -17415,7 +17415,7 @@ phases:
                 {
                   "Ref": "AWS::AccountId",
                 },
-                "
+                " $ENABLE_EXTERNAL_PIPELINE_ACCOUNT $ACCELERATOR_QUALIFIER
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -21280,7 +21280,7 @@ phases:
                 {
                   "Ref": "AWS::AccountId",
                 },
-                "
+                " $ENABLE_EXTERNAL_PIPELINE_ACCOUNT $ACCELERATOR_QUALIFIER
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -25200,7 +25200,7 @@ phases:
                 {
                   "Ref": "AWS::AccountId",
                 },
-                "
+                " $ENABLE_EXTERNAL_PIPELINE_ACCOUNT $ACCELERATOR_QUALIFIER
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -29495,7 +29495,7 @@ phases:
                 {
                   "Ref": "AWS::AccountId",
                 },
-                "
+                " $ENABLE_EXTERNAL_PIPELINE_ACCOUNT $ACCELERATOR_QUALIFIER
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",
@@ -33818,7 +33818,7 @@ phases:
                 {
                   "Ref": "AWS::AccountId",
                 },
-                "
+                " $ENABLE_EXTERNAL_PIPELINE_ACCOUNT $ACCELERATOR_QUALIFIER
       - |-
         set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                           if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:",

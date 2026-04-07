@@ -1001,7 +1001,7 @@ export class InstallerStack extends cdk.Stack {
               'yarn build-prod',
               'cd packages/@aws-accelerator/installer',
               `set -e && ./lib/bash/bootstrap-management.sh ${acceleratorPrefix} ${cdk.Aws.REGION} ${cdk.Aws.ACCOUNT_ID} ${globalRegion} $FORCE_BOOTSTRAP`,
-              `set -e && ./lib/bash/create-module-infrastructure.sh ${acceleratorPrefix} ${cdk.Aws.REGION} ${cdk.Aws.ACCOUNT_ID}`,
+              `set -e && ./lib/bash/create-module-infrastructure.sh ${acceleratorPrefix} ${cdk.Aws.REGION} ${cdk.Aws.ACCOUNT_ID} $ENABLE_EXTERNAL_PIPELINE_ACCOUNT $ACCELERATOR_QUALIFIER`,
               `set -e && if [ $ENABLE_EXTERNAL_PIPELINE_ACCOUNT = "yes" ]; then
                   if ! MANAGEMENT_ACCOUNT_CREDENTIAL=$(aws sts assume-role --role-arn arn:${
                     cdk.Stack.of(this).partition

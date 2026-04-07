@@ -88,9 +88,19 @@ cd /landing-zone-accelerator-on-aws/source/packages/\@aws-accelerator/installer
 
 echo "Setting up Module Runner Infrastructure"
 
-set -e && ./lib/bash/create-module-infrastructure.sh $ACCELERATOR_PREFIX $AWS_REGION $PIPELINE_ACCOUNT_ID
+# Determine external pipeline mode for resource uniqueness
+ENABLE_EXTERNAL_PIPELINE_ACCOUNT="no"
+if [ -n "$MANAGEMENT_ACCOUNT_ID" ] && [ -n "$MANAGEMENT_ACCOUNT_ROLE_NAME" ]; then
+    ENABLE_EXTERNAL_PIPELINE_ACCOUNT="yes"
+fi
 
-export VERBOSE_LOG_GROUP_NAME="${ACCELERATOR_PREFIX}-Module-Verbose-Logs"
+set -e && ./lib/bash/create-module-infrastructure.sh $ACCELERATOR_PREFIX $AWS_REGION $PIPELINE_ACCOUNT_ID $ENABLE_EXTERNAL_PIPELINE_ACCOUNT $ACCELERATOR_QUALIFIER
+
+if [ "$ENABLE_EXTERNAL_PIPELINE_ACCOUNT" = "yes" ] && [ -n "$ACCELERATOR_QUALIFIER" ]; then
+    export VERBOSE_LOG_GROUP_NAME="${ACCELERATOR_QUALIFIER}-Module-Verbose-Logs"
+else
+    export VERBOSE_LOG_GROUP_NAME="${ACCELERATOR_PREFIX}-Module-Verbose-Logs"
+fi
 
 # Handle external pipeline role assumption for bootstrap
 if [ -n "$MANAGEMENT_ACCOUNT_ID" ] && [ -n "$MANAGEMENT_ACCOUNT_ROLE_NAME" ]; then
