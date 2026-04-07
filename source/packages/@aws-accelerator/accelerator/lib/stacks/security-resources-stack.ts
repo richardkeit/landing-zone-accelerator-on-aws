@@ -782,9 +782,14 @@ export class SecurityResourcesStack extends AcceleratorStack {
     });
 
     // Read in the policy document which should be properly formatted json
-
-    /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-    const policyDocument = require(path.join(this.props.configDirPath, rule.customRule.lambda.rolePolicyFile));
+    // Apply policy replacement variables (e.g. ${PARTITION}, ${ACCOUNT_ID}, ${REGION})
+    const policyDocument = JSON.parse(
+      this.generatePolicyReplacements(
+        path.join(this.props.configDirPath, rule.customRule.lambda.rolePolicyFile),
+        false,
+        this.organizationId,
+      ),
+    );
     // Create a statements list using the PolicyStatement factory
     const policyStatements: cdk.aws_iam.PolicyStatement[] = [];
     for (const statement of policyDocument.Statement) {
@@ -1362,9 +1367,8 @@ export class SecurityResourcesStack extends AcceleratorStack {
     isLambdaRole = false,
   ): cdk.aws_iam.IRole {
     // Read in the policy document which should be properly formatted json
-
-    /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-    const policyDocument = require(policyFilePath);
+    // Apply policy replacement variables (e.g. ${PARTITION}, ${ACCOUNT_ID}, ${REGION})
+    const policyDocument = JSON.parse(this.generatePolicyReplacements(policyFilePath, false, this.organizationId));
     // Create a statements list using the PolicyStatement factory
     const policyStatements: cdk.aws_iam.PolicyStatement[] = [];
     for (const statement of policyDocument.Statement) {

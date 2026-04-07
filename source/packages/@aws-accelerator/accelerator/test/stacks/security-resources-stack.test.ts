@@ -301,7 +301,127 @@ describe('SecurityResourcesStack - Config Rule Dependencies', () => {
   });
 });
 
+describe('SecurityResourcesStack - Policy Replacement Variables', () => {
+  afterEach(() => vi.clearAllMocks());
+
+  it('should substitute ${PARTITION}, ${ACCOUNT_ID}, and ${REGION} in custom config rule lambda role policies', () => {
+    const props = createConfigRulesWithReplacementsProps();
+    const { template } = createSecurityResourcesStackWithTemplate('test-policy-replacements', props);
+
+    const policies = template.findResources('AWS::IAM::Policy');
+    const lambdaRolePolicy = Object.values(policies).find((p: any) =>
+      JSON.stringify(p).includes('LambdaRolePolicy'),
+    ) as any;
+
+    expect(lambdaRolePolicy).toBeDefined();
+
+    const policyDoc = lambdaRolePolicy.Properties.PolicyDocument;
+    const policyJson = JSON.stringify(policyDoc);
+
+    // Variables should be substituted, not present as literals
+    expect(policyJson).not.toContain('${PARTITION}');
+    expect(policyJson).not.toContain('${ACCOUNT_ID}');
+    expect(policyJson).not.toContain('${REGION}');
+
+    // Substituted values should be present
+    expect(policyJson).toContain('unit-test'); // partition from test props
+    expect(policyJson).toContain('00000001'); // account from test props
+    expect(policyJson).toContain('us-east-1'); // region from test props
+  });
+
+  it('should produce valid ARNs after substitution in custom config rule lambda role policies', () => {
+    const props = createConfigRulesWithReplacementsProps();
+    const { template } = createSecurityResourcesStackWithTemplate('test-policy-arns', props);
+
+    const policies = template.findResources('AWS::IAM::Policy');
+    const lambdaRolePolicy = Object.values(policies).find((p: any) =>
+      JSON.stringify(p).includes('LambdaRolePolicy'),
+    ) as any;
+
+    expect(lambdaRolePolicy).toBeDefined();
+
+    const statements = lambdaRolePolicy.Properties.PolicyDocument.Statement;
+    const resourceArns = statements.flatMap((s: any) => (Array.isArray(s.Resource) ? s.Resource : [s.Resource]));
+
+    // Verify ARNs have the expected format after substitution
+    for (const arn of resourceArns) {
+      expect(arn).toMatch(/^arn:unit-test:logs:us-east-1:00000001:/);
+    }
+  });
+});
+
 // Helper functions
+function createConfigRulesWithReplacementsProps(): AcceleratorStackProps {
+  const baseProps = createAcceleratorStackProps();
+  const testAccountId = '00000001';
+  const testAccountName = 'TestAccount';
+
+  const customRules = [
+    {
+      name: 'test-replacement-rule',
+      description: 'Test rule with policy replacement variables',
+      identifier: '',
+      inputParameters: {},
+      complianceResourceTypes: [],
+      type: 'Custom',
+      tags: [],
+      remediation: undefined,
+      customRule: {
+        lambda: {
+          sourceFilePath: 'custom-config-rules/attach-ec2-instance-profile.zip',
+          handler: 'index.handler',
+          runtime: 'nodejs18.x',
+          rolePolicyFile: 'custom-config-rules/policy-with-replacements-role.json',
+          timeout: 3,
+        },
+        periodic: true,
+        maximumExecutionFrequency: 'Six_Hours',
+        configurationChanges: false,
+        triggeringResources: {
+          lookupType: 'ResourceTypes',
+          lookupKey: '',
+          lookupValue: ['AWS::EC2::Instance'],
+        },
+      },
+    },
+  ];
+
+  return createSecurityStackProps({
+    configDirPath: path.join(__dirname, '../configs/snapshot-only'),
+    accountsConfig: {
+      ...baseProps.accountsConfig,
+      getAccountId: vi.fn((name: string) => (name === testAccountName ? testAccountId : '123456789' + name)),
+      getAccount: vi.fn(() => ({ name: testAccountName, organizationalUnit: 'Root' })),
+      getManagementAccountId: vi.fn(() => '234567890'),
+      getLogArchiveAccountId: vi.fn(() => '345678901'),
+      getAuditAccountId: vi.fn(() => '456789012'),
+      getAccountNameById: vi.fn(() => testAccountName),
+      containsAccount: vi.fn(() => true),
+      mandatoryAccounts: [{ name: testAccountName, organizationalUnit: 'Root' }],
+      workloadAccounts: [],
+    } as any,
+    organizationConfig: {
+      ...baseProps.organizationConfig,
+      isIgnored: vi.fn(() => false),
+    } as any,
+    securityConfig: {
+      ...baseProps.securityConfig,
+      awsConfig: {
+        ...baseProps.securityConfig.awsConfig,
+        enableConfigurationRecorder: false,
+        ruleSets: [
+          {
+            deploymentTargets: { accounts: [testAccountName], organizationalUnits: [] },
+            rules: customRules,
+          },
+        ],
+      },
+      cloudWatch: { metricSets: [], alarmSets: [], logGroups: [] },
+    },
+    env: { region: 'us-east-1', account: testAccountId },
+  });
+}
+
 function createConfigRecorderProps(options: { controlTowerEnabled?: boolean; isManagementAccount?: boolean }) {
   const accountId = options.isManagementAccount ? '234567890' : '00000001';
   const baseProps = createAcceleratorStackProps();

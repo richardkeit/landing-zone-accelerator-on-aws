@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 feat(networking): add tcp timeout property to gateway load balancer listener
 
 ### Fixed
+- fix(config): add policy replacement support for custom Config rule
 
 ### Changed
 chore(logging): update elb access logs bucket for service principal 
