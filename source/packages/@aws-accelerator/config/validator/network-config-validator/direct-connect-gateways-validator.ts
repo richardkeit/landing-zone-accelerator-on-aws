@@ -97,13 +97,14 @@ export class DirectConnectGatewaysValidator {
         errors.push(
           `[Direct Connect Gateway ${dxgw.name}]: cannot find matching transit gateway for TGW association ${tgwAssociation.name}`,
         );
+        continue;
       }
       // Catch error if ASNs match
-      if (tgw!.asn === dxgw.asn) {
-        errors.push(`[Direct Connect Gateway ${dxgw.name}]: DX Gateway ASN and TGW ASN match for ${tgw!.name}`);
+      if (tgw.asn === dxgw.asn) {
+        errors.push(`[Direct Connect Gateway ${dxgw.name}]: DX Gateway ASN and TGW ASN match for ${tgw.name}`);
       }
       // Catch error if TGW and DXGW account don't match and associations/propagations are configured
-      if (tgw!.account !== dxgw.account) {
+      if (tgw.account !== dxgw.account) {
         if (tgwAssociation.routeTableAssociations || tgwAssociation.routeTablePropagations) {
           errors.push(
             `[Direct Connect Gateway ${dxgw.name}]: DX Gateway association proposals cannot have TGW route table associations or propagations defined`,
