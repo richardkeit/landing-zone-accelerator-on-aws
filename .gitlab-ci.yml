@@ -166,6 +166,7 @@ accelerator:daily-vulnerability-scan:
     paths:
       - software-dependency-findings.json
       - filtered-findings.json
+      - masked-findings.json
     expire_in: 30 days
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_PIPELINE_SCHEDULE_DESCRIPTION == "Daily Vulnerability Scan" && $CI_COMMIT_BRANCH == "integ"
