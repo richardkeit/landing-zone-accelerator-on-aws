@@ -786,8 +786,10 @@ async function retainStackResourcesBatch(
 function buildStackConfigs(input: IStackConfigBuilderInput): IStackRetentionConfig[] {
   const configs: IStackRetentionConfig[] = [];
 
+  const accountIds = input.accounts.filter(id => id);
+
   // Generate stack config for each account-region combination
-  for (const accountId of input.accounts) {
+  for (const accountId of accountIds) {
     for (const region of input.regions) {
       // Stack name follows LZA convention: {prefix}-{accountId}-{region}
       const stackName = `${input.stackPrefix}-${accountId}-${region}`;

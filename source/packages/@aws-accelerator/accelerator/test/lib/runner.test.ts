@@ -1378,6 +1378,90 @@ describe('ModuleRunner', () => {
       // Cleanup
       delete process.env['SKIP_MACIE_MODULE'];
     });
+
+    it('should skip module execution when pascalCase environment variable is set to true', async () => {
+      // Setup - pascalCase('skip-macie') => 'SkipMacie'
+      process.env['SkipMacie'] = 'true';
+
+      // Dynamic import to avoid hoisting issues
+      const { ModuleRunner } = await import('../../lib/runner.js');
+      const moduleOrchestration = await import('../../lib/module-orchestration.js');
+
+      // Add test module to controllable modules
+      moduleOrchestration.EXECUTION_CONTROLLABLE_MODULES.push(AcceleratorModules.MACIE);
+
+      // Execute - test private method using bracket notation
+      const result = ModuleRunner['isModuleExecutionSkippedByEnvironment'](AcceleratorModules.MACIE, 'test-prefix');
+
+      // Verify - should return true when pascalCase environment variable is set
+      expect(result).toBe(true);
+
+      // Cleanup
+      delete process.env['SkipMacie'];
+    });
+
+    it('should not skip module execution when pascalCase environment variable is false', async () => {
+      // Setup - pascalCase('skip-macie') => 'SkipMacie'
+      process.env['SkipMacie'] = 'false';
+
+      // Dynamic import to avoid hoisting issues
+      const { ModuleRunner } = await import('../../lib/runner.js');
+      const moduleOrchestration = await import('../../lib/module-orchestration.js');
+
+      // Add test module to controllable modules
+      moduleOrchestration.EXECUTION_CONTROLLABLE_MODULES.push(AcceleratorModules.MACIE);
+
+      // Execute - test private method using bracket notation
+      const result = ModuleRunner['isModuleExecutionSkippedByEnvironment'](AcceleratorModules.MACIE, 'test-prefix');
+
+      // Verify - should return false when pascalCase environment variable is 'false'
+      expect(result).toBe(false);
+
+      // Cleanup
+      delete process.env['SkipMacie'];
+    });
+
+    it('should prefer constantCase env var over pascalCase when both are set', async () => {
+      // Setup - both formats set, constantCase takes precedence (checked first)
+      process.env['SKIP_MACIE_MODULE'] = 'true';
+      process.env['SkipMacie'] = 'false';
+
+      // Dynamic import to avoid hoisting issues
+      const { ModuleRunner } = await import('../../lib/runner.js');
+      const moduleOrchestration = await import('../../lib/module-orchestration.js');
+
+      // Add test module to controllable modules
+      moduleOrchestration.EXECUTION_CONTROLLABLE_MODULES.push(AcceleratorModules.MACIE);
+
+      // Execute - test private method using bracket notation
+      const result = ModuleRunner['isModuleExecutionSkippedByEnvironment'](AcceleratorModules.MACIE, 'test-prefix');
+
+      // Verify - should return true because constantCase var is checked first
+      expect(result).toBe(true);
+
+      // Cleanup
+      delete process.env['SKIP_MACIE_MODULE'];
+      delete process.env['SkipMacie'];
+    });
+
+    it('should not skip when neither constantCase nor pascalCase env var is set', async () => {
+      // Setup - ensure neither env var is set
+      delete process.env['SKIP_MACIE_MODULE'];
+      delete process.env['SkipMacie'];
+
+      // Dynamic import to avoid hoisting issues
+      const { ModuleRunner } = await import('../../lib/runner.js');
+      const moduleOrchestration = await import('../../lib/module-orchestration.js');
+
+      // Add test module to controllable modules
+      moduleOrchestration.EXECUTION_CONTROLLABLE_MODULES.push(AcceleratorModules.MACIE);
+
+      // Execute - test private method using bracket notation
+      const result = ModuleRunner['isModuleExecutionSkippedByEnvironment'](AcceleratorModules.MACIE, 'test-prefix');
+
+      // Verify - should return false when no environment variable is set
+      expect(result).toBe(false);
+    });
   });
 
   describe('additional coverage tests', () => {

@@ -137,7 +137,7 @@ import { AccountsConfig, GlobalConfig } from '@aws-accelerator/config';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { Account } from '@aws-sdk/client-organizations';
 import { GetParameterCommand, ParameterNotFound, SSMClient } from '@aws-sdk/client-ssm';
-import { constantCase } from 'change-case';
+import { constantCase, pascalCase } from 'change-case';
 import { AcceleratorStage } from './accelerator-stage';
 
 /**
@@ -1514,17 +1514,21 @@ export abstract class ModuleRunner {
       return false;
     }
 
-    const environmentVariableName = constantCase(`skip-${moduleName}`) + '_MODULE';
-    const environmentSetting = process.env[environmentVariableName]?.toLowerCase() === 'true';
-    if (environmentSetting) {
+    const constantCaseVarName = constantCase(`skip-${moduleName}`) + '_MODULE';
+    const pascalCaseVarName = pascalCase(`skip-${moduleName}`);
+    const environmentVariableNames = [constantCaseVarName, pascalCaseVarName];
+
+    const matchedVarName = environmentVariableNames.find(varName => process.env[varName]?.toLowerCase() === 'true');
+
+    if (matchedVarName) {
       statusLogger.warn(
-        `Module ${moduleName} skipped by environment variable settings. To enable the module execution, set the environment variable ${environmentVariableName} to false (case insensitive) in your execution environment.`,
+        `Module ${moduleName} skipped by environment variable settings. To enable the module execution, set the environment variable ${matchedVarName} to false (case insensitive) in your execution environment.`,
         logPrefix,
       );
       return true;
     }
     statusLogger.info(
-      `Module ${moduleName} will be executed. Module execution can be skipped by setting environment variable ${environmentVariableName} to true (case insensitive) in your execution environment. Removing the variable will enable module execution. Contact AWS Support prior to making changes to the module's default settings.`,
+      `Module ${moduleName} will be executed. Module execution can be skipped by setting environment variable ${constantCaseVarName} to true (case insensitive) in your execution environment. Removing the variable will enable module execution. Contact AWS Support prior to making changes to the module's default settings.`,
       logPrefix,
     );
     return false;
