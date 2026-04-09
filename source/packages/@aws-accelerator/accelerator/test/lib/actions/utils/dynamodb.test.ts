@@ -10,8 +10,13 @@
  *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions
  *  and limitations under the License.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createDynamoDBClient, getItem, putItem } from '../../../../lib/actions/utils/dynamodb';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  createDynamoDBClient,
+  getItem,
+  getModuleResourcePrefix,
+  putItem,
+} from '../../../../lib/actions/utils/dynamodb';
 
 // Mock @aws-sdk/client-dynamodb
 vi.mock('@aws-sdk/client-dynamodb', () => ({
@@ -236,6 +241,35 @@ describe('dynamodb utils', () => {
       };
 
       await expect(putItem(client, 'test-table', item, 'test-prefix', false)).rejects.toThrow('DynamoDB put failed');
+    });
+  });
+
+  describe('getModuleResourcePrefix', () => {
+    const originalEnv = process.env['MODULE_RESOURCE_PREFIX'];
+
+    afterEach(() => {
+      if (originalEnv === undefined) {
+        delete process.env['MODULE_RESOURCE_PREFIX'];
+      } else {
+        process.env['MODULE_RESOURCE_PREFIX'] = originalEnv;
+      }
+    });
+
+    it('should return the MODULE_RESOURCE_PREFIX env var value', () => {
+      process.env['MODULE_RESOURCE_PREFIX'] = 'AWSAccelerator';
+      expect(getModuleResourcePrefix()).toBe('AWSAccelerator');
+    });
+
+    it('should return qualifier value for external deployments', () => {
+      process.env['MODULE_RESOURCE_PREFIX'] = 'my-custom-qualifier';
+      expect(getModuleResourcePrefix()).toBe('my-custom-qualifier');
+    });
+
+    it('should throw when MODULE_RESOURCE_PREFIX is not set', () => {
+      delete process.env['MODULE_RESOURCE_PREFIX'];
+      expect(() => getModuleResourcePrefix()).toThrow(
+        'MODULE_RESOURCE_PREFIX environment variable is required for module infrastructure table resolution',
+      );
     });
   });
 });

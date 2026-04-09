@@ -50,6 +50,7 @@ vi.mock('../../../../lib/actions/utils/dynamodb.js', () => ({
   createDynamoDBClient: vi.fn(() => ({ send: vi.fn() })),
   getItem: vi.fn(),
   putItem: vi.fn(),
+  getModuleResourcePrefix: vi.fn(() => 'AWSAccelerator'),
 }));
 
 describe('module-state utils', () => {

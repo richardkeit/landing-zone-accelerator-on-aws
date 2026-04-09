@@ -11,10 +11,10 @@
  *  and limitations under the License.
  */
 
-import path from 'node:path';
-import { createLogger, getCredentials, setRetryStrategy, IAssumeRoleCredential } from 'aws-lza';
-import { DynamoDBClient, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
+import { DescribeTableCommand, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
+import { createLogger, getCredentials, IAssumeRoleCredential, setRetryStrategy } from 'aws-lza';
+import path from 'node:path';
 import { AccountResolver } from './account-resolver';
 import { ResolvedEnvironment } from './types';
 
@@ -75,6 +75,9 @@ export async function buildTestEnvironment(): Promise<ResolvedEnvironment> {
   // Step 4: Derive module infrastructure table names
   const stateTableName = `${envVars.prefix}-Module-State-${envVars.accountId}-${envVars.region}`;
   const retentionTableName = `${envVars.prefix}-Resource-Retention-${envVars.accountId}-${envVars.region}`;
+
+  // Set MODULE_RESOURCE_PREFIX so module code (getModuleResourcePrefix()) resolves table names correctly
+  process.env['MODULE_RESOURCE_PREFIX'] = envVars.prefix;
 
   // Step 5: Verify DynamoDB tables are accessible
   await verifyDynamoDBTable(stateTableName, envVars.region, credentials);
@@ -183,6 +186,7 @@ async function getManagementAccountCredentials(
     region,
     assumeRoleArn: roleArn,
     solutionId,
+    logPrefix: `${managementAccountId}:${region}`,
   });
 
   logger.info('Successfully obtained management account credentials');

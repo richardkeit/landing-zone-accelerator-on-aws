@@ -2389,7 +2389,12 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 1`] = `
             {
               "Name": "VERBOSE_LOG_GROUP_NAME",
               "Type": "PLAINTEXT",
-              "Value": "AWSAccelerator-Module-Verbose-Logs",
+              "Value": "aws-accelerator-Module-Verbose-Logs",
+            },
+            {
+              "Name": "MODULE_RESOURCE_PREFIX",
+              "Type": "PLAINTEXT",
+              "Value": "aws-accelerator",
             },
           ],
           "Image": "aws/codebuild/standard:7.0",
@@ -2432,7 +2437,7 @@ phases:
       - cd $WORK_DIR;
       - echo "=========================================="
       - echo "Verbose logs are being sent to CloudWatch Logs"
-      - 'echo "Log Group: AWSAccelerator-Module-Verbose-Logs"'
+      - 'echo "Log Group: aws-accelerator-Module-Verbose-Logs"'
       - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
       - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
       - echo "=========================================="
@@ -5388,7 +5393,12 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 2`] = `
             {
               "Name": "VERBOSE_LOG_GROUP_NAME",
               "Type": "PLAINTEXT",
-              "Value": "AWSAccelerator-Module-Verbose-Logs",
+              "Value": "aws-accelerator-Module-Verbose-Logs",
+            },
+            {
+              "Name": "MODULE_RESOURCE_PREFIX",
+              "Type": "PLAINTEXT",
+              "Value": "aws-accelerator",
             },
           ],
           "Image": "aws/codebuild/standard:7.0",
@@ -5431,7 +5441,7 @@ phases:
       - cd $WORK_DIR;
       - echo "=========================================="
       - echo "Verbose logs are being sent to CloudWatch Logs"
-      - 'echo "Log Group: AWSAccelerator-Module-Verbose-Logs"'
+      - 'echo "Log Group: aws-accelerator-Module-Verbose-Logs"'
       - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
       - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
       - echo "=========================================="
@@ -7933,7 +7943,12 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 3`] = `
             {
               "Name": "VERBOSE_LOG_GROUP_NAME",
               "Type": "PLAINTEXT",
-              "Value": "AWSAccelerator-Module-Verbose-Logs",
+              "Value": "aws-accelerator-Module-Verbose-Logs",
+            },
+            {
+              "Name": "MODULE_RESOURCE_PREFIX",
+              "Type": "PLAINTEXT",
+              "Value": "aws-accelerator",
             },
           ],
           "Image": "aws/codebuild/standard:7.0",
@@ -7976,7 +7991,7 @@ phases:
       - cd $WORK_DIR;
       - echo "=========================================="
       - echo "Verbose logs are being sent to CloudWatch Logs"
-      - 'echo "Log Group: AWSAccelerator-Module-Verbose-Logs"'
+      - 'echo "Log Group: aws-accelerator-Module-Verbose-Logs"'
       - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
       - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
       - echo "=========================================="
@@ -10709,7 +10724,12 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 4`] = `
             {
               "Name": "VERBOSE_LOG_GROUP_NAME",
               "Type": "PLAINTEXT",
-              "Value": "AWSAccelerator-Module-Verbose-Logs",
+              "Value": "aws-accelerator-Module-Verbose-Logs",
+            },
+            {
+              "Name": "MODULE_RESOURCE_PREFIX",
+              "Type": "PLAINTEXT",
+              "Value": "aws-accelerator",
             },
           ],
           "Image": "aws/codebuild/standard:7.0",
@@ -10752,7 +10772,7 @@ phases:
       - cd $WORK_DIR;
       - echo "=========================================="
       - echo "Verbose logs are being sent to CloudWatch Logs"
-      - 'echo "Log Group: AWSAccelerator-Module-Verbose-Logs"'
+      - 'echo "Log Group: aws-accelerator-Module-Verbose-Logs"'
       - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
       - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
       - echo "=========================================="
@@ -13254,7 +13274,12 @@ exports[`PipelineStack customS3Path > Construct(PipelineStack):  Snapshot Test 1
             {
               "Name": "VERBOSE_LOG_GROUP_NAME",
               "Type": "PLAINTEXT",
-              "Value": "AWSAccelerator-Module-Verbose-Logs",
+              "Value": "aws-accelerator-Module-Verbose-Logs",
+            },
+            {
+              "Name": "MODULE_RESOURCE_PREFIX",
+              "Type": "PLAINTEXT",
+              "Value": "aws-accelerator",
             },
           ],
           "Image": "aws/codebuild/standard:7.0",
@@ -13297,7 +13322,7 @@ phases:
       - cd $WORK_DIR;
       - echo "=========================================="
       - echo "Verbose logs are being sent to CloudWatch Logs"
-      - 'echo "Log Group: AWSAccelerator-Module-Verbose-Logs"'
+      - 'echo "Log Group: aws-accelerator-Module-Verbose-Logs"'
       - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
       - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
       - echo "=========================================="

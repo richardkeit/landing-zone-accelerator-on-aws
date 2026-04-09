@@ -379,3 +379,29 @@ export function createDynamoDBClient(
     credentials,
   });
 }
+
+/**
+ * Returns the module resource prefix used for naming module infrastructure resources
+ * (DynamoDB tables, CloudWatch log groups).
+ *
+ * @function getModuleResourcePrefix
+ * @export
+ *
+ * @description
+ * Reads the MODULE_RESOURCE_PREFIX environment variable which determines the prefix
+ * for module infrastructure resources. For external pipeline deployments this is the
+ * accelerator qualifier, for internal deployments it is the accelerator prefix.
+ *
+ * @returns {string} The module resource prefix
+ *
+ * @throws {Error} When MODULE_RESOURCE_PREFIX environment variable is not set
+ */
+export function getModuleResourcePrefix(): string {
+  const prefix = process.env['MODULE_RESOURCE_PREFIX'];
+  if (!prefix) {
+    throw new Error(
+      'MODULE_RESOURCE_PREFIX environment variable is required for module infrastructure table resolution',
+    );
+  }
+  return prefix;
+}

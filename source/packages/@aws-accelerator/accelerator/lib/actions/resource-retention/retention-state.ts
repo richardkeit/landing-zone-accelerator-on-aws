@@ -58,7 +58,7 @@
 import { createLogger, createStatusLogger, queryDynamoDBTable } from 'aws-lza';
 import path from 'node:path';
 import type { ModuleParams } from '../../types';
-import { createDynamoDBClient, getItem, putItem } from '../utils/dynamodb';
+import { createDynamoDBClient, getItem, getModuleResourcePrefix, putItem } from '../utils/dynamodb';
 import { IResourceRetentionState, RetentionStatus } from './types';
 
 /**
@@ -116,7 +116,7 @@ const statusLogger = createStatusLogger([path.parse(path.basename(__filename)).n
  * ```
  */
 function getRetentionStateTableName(params: ModuleParams): string {
-  return `${params.moduleRunnerParameters.resourcePrefixes.accelerator}-Resource-Retention-${params.runnerParameters.sessionContext.invokingAccountId}-${params.runnerParameters.sessionContext.region}`;
+  return `${getModuleResourcePrefix()}-Resource-Retention-${params.runnerParameters.sessionContext.invokingAccountId}-${params.runnerParameters.sessionContext.region}`;
 }
 
 /**

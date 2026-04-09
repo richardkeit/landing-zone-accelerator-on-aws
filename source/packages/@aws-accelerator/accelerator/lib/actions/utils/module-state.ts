@@ -64,7 +64,7 @@ import { createLogger, createStatusLogger } from 'aws-lza';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import type { ModuleParams } from '../../types';
-import { createDynamoDBClient, getItem, putItem } from './dynamodb';
+import { createDynamoDBClient, getItem, getModuleResourcePrefix, putItem } from './dynamodb';
 import { IModuleExecutionState, IModuleStateConfig } from './types';
 
 /**
@@ -122,7 +122,7 @@ const statusLogger = createStatusLogger([path.parse(path.basename(__filename)).n
  * ```
  */
 function getModuleStateTableName(params: ModuleParams): string {
-  return `${params.moduleRunnerParameters.resourcePrefixes.accelerator}-Module-State-${params.runnerParameters.sessionContext.invokingAccountId}-${params.runnerParameters.sessionContext.region}`;
+  return `${getModuleResourcePrefix()}-Module-State-${params.runnerParameters.sessionContext.invokingAccountId}-${params.runnerParameters.sessionContext.region}`;
 }
 
 /**

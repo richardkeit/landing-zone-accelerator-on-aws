@@ -475,7 +475,7 @@ export class AcceleratorPipeline extends Construct {
               `cd $WORK_DIR;`,
               `echo "=========================================="`,
               `echo "Verbose logs are being sent to CloudWatch Logs"`,
-              `echo "Log Group: ${props.prefixes.accelerator}-Module-Verbose-Logs"`,
+              `echo "Log Group: ${this.props.qualifier ?? props.prefixes.accelerator}-Module-Verbose-Logs"`,
               `echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-${props.pipelineAccountId}"`,
               `echo "For detailed troubleshooting, view logs in CloudWatch Logs console"`,
               `echo "=========================================="`,
@@ -647,7 +647,11 @@ export class AcceleratorPipeline extends Construct {
           },
           VERBOSE_LOG_GROUP_NAME: {
             type: codebuild.BuildEnvironmentVariableType.PLAINTEXT,
-            value: `${props.prefixes.accelerator}-Module-Verbose-Logs`,
+            value: `${this.props.qualifier ?? props.prefixes.accelerator}-Module-Verbose-Logs`,
+          },
+          MODULE_RESOURCE_PREFIX: {
+            type: codebuild.BuildEnvironmentVariableType.PLAINTEXT,
+            value: this.props.qualifier ?? props.prefixes.accelerator,
           },
           ...enableSingleAccountModeEnvVariables,
           ...pipelineAccountEnvVariables,
