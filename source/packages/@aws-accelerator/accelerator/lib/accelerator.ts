@@ -320,6 +320,7 @@ export abstract class Accelerator {
         acceleratorConfig.managementAccountDetails,
         acceleratorConfig.globalConfig,
         acceleratorConfig.accountsConfig,
+        acceleratorConfig.orgsConfig,
       );
       //
       // Execute PREPARE, ACCOUNTS, and FINALIZE stages in the management account
@@ -517,6 +518,7 @@ export abstract class Accelerator {
     managementAccountDetails: { id: string; name: string },
     globalConfig: GlobalConfig,
     accountsConfig: AccountsConfig,
+    orgsConfig: OrganizationConfig,
   ) {
     if (toolkitProps.command === AcceleratorToolkitCommand.BOOTSTRAP) {
       //
@@ -535,6 +537,7 @@ export abstract class Accelerator {
         accountsConfig,
         globalConfig,
         managementAccountDetails,
+        orgsConfig,
       );
     }
   }
@@ -583,11 +586,13 @@ export abstract class Accelerator {
     accountsConfig: AccountsConfig,
     globalConfig: GlobalConfig,
     managementAccountDetails: { id: string; name: string },
+    orgsConfig: OrganizationConfig,
   ): Promise<void> {
     const managementAccountAccessRole = globalConfig.managementAccountAccessRole;
     const nonManagementAccounts = accountsConfig
       .getAccounts(toolkitProps.enableSingleAccountMode)
-      .filter(accountItem => accountItem.name !== managementAccountDetails.name);
+      .filter(accountItem => accountItem.name !== managementAccountDetails.name)
+      .filter(accountItem => !orgsConfig.isIgnored(accountItem.organizationalUnit));
     const environments = nonManagementAccounts
       .map(account => {
         const environmentArray = [];
