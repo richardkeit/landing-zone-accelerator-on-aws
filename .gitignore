@@ -18,6 +18,8 @@ source/lerna-debug.log
 ### Debugging
 development
 .vscode
+rawDiff
+diff-viewer.html
 
 ### Deployment artifacts
 deployment/ecr/

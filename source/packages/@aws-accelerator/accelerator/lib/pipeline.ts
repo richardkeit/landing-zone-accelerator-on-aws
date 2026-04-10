@@ -482,11 +482,16 @@ export class AcceleratorPipeline extends Construct {
               `yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ${cdk.Aws.PARTITION} --region ${cdk.Aws.REGION} --stage $ACCELERATOR_STAGE --verbose`,
               `set -e && ./scripts/bootstrap_management_before_prepare.sh ${globalRegion};`,
               `if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
+                cd $WORK_DIR;
                 mkdir rawDiff;
                 cd rawDiff;
                 aws s3 sync "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/" .;
                 for file in ./*.tgz; do tar -xf "$file" -C .; done;
-                for file in ./*.diff; do cat "$file"; done;
+                for file in ./*.diff; do cat "$file"; echo; done;
+                cd $WORK_DIR;
+                yarn run ts-node --cwdMode --transpile-only generate-diff-viewer-cli.ts rawDiff diff-viewer.html;
+                aws s3 cp diff-viewer.html "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/diff-viewer.html";
+                echo "Download with: aws s3 cp \${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/diff-viewer.html ./diff-viewer.html";
               fi`,
               'export FULL_SYNTH="true"',
               'if [ $ASEA_MAPPING_BUCKET ]; then aws s3api head-object --bucket $ASEA_MAPPING_BUCKET --key $ASEA_MAPPING_FILE >/dev/null 2>&1 || export FULL_SYNTH="false"; fi;',

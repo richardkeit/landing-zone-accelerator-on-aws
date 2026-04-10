@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline';">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LZA CDK Diff Viewer</title>
+<style>
+{{STYLES}}
+</style>
+</head>
+<body>
+<nav class="sidebar" aria-label="Stack list">
+  <div class="sidebar-header">
+    <h1>LZA CDK Diff Viewer <span style="display:flex;gap:0.3rem"><button class="theme-toggle" id="help-toggle" aria-label="Help">?</button><button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark theme">☀️</button></span></h1>
+    <div class="summary" id="summary">Initializing...</div>
+    <input type="text" id="search" placeholder="Filter stacks..." aria-label="Filter by stack name">
+    <div class="sidebar-filters">
+      <button id="filter-toggle">Filter: <span id="filter-label">Unreviewed</span> ▾</button>
+    </div>
+  </div>
+  <div class="summary-link" id="summary-link" role="button" tabindex="0">CloudFormation Diff Summary</div>
+  <div class="sidebar-list" id="sidebar-list"></div>
+</nav>
+<div class="resize-handle" id="resize-handle"></div>
+<main class="main" id="main"><div id="cards"></div></main>
+<div class="filter-overlay" id="filter-overlay">
+  <div class="help-modal">
+    <div class="help-close" id="filter-close">&times;</div>
+    <h2 style="margin-bottom:0.75rem">Filter Stacks</h2>
+    <div class="filter-options">
+      <button class="filter-option active" data-filter="unreviewed">Unreviewed</button>
+      <button class="filter-option" data-filter="changes">Changed</button>
+      <button class="filter-option" data-filter="no-changes">Unchanged</button>
+      <button class="filter-option" data-filter="reviewed">Reviewed</button>
+      <button class="filter-option" data-filter="all">All</button>
+    </div>
+  </div>
+</div>
+<div class="help-overlay" id="help-overlay">
+  <div class="help-modal">
+    <div class="help-close" id="help-close">&times;</div>
+    <h2 style="margin-bottom:0.75rem">How to use LZA CDK Diff Viewer</h2>
+    <ul style="padding-left:1.2rem;line-height:1.8;font-size:0.85rem">
+      <li>Click <strong>CloudFormation Diff Summary</strong> at the top of the sidebar for an impact report showing high-risk resource changes, affected accounts/regions, and resource type breakdown.</li>
+      <li>Stacks are grouped into sections. Click a section header to expand/collapse.</li>
+      <li>Click a stack name to view its diff.</li>
+      <li>Use the <strong>Filter</strong> button to show: Unreviewed, Changed, Unchanged, Reviewed, or All.</li>
+      <li>Search by stack name or section.</li>
+      <li>Check the box to mark a stack as reviewed (strikethrough).</li>
+      <li>Unchanged stacks are auto-marked as reviewed. Stacks with only Lambda S3Key changes (asset hash rotation) are treated as unchanged.</li>
+      <li>Diff content is color-coded: <span style="color:var(--red)">red for removals [-]</span>, <span style="color:var(--green)">blue for additions [+]</span>, <span style="color:var(--yellow)">yellow for modifications [~]</span>.</li>
+      <li>IAM Statement Changes tables highlight entire removal/addition blocks, including continuation rows.</li>
+      <li>In the impact report, use the search box and filter dropdown to find specific stacks. Results are paginated (25 per page).</li>
+      <li>High-risk resource types (VPCs, Transit Gateways, Security Groups, NAT Gateways, etc.) are flagged in the summary with modify/delete counts.</li>
+      <li>Drag the sidebar edge to resize. Toggle theme with ☀️/🌙.</li>
+    </ul>
+  </div>
+</div>
+<script>
+{{DATA}}
+{{SCRIPT}}
+</script>
+</body>
+</html>

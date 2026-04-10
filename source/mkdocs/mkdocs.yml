@@ -18,6 +18,7 @@ nav:
       - CloudFormation Stack Policy Protection: user-guide/stack-policy.md
       - V2 Network Stack Usage: user-guide/v2-stacks.md
       - AFT Integration: user-guide/aft-integration.md
+      - CDK Diff Viewer: user-guide/diff-viewer.md
   - Developer Guide:
       - developer-guide/index.md
       - Development Dependencies: developer-guide/dependencies.md

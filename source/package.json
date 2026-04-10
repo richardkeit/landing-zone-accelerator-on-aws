@@ -55,7 +55,7 @@
     "cleanup:tsc": "lerna run cleanup:tsc --stream",
     "docs": "yarn run typedoc && yarn generate-diagram @aws-accelerator,@aws-cdk-extensions",
     "generate-all-docs": "../deployment/build-docs.sh",
-    "git-clean": "cd .. && git clean -Xfd -e !development -e !development/** -e !.vscode -e !.vscode/**",
+    "git-clean": "cd .. && git clean -Xfd -e !development -e !development/** -e !.vscode -e !.vscode/** -e !.kiro -e !.kiro/**",
     "postinstall": "cd ../ && husky install source/.husky && cd source",
     "lint": "lerna run lint --stream",
     "prepare": "cd ../ && husky install source/.husky",
