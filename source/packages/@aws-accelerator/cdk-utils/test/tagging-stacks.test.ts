@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, beforeAll, afterAll } from 'vitest';
-import * as fs from 'fs';
 import * as path from 'path';
+import * as fs from 'fs';
 import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
@@ -151,6 +151,15 @@ describe('CustomResourceProvider tagging', () => {
   beforeAll(() => {
     fs.mkdirSync(handlerDir, { recursive: true });
     fs.writeFileSync(handlerFile, 'exports.handler = async () => ({ Status: "SUCCESS" });');
+  });
+
+  afterAll(() => {
+    fs.rmSync(handlerDir, { recursive: true, force: true });
+  });
+
+  beforeAll(() => {
+    fs.mkdirSync(handlerDir, { recursive: true });
+    fs.writeFileSync(path.join(handlerDir, 'index.js'), 'exports.handler = async () => ({});');
   });
 
   afterAll(() => {
