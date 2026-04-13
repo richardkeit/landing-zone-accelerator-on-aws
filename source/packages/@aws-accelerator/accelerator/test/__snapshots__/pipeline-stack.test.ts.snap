@@ -2449,7 +2449,7 @@ phases:
                 {
                   "Ref": "AWS::Region",
                 },
-                " --stage $ACCELERATOR_STAGE --verbose
+                " --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose
       - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
@@ -5458,7 +5458,7 @@ phases:
                 {
                   "Ref": "AWS::Region",
                 },
-                " --stage $ACCELERATOR_STAGE --verbose
+                " --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose
       - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
@@ -8013,7 +8013,7 @@ phases:
                 {
                   "Ref": "AWS::Region",
                 },
-                " --stage $ACCELERATOR_STAGE --verbose
+                " --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose
       - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
@@ -10799,7 +10799,7 @@ phases:
                 {
                   "Ref": "AWS::Region",
                 },
-                " --stage $ACCELERATOR_STAGE --verbose
+                " --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose
       - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
@@ -13354,7 +13354,7 @@ phases:
                 {
                   "Ref": "AWS::Region",
                 },
-                " --stage $ACCELERATOR_STAGE --verbose
+                " --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose
       - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then

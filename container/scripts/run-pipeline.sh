@@ -173,7 +173,7 @@ for Item1 in prepare accounts; do
     echo "DEPLOYING $Item1 STACK"
 
     export ACCELERATOR_STAGE=$Item1
-    set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage $ACCELERATOR_STAGE --verbose
+    set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose
     
     yarn run ts-node --transpile-only cdk.ts synth \
         --stage $Item1 \
@@ -199,7 +199,7 @@ done
 # This ensures all newly created accounts are properly bootstrapped
 echo "BOOTSTRAPPING ALL ACCOUNTS"
 
-set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage bootstrap --verbose
+set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage bootstrap --accelerator-prefix $ACCELERATOR_PREFIX --verbose
 yarn run ts-node --transpile-only cdk.ts --require-approval never synth \
     --stage bootstrap \
     --config-dir $srcDirConfig \
@@ -214,7 +214,7 @@ yarn run ts-node --transpile-only cdk.ts --require-approval never bootstrap \
 
 ## adding this specifically for network refactor v2 stacks
 
-set -e && CDK_OPTIONS=bootstrap yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage network-vpc --verbose
+set -e && CDK_OPTIONS=bootstrap yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage network-vpc --accelerator-prefix $ACCELERATOR_PREFIX --verbose
 
 
 if [ $? -ne 0 ]; then
@@ -231,7 +231,7 @@ if [ -z "$SomeStacks" ]; then
     echo "Deploying all remaining stacks in sequence"
     for Item1 in ${AllStacks[*]}; do
         echo "DEPLOYING $Item1 STAGE"
-        set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage $Item1 --verbose
+        set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage $Item1 --accelerator-prefix $ACCELERATOR_PREFIX --verbose
         
         yarn run ts-node --transpile-only cdk.ts synth \
             --stage $Item1 \
@@ -258,7 +258,7 @@ else
     for Item2 in ${SomeStacks[*]}; do
         echo "DEPLOYING $Item2 STAGE"
         
-        set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage $Item2 --verbose
+        set -e && yarn run lza --config-dir $srcDirConfig --partition $PARTITION --region $AWS_REGION --stage $Item2 --accelerator-prefix $ACCELERATOR_PREFIX --verbose
         
         yarn run ts-node --transpile-only cdk.ts synth \
             --stage $Item2 \

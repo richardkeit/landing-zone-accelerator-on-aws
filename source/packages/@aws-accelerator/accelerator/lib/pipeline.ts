@@ -479,7 +479,7 @@ export class AcceleratorPipeline extends Construct {
               `echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-${props.pipelineAccountId}"`,
               `echo "For detailed troubleshooting, view logs in CloudWatch Logs console"`,
               `echo "=========================================="`,
-              `yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ${cdk.Aws.PARTITION} --region ${cdk.Aws.REGION} --stage $ACCELERATOR_STAGE --verbose`,
+              `yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ${cdk.Aws.PARTITION} --region ${cdk.Aws.REGION} --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose`,
               `set -e && ./scripts/bootstrap_management_before_prepare.sh ${globalRegion};`,
               `if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
                 cd $WORK_DIR;
