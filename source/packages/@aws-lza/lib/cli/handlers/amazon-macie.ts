@@ -26,6 +26,8 @@
  * - Integration with Macie module operations
  */
 
+import { z } from 'zod';
+
 import { configureMacie } from '../../../lib/amazon-macie/macie';
 
 import { IMacieConfiguration, IMacieModuleRequest, IMacieModuleResponse } from '../../../lib/amazon-macie/interfaces';
@@ -38,6 +40,49 @@ import {
   logError,
   logErrorAndExit,
 } from './root';
+
+const macieConfigSchema = z.object({
+  enable: z.boolean(),
+  accountAccessRoleName: z.string(),
+  delegatedAdminAccountId: z.string(),
+  regionFilters: z
+    .object({
+      ignoredRegions: z.array(z.string()).optional(),
+      disabledRegions: z.array(z.string()).optional(),
+    })
+    .optional(),
+  policyFindingsPublishingFrequency: z.string(),
+  publishSensitiveDataFindings: z.boolean(),
+  publishPolicyFindings: z.boolean(),
+  s3Destination: z.object({
+    bucketName: z.string(),
+    keyPrefix: z.string(),
+    kmsKeyArn: z.string(),
+  }),
+  automatedDiscoveryEnabled: z.boolean().optional(),
+  boundary: z
+    .object({
+      regions: z.array(z.string()).optional(),
+    })
+    .optional(),
+  dataSources: z
+    .object({
+      organizations: z
+        .object({
+          tableName: z.string(),
+          filters: z.array(z.any()).optional(),
+          filterOperator: z.enum(['AND', 'OR']).optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  batchOperationSettings: z
+    .object({
+      maxConcurrentEnvironments: z.number().gt(0).optional(),
+      operationTimeoutMs: z.number().gt(0).optional(),
+    })
+    .optional(),
+});
 
 /**
  * Abstract command handler class for Amazon Macie CLI operations
@@ -100,181 +145,11 @@ export abstract class MacieCommand {
    * @returns Type guard indicating if config is valid IMacieConfiguration
    */
   public static validConfig(config: ConfigurationObjectType): config is IMacieConfiguration {
-    if (typeof config['enable'] !== 'boolean') {
-      logError('(ConfigValidation): config.enable must be a boolean');
+    const result = macieConfigSchema.safeParse(config);
+    if (!result.success) {
+      const issue = result.error.issues[0];
+      logError(`(ConfigValidation): config.${issue.path.join('.')}: ${issue.message}`);
       return false;
-    }
-    if (typeof config['accountAccessRoleName'] !== 'string') {
-      logError('(ConfigValidation): config.accountAccessRoleName must be a string');
-      return false;
-    }
-    if (typeof config['delegatedAdminAccountId'] !== 'string') {
-      logError('(ConfigValidation): config.delegatedAdminAccountId must be a string');
-      return false;
-    }
-    if (!MacieCommand.validateRegionFilterConfig(config)) {
-      return false;
-    }
-    if (typeof config['policyFindingsPublishingFrequency'] !== 'string') {
-      logError('(ConfigValidation): config.policyFindingsPublishingFrequency must be a string');
-      return false;
-    }
-    if (typeof config['publishSensitiveDataFindings'] !== 'boolean') {
-      logError('(ConfigValidation): config.publishSensitiveDataFindings must be a boolean');
-      return false;
-    }
-    if (typeof config['publishPolicyFindings'] !== 'boolean') {
-      logError('(ConfigValidation): config.publishPolicyFindings must be a boolean');
-      return false;
-    }
-    if (typeof config['s3Destination'] !== 'object') {
-      logError('(ConfigValidation): config.s3Destination must be an object');
-      return false;
-    }
-    if (typeof config['s3Destination']['bucketName'] !== 'string') {
-      logError('(ConfigValidation): config.s3Destination.bucketName must be a string');
-      return false;
-    }
-    if (typeof config['s3Destination']['keyPrefix'] !== 'string') {
-      logError('(ConfigValidation): config.s3Destination.keyPrefix must be a string');
-      return false;
-    }
-    if (typeof config['s3Destination']['kmsKeyArn'] !== 'string') {
-      logError('(ConfigValidation): config.s3Destination.kmsKeyArn must be a string');
-      return false;
-    }
-
-    if (config['automatedDiscoveryEnabled'] !== undefined && typeof config['automatedDiscoveryEnabled'] !== 'boolean') {
-      logError('(ConfigValidation): config.automatedDiscoveryEnabled must be a boolean');
-      return false;
-    }
-
-    if (!MacieCommand.validateBoundaryConfig(config)) {
-      return false;
-    }
-    if (!MacieCommand.validateDataSourcesConfig(config)) {
-      return false;
-    }
-    if (!MacieCommand.validateBatchOperationSettingsConfig(config)) {
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Validates boundary configuration section
-   * @param config - Configuration object containing boundary settings
-   * @returns Boolean indicating if boundary configuration is valid
-   */
-  private static validateBoundaryConfig(config: ConfigurationObjectType): boolean {
-    if (config['boundary']) {
-      if (typeof config['boundary'] !== 'object') {
-        logError('(ConfigValidation): config.boundary must be an object');
-        return false;
-      }
-      if (config['boundary']['regions'] && !Array.isArray(config['boundary']['regions'])) {
-        logError('(ConfigValidation): config.boundary.regions must be an array');
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Validates data sources configuration section
-   * @param config - Configuration object containing data sources settings
-   * @returns Boolean indicating if data sources configuration is valid
-   */
-  private static validateDataSourcesConfig(config: ConfigurationObjectType): boolean {
-    if (config['dataSources']) {
-      if (typeof config['dataSources'] !== 'object') {
-        logError('(ConfigValidation): config.dataSources must be an object');
-        return false;
-      }
-      if (config['dataSources']['organizations']) {
-        if (typeof config['dataSources']['organizations'] !== 'object') {
-          logError('(ConfigValidation): config.dataSources.organizations must be an object');
-          return false;
-        }
-        if (typeof config['dataSources']['organizations']['tableName'] !== 'string') {
-          logError('(ConfigValidation): config.dataSources.organizations.tableName must be a string');
-          return false;
-        }
-        if (
-          config['dataSources']['organizations']['filters'] &&
-          !Array.isArray(config['dataSources']['organizations']['filters'])
-        ) {
-          logError('(ConfigValidation): config.dataSources.organizations.filters must be an array');
-          return false;
-        }
-        if (
-          config['dataSources']['organizations']['filterOperator'] &&
-          typeof config['dataSources']['organizations']['filterOperator'] !== 'string'
-        ) {
-          logError('(ConfigValidation): config.dataSources.organizations.filterOperator must be a string');
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Validates region filter configuration section
-   * @param config - Configuration object containing region filter settings
-   * @returns Boolean indicating if region filter configuration is valid
-   */
-  private static validateRegionFilterConfig(config: ConfigurationObjectType): boolean {
-    if (config['regionFilters']) {
-      if (typeof config['regionFilters'] !== 'object') {
-        logError('(ConfigValidation): config.regionFilters must be an object');
-        return false;
-      }
-      if (config['regionFilters']['ignoredRegions'] && !Array.isArray(config['regionFilters']['ignoredRegions'])) {
-        logError('(ConfigValidation): config.regionFilters.ignoredRegions must be an array');
-        return false;
-      }
-      if (config['regionFilters']['disabledRegions'] && !Array.isArray(config['regionFilters']['disabledRegions'])) {
-        logError('(ConfigValidation): config.regionFilters.disabledRegions must be an array');
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Validates batch operation settings configuration section
-   * @param config - Configuration object containing batch operation settings
-   * @returns Boolean indicating if batch operation settings configuration is valid
-   */
-  private static validateBatchOperationSettingsConfig(config: ConfigurationObjectType): boolean {
-    if (config['batchOperationSettings']) {
-      if (typeof config['batchOperationSettings'] !== 'object') {
-        logError('(ConfigValidation): config.batchOperationSettings must be an object');
-        return false;
-      }
-      if (config['batchOperationSettings']['maxConcurrentEnvironments'] !== undefined) {
-        if (typeof config['batchOperationSettings']['maxConcurrentEnvironments'] !== 'number') {
-          logError('(ConfigValidation): config.batchOperationSettings.maxConcurrentEnvironments must be a number');
-          return false;
-        }
-        if (config['batchOperationSettings']['maxConcurrentEnvironments'] <= 0) {
-          logError(
-            '(ConfigValidation): config.batchOperationSettings.maxConcurrentEnvironments must be greater than 0',
-          );
-          return false;
-        }
-      }
-      if (config['batchOperationSettings']['operationTimeoutMs'] !== undefined) {
-        if (typeof config['batchOperationSettings']['operationTimeoutMs'] !== 'number') {
-          logError('(ConfigValidation): config.batchOperationSettings.operationTimeoutMs must be a number');
-          return false;
-        }
-        if (config['batchOperationSettings']['operationTimeoutMs'] <= 0) {
-          logError('(ConfigValidation): config.batchOperationSettings.operationTimeoutMs must be greater than 0');
-          return false;
-        }
-      }
     }
     return true;
   }

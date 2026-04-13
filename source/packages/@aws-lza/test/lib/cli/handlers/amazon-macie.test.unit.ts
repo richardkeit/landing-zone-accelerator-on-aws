@@ -13,12 +13,6 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { MacieCommand } from '../../../../lib/cli/handlers/amazon-macie';
-import { ConfigurationObjectType } from '../../../../lib/cli/handlers/root';
-
-// Helper function to access private methods for testing
-const callPrivateMethod = (methodName: string, config: ConfigurationObjectType): boolean => {
-  return (MacieCommand as unknown as Record<string, (config: ConfigurationObjectType) => boolean>)[methodName](config);
-};
 
 vi.mock('../../../../lib/amazon-macie/macie.js', () => ({
   configureMacie: vi.fn(),
@@ -197,68 +191,82 @@ describe('MacieCommand', () => {
 
     test('should return false for invalid enable', () => {
       expect(MacieCommand.validConfig({ ...validConfig, enable: 'true' })).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.enable must be a boolean');
+      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.enable: Expected boolean, received string');
     });
 
     test('should return false for invalid accountAccessRoleName', () => {
       expect(MacieCommand.validConfig({ ...validConfig, accountAccessRoleName: 123 })).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.accountAccessRoleName must be a string');
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.accountAccessRoleName: Expected string, received number',
+      );
     });
 
     test('should return false for invalid delegatedAdminAccountId', () => {
       expect(MacieCommand.validConfig({ ...validConfig, delegatedAdminAccountId: 123 })).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.delegatedAdminAccountId must be a string');
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.delegatedAdminAccountId: Expected string, received number',
+      );
     });
 
     test('should return false for invalid policyFindingsPublishingFrequency', () => {
       expect(MacieCommand.validConfig({ ...validConfig, policyFindingsPublishingFrequency: 123 })).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.policyFindingsPublishingFrequency must be a string',
+        '(ConfigValidation): config.policyFindingsPublishingFrequency: Expected string, received number',
       );
     });
 
     test('should return false for invalid publishSensitiveDataFindings', () => {
       expect(MacieCommand.validConfig({ ...validConfig, publishSensitiveDataFindings: 'true' })).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.publishSensitiveDataFindings must be a boolean',
+        '(ConfigValidation): config.publishSensitiveDataFindings: Expected boolean, received string',
       );
     });
 
     test('should return false for invalid publishPolicyFindings', () => {
       expect(MacieCommand.validConfig({ ...validConfig, publishPolicyFindings: 'true' })).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.publishPolicyFindings must be a boolean');
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.publishPolicyFindings: Expected boolean, received string',
+      );
     });
 
     test('should return false for invalid s3Destination', () => {
       expect(MacieCommand.validConfig({ ...validConfig, s3Destination: 'invalid' })).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.s3Destination must be an object');
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.s3Destination: Expected object, received string',
+      );
     });
 
     test('should return false for invalid s3Destination.bucketName', () => {
       expect(
         MacieCommand.validConfig({ ...validConfig, s3Destination: { ...validConfig.s3Destination, bucketName: 123 } }),
       ).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.s3Destination.bucketName must be a string');
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.s3Destination.bucketName: Expected string, received number',
+      );
     });
 
     test('should return false for invalid s3Destination.keyPrefix', () => {
       expect(
         MacieCommand.validConfig({ ...validConfig, s3Destination: { ...validConfig.s3Destination, keyPrefix: 123 } }),
       ).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.s3Destination.keyPrefix must be a string');
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.s3Destination.keyPrefix: Expected string, received number',
+      );
     });
 
     test('should return false for invalid s3Destination.kmsKeyArn', () => {
       expect(
         MacieCommand.validConfig({ ...validConfig, s3Destination: { ...validConfig.s3Destination, kmsKeyArn: 123 } }),
       ).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.s3Destination.kmsKeyArn must be a string');
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.s3Destination.kmsKeyArn: Expected string, received number',
+      );
     });
 
     test('should return false for invalid automatedDiscoveryEnabled', () => {
       expect(MacieCommand.validConfig({ ...validConfig, automatedDiscoveryEnabled: 'true' })).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.automatedDiscoveryEnabled must be a boolean',
+        '(ConfigValidation): config.automatedDiscoveryEnabled: Expected boolean, received string',
       );
     });
 
@@ -267,243 +275,213 @@ describe('MacieCommand', () => {
     });
   });
 
-  describe('validateBoundaryConfig', () => {
+  describe('boundary validation', () => {
     test('should return true when boundary is undefined', () => {
-      expect(callPrivateMethod('validateBoundaryConfig', {})).toBe(true);
+      expect(MacieCommand.validConfig({ ...validConfig })).toBe(true);
     });
 
     test('should return false for invalid boundary type', () => {
-      expect(callPrivateMethod('validateBoundaryConfig', { boundary: 'invalid' })).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.boundary must be an object');
+      expect(MacieCommand.validConfig({ ...validConfig, boundary: 'invalid' })).toBe(false);
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.boundary: Expected object, received string',
+      );
     });
 
     test('should return false for invalid boundary.regions', () => {
-      expect(callPrivateMethod('validateBoundaryConfig', { boundary: { regions: 'invalid' } })).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.boundary.regions must be an array');
+      expect(MacieCommand.validConfig({ ...validConfig, boundary: { regions: 'invalid' } })).toBe(false);
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.boundary.regions: Expected array, received string',
+      );
     });
 
     test('should return true for valid boundary', () => {
-      expect(callPrivateMethod('validateBoundaryConfig', { boundary: { regions: ['us-east-1'] } })).toBe(true);
+      expect(MacieCommand.validConfig({ ...validConfig, boundary: { regions: ['us-east-1'] } })).toBe(true);
     });
   });
 
-  describe('validateDataSourcesConfig', () => {
+  describe('dataSources validation', () => {
     test('should return true when dataSources is undefined', () => {
-      expect(callPrivateMethod('validateDataSourcesConfig', {})).toBe(true);
+      expect(MacieCommand.validConfig({ ...validConfig })).toBe(true);
     });
 
     test('should return false for invalid dataSources type', () => {
-      expect(callPrivateMethod('validateDataSourcesConfig', { dataSources: 'invalid' })).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.dataSources must be an object');
+      expect(MacieCommand.validConfig({ ...validConfig, dataSources: 'invalid' })).toBe(false);
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.dataSources: Expected object, received string',
+      );
     });
 
     test('should return false for invalid organizations type', () => {
-      expect(callPrivateMethod('validateDataSourcesConfig', { dataSources: { organizations: 'invalid' } })).toBe(false);
+      expect(MacieCommand.validConfig({ ...validConfig, dataSources: { organizations: 'invalid' } })).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.dataSources.organizations must be an object',
+        '(ConfigValidation): config.dataSources.organizations: Expected object, received string',
       );
     });
 
     test('should return false for invalid tableName', () => {
-      expect(
-        callPrivateMethod('validateDataSourcesConfig', { dataSources: { organizations: { tableName: 123 } } }),
-      ).toBe(false);
+      expect(MacieCommand.validConfig({ ...validConfig, dataSources: { organizations: { tableName: 123 } } })).toBe(
+        false,
+      );
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.dataSources.organizations.tableName must be a string',
+        '(ConfigValidation): config.dataSources.organizations.tableName: Expected string, received number',
       );
     });
 
     test('should return false for invalid filters', () => {
       expect(
-        callPrivateMethod('validateDataSourcesConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           dataSources: { organizations: { tableName: 'test', filters: 'invalid' } },
         }),
       ).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.dataSources.organizations.filters must be an array',
+        '(ConfigValidation): config.dataSources.organizations.filters: Expected array, received string',
       );
     });
 
     test('should return false for invalid filterOperator', () => {
       expect(
-        callPrivateMethod('validateDataSourcesConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           dataSources: { organizations: { tableName: 'test', filterOperator: 123 } },
         }),
       ).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.dataSources.organizations.filterOperator must be a string',
+        "(ConfigValidation): config.dataSources.organizations.filterOperator: Expected 'AND' | 'OR', received number",
       );
     });
 
     test('should return true for valid dataSources', () => {
       expect(
-        callPrivateMethod('validateDataSourcesConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           dataSources: { organizations: { tableName: 'test', filters: [], filterOperator: 'AND' } },
         }),
       ).toBe(true);
     });
   });
 
-  describe('validateRegionFilterConfig', () => {
+  describe('regionFilters validation', () => {
     test('should return true when regionFilters is undefined', () => {
-      expect(callPrivateMethod('validateRegionFilterConfig', {})).toBe(true);
+      expect(MacieCommand.validConfig({ ...validConfig })).toBe(true);
     });
 
     test('should return false for invalid regionFilters type', () => {
-      expect(callPrivateMethod('validateRegionFilterConfig', { regionFilters: 'invalid' })).toBe(false);
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.regionFilters must be an object');
-    });
-
-    test('should call validateRegionFilterConfig and return false', () => {
-      const spy = vi
-        .spyOn(
-          MacieCommand as unknown as Record<string, (config: ConfigurationObjectType) => boolean>,
-          'validateRegionFilterConfig',
-        )
-        .mockReturnValue(false);
-      expect(MacieCommand.validConfig({ ...validConfig, regionFilters: {} })).toBe(false);
-      spy.mockRestore();
-    });
-
-    test('should call validateBoundaryConfig and return false', () => {
-      const spy = vi
-        .spyOn(
-          MacieCommand as unknown as Record<string, (config: ConfigurationObjectType) => boolean>,
-          'validateBoundaryConfig',
-        )
-        .mockReturnValue(false);
-      expect(MacieCommand.validConfig({ ...validConfig, boundary: {} })).toBe(false);
-      spy.mockRestore();
-    });
-
-    test('should call validateDataSourcesConfig and return false', () => {
-      const spy = vi
-        .spyOn(
-          MacieCommand as unknown as Record<string, (config: ConfigurationObjectType) => boolean>,
-          'validateDataSourcesConfig',
-        )
-        .mockReturnValue(false);
-      expect(MacieCommand.validConfig({ ...validConfig, dataSources: {} })).toBe(false);
-      spy.mockRestore();
-    });
-
-    test('should call validateBatchOperationSettingsConfig and return false', () => {
-      const spy = vi
-        .spyOn(
-          MacieCommand as unknown as Record<string, (config: ConfigurationObjectType) => boolean>,
-          'validateBatchOperationSettingsConfig',
-        )
-        .mockReturnValue(false);
-      expect(MacieCommand.validConfig({ ...validConfig, batchOperationSettings: {} })).toBe(false);
-      spy.mockRestore();
+      expect(MacieCommand.validConfig({ ...validConfig, regionFilters: 'invalid' })).toBe(false);
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.regionFilters: Expected object, received string',
+      );
     });
 
     test('should return false for invalid ignoredRegions', () => {
-      expect(callPrivateMethod('validateRegionFilterConfig', { regionFilters: { ignoredRegions: 'invalid' } })).toBe(
-        false,
-      );
+      expect(MacieCommand.validConfig({ ...validConfig, regionFilters: { ignoredRegions: 'invalid' } })).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.regionFilters.ignoredRegions must be an array',
+        '(ConfigValidation): config.regionFilters.ignoredRegions: Expected array, received string',
       );
     });
 
     test('should return false for invalid disabledRegions', () => {
-      expect(callPrivateMethod('validateRegionFilterConfig', { regionFilters: { disabledRegions: 'invalid' } })).toBe(
-        false,
-      );
+      expect(MacieCommand.validConfig({ ...validConfig, regionFilters: { disabledRegions: 'invalid' } })).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.regionFilters.disabledRegions must be an array',
+        '(ConfigValidation): config.regionFilters.disabledRegions: Expected array, received string',
       );
     });
 
     test('should return true for valid regionFilters', () => {
       expect(
-        callPrivateMethod('validateRegionFilterConfig', { regionFilters: { ignoredRegions: [], disabledRegions: [] } }),
+        MacieCommand.validConfig({ ...validConfig, regionFilters: { ignoredRegions: [], disabledRegions: [] } }),
       ).toBe(true);
     });
   });
 
-  describe('validateBatchOperationSettingsConfig', () => {
+  describe('batchOperationSettings validation', () => {
     test('should return true when batchOperationSettings is undefined', () => {
-      expect(callPrivateMethod('validateBatchOperationSettingsConfig', {})).toBe(true);
+      expect(MacieCommand.validConfig({ ...validConfig })).toBe(true);
     });
 
     test('should return false for invalid batchOperationSettings type', () => {
-      expect(callPrivateMethod('validateBatchOperationSettingsConfig', { batchOperationSettings: 'invalid' })).toBe(
-        false,
+      expect(MacieCommand.validConfig({ ...validConfig, batchOperationSettings: 'invalid' })).toBe(false);
+      expect(mockLogError).toHaveBeenCalledWith(
+        '(ConfigValidation): config.batchOperationSettings: Expected object, received string',
       );
-      expect(mockLogError).toHaveBeenCalledWith('(ConfigValidation): config.batchOperationSettings must be an object');
     });
 
     test('should return false for invalid maxConcurrentEnvironments type', () => {
       expect(
-        callPrivateMethod('validateBatchOperationSettingsConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           batchOperationSettings: { maxConcurrentEnvironments: 'invalid' },
         }),
       ).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.batchOperationSettings.maxConcurrentEnvironments must be a number',
+        '(ConfigValidation): config.batchOperationSettings.maxConcurrentEnvironments: Expected number, received string',
       );
     });
 
     test('should return false for maxConcurrentEnvironments <= 0', () => {
       expect(
-        callPrivateMethod('validateBatchOperationSettingsConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           batchOperationSettings: { maxConcurrentEnvironments: 0 },
         }),
       ).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.batchOperationSettings.maxConcurrentEnvironments must be greater than 0',
+        '(ConfigValidation): config.batchOperationSettings.maxConcurrentEnvironments: Number must be greater than 0',
       );
     });
 
     test('should return false for negative maxConcurrentEnvironments', () => {
       expect(
-        callPrivateMethod('validateBatchOperationSettingsConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           batchOperationSettings: { maxConcurrentEnvironments: -1 },
         }),
       ).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.batchOperationSettings.maxConcurrentEnvironments must be greater than 0',
+        '(ConfigValidation): config.batchOperationSettings.maxConcurrentEnvironments: Number must be greater than 0',
       );
     });
 
     test('should return false for invalid operationTimeoutMs type', () => {
       expect(
-        callPrivateMethod('validateBatchOperationSettingsConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           batchOperationSettings: { operationTimeoutMs: 'invalid' },
         }),
       ).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.batchOperationSettings.operationTimeoutMs must be a number',
+        '(ConfigValidation): config.batchOperationSettings.operationTimeoutMs: Expected number, received string',
       );
     });
 
     test('should return false for operationTimeoutMs <= 0', () => {
       expect(
-        callPrivateMethod('validateBatchOperationSettingsConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           batchOperationSettings: { operationTimeoutMs: 0 },
         }),
       ).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.batchOperationSettings.operationTimeoutMs must be greater than 0',
+        '(ConfigValidation): config.batchOperationSettings.operationTimeoutMs: Number must be greater than 0',
       );
     });
 
     test('should return false for negative operationTimeoutMs', () => {
       expect(
-        callPrivateMethod('validateBatchOperationSettingsConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           batchOperationSettings: { operationTimeoutMs: -1 },
         }),
       ).toBe(false);
       expect(mockLogError).toHaveBeenCalledWith(
-        '(ConfigValidation): config.batchOperationSettings.operationTimeoutMs must be greater than 0',
+        '(ConfigValidation): config.batchOperationSettings.operationTimeoutMs: Number must be greater than 0',
       );
     });
 
     test('should return true for valid maxConcurrentEnvironments only', () => {
       expect(
-        callPrivateMethod('validateBatchOperationSettingsConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           batchOperationSettings: { maxConcurrentEnvironments: 10 },
         }),
       ).toBe(true);
@@ -511,7 +489,8 @@ describe('MacieCommand', () => {
 
     test('should return true for valid operationTimeoutMs only', () => {
       expect(
-        callPrivateMethod('validateBatchOperationSettingsConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           batchOperationSettings: { operationTimeoutMs: 300000 },
         }),
       ).toBe(true);
@@ -519,14 +498,15 @@ describe('MacieCommand', () => {
 
     test('should return true for valid batchOperationSettings config', () => {
       expect(
-        callPrivateMethod('validateBatchOperationSettingsConfig', {
+        MacieCommand.validConfig({
+          ...validConfig,
           batchOperationSettings: { maxConcurrentEnvironments: 10, operationTimeoutMs: 300000 },
         }),
       ).toBe(true);
     });
 
     test('should return true for empty batchOperationSettings object', () => {
-      expect(callPrivateMethod('validateBatchOperationSettingsConfig', { batchOperationSettings: {} })).toBe(true);
+      expect(MacieCommand.validConfig({ ...validConfig, batchOperationSettings: {} })).toBe(true);
     });
   });
 });

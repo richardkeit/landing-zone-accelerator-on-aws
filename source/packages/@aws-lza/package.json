@@ -51,7 +51,8 @@
     "fs-extra": "11.1.0",
     "winston": "3.8.2",
     "exponential-backoff": "3.1.1",
-    "yargs": "17.7.1"
+    "yargs": "17.7.1",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "aws-sdk-client-mock": "3.0.1",
