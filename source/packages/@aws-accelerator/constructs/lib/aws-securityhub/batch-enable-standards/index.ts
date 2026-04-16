@@ -34,6 +34,43 @@ type InputStandardType = { name: string; enable: string; controlsToDisable: stri
 type SecurityHubStandardType = { [name: string]: string };
 
 /**
+ * Known prefixes that Security Hub may include in ControlId values depending on the standard version.
+ * For example, CIS v1.2.0 returns 'CIS.1.20' while CIS v1.4.0 returns '1.17'.
+ * PCI DSS returns 'PCI.IAM.3' while users may configure just 'IAM.3'.
+ */
+const CONTROL_ID_PREFIXES = ['CIS.', 'PCI.'];
+
+/**
+ * Strips known standard-specific prefixes from a control ID for normalized comparison.
+ * This allows matching regardless of whether the user or the API includes the prefix.
+ *
+ * @param controlId - The control ID to normalize
+ * @returns The control ID with any known prefix removed
+ */
+function normalizeControlId(controlId: string): string {
+  for (const prefix of CONTROL_ID_PREFIXES) {
+    if (controlId.startsWith(prefix)) {
+      return controlId.slice(prefix.length);
+    }
+  }
+  return controlId;
+}
+
+/**
+ * Checks whether a given API control ID matches any entry in the user-provided controlsToDisable list.
+ * Comparison is done after stripping known prefixes (CIS., PCI.) from both sides so that
+ * 'CIS.1.20' matches '1.20' and vice versa.
+ *
+ * @param controlId - The ControlId returned by the DescribeStandardsControls API
+ * @param controlsToDisable - The user-configured list of control IDs to disable
+ * @returns true if the control should be disabled
+ */
+function shouldDisableControl(controlId: string, controlsToDisable: string[]): boolean {
+  const normalizedApiId = normalizeControlId(controlId);
+  return controlsToDisable.some(userControlId => normalizeControlId(userControlId) === normalizedApiId);
+}
+
+/**
  * Delay function for waiting
  * @param ms milliseconds to wait
  */
@@ -271,7 +308,10 @@ async function getControlArnsToModify(
             console.log(standardsControl);
 
             for (const control of standardsControl) {
-              if (inputStandard.controlsToDisable?.includes(control.ControlId!)) {
+              if (
+                inputStandard.controlsToDisable &&
+                shouldDisableControl(control.ControlId!, inputStandard.controlsToDisable)
+              ) {
                 console.log(control.ControlId!);
                 disableStandardControls.push(control.StandardsControlArn!);
               } else {

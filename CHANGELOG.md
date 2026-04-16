@@ -12,6 +12,7 @@ feat(networking): add tcp timeout property to gateway load balancer listener
 
 ### Fixed
 - fix(config): add policy replacement support for custom Config rule
+- fix(securityhub): normalize control id prefix matching for controlsToDisable
 
 ### Changed
 chore(logging): update elb access logs bucket for service principal 
