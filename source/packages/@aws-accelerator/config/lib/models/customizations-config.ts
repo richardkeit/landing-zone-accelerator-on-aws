@@ -1737,7 +1737,7 @@ export type ProductLaunchConstraintType = 'Role' | 'LocalRole';
  * ```
  * constraints:
  *   launch:
- *    type: localRole | Role
+ *    type: LocalRole | Role
  *    role: string
  *   tagUpdate: true | false
  *   notifications:
@@ -1765,7 +1765,7 @@ export interface IProductLaunchConstraintConfig {
  * ```
  * constraints:
  *   launch:
- *    type: localRole | Role
+ *    type: LocalRole | Role
  *    role: string
  *   tagUpdate: true | false
  *   notifications:
@@ -1807,7 +1807,7 @@ export interface IProductConstraintConfig {
  *       template: path/to/template.json
  *   constraints:
  *     launch:
- *       type: localRole | Role
+ *       type: LocalRole | Role
  *       role: string
  *     tagUpdate: true | false
  *     notifications:
@@ -1875,7 +1875,7 @@ export interface IProductConfig {
  *       owner: Product-Owner
  *       constraints:
  *         launch:
- *          type: localRole | Role
+ *          type: LocalRole | Role
  *          role: roleName
  *         tagUpdate: true | false
  *         notifications:
