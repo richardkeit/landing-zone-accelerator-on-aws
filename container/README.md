@@ -136,15 +136,15 @@ To deploy the solution, complete the following steps:
 
 1. Sign in to the **AWS Management Console** in the LZA deployment account.
 
-2. Select the button to launch the AWSAccelerator-InstallerContainerStack CloudFormation template:
+2. Ensure the selected AWS Region is the desired LZA home region.
 
-   [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?templateURL=https:%2F%2Fsolutions-reference.s3.amazonaws.com%2Flanding-zone-accelerator-on-aws%2Flatest%2FAWSAccelerator-InstallerContainerStack.template&redirectId=ImplementationGuide)
+3. Navigate to **AWS CloudFormation** and click **Create Stack**.
 
-3. On the **Create stack** page, verify that the correct template URL is in the **Amazon S3 URL** text box and choose **Next**.
+4. On the **Create stack** page, copy the [template URL](https://s3.amazonaws.com/solutions-reference/landing-zone-accelerator-on-aws/latest/AWSAccelerator-InstallerContainerStack.template) and paste it in the **Amazon S3 URL** text box and choose **Next**.
 
-4. On the **Specify stack details** page, assign a name to your solution stack (recommended: `AWSAccelerator-InstallerContainerStack`).
+5. On the **Specify stack details** page, assign a name to your solution stack (recommended: `AWSAccelerator-InstallerContainerStack`).
 
-5. Under **Parameters**, review and modify the following values.
+6. Under **Parameters**, review and modify the following values.
 
 #### Template Parameters
 
@@ -176,15 +176,15 @@ To deploy the solution, complete the following steps:
 | ManagementAccountId | `<requires input>` | Target management account id. |
 | ManagementAccountRoleName | `<requires input>` | Target management account role name. |
 
-6. Choose **Next**.
+7. Choose **Next**.
 
-7. On the **Configure stack options** page, choose **Next**.
+8. On the **Configure stack options** page, choose **Next**.
 
-8. On the **Review and create** page, review and confirm the settings. Select the box acknowledging that the template might create IAM resources.
+9. On the **Review and create** page, review and confirm the settings. Select the box acknowledging that the template might create IAM resources.
 
-9. Choose **Submit** to deploy the stack.
+10. Choose **Submit** to deploy the stack.
 
-10. You can view the status of the stack in the AWS CloudFormation console in the **Status** column. You should receive a **CREATE_COMPLETE** status in approximately 10-15 minutes.
+11. You can view the status of the stack in the AWS CloudFormation console in the **Status** column. You should receive a **CREATE_COMPLETE** status in approximately 10-15 minutes.
 
 #### Validation Rules
 
@@ -202,6 +202,22 @@ To deploy the solution, complete the following steps:
 ### Use the Solution
 
 Execute the automation using the [Systems Manager Automation document](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-automation.html) created by the CloudFormation stack. The document name is available in the stack output `DeploySolutionDocumentOutput`.
+
+To execute the automation, complete the following steps:
+
+1. Sign in to the AWS Management Console in the LZA deployment account.
+
+2. Switch to the Home Region.
+
+3. Navigate to **Systems Manager** and open **Documents** within the **Change Management Tools** side navigation.
+
+4. Select the **Owned by me** Tab.
+
+5. Click the link button for the SSM Document named {AcceleratorQualifier}-RunEngine.
+
+6. Click the **Execute automation** button, leave all the default settings, and click **Execute**. 
+
+
 
 #### Execution Steps
 
