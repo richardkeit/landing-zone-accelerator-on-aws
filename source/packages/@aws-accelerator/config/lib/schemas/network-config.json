@@ -621,7 +621,7 @@
     },
     "IDnsFirewallRuleGroupConfig": {
       "additionalProperties": false,
-      "description": "Use this configuration to define a group of rules for your DNS firewall.\nRule groups contain one to many rules that can be associated with VPCs in your environment.\nThese rules allow you to define the behavior of your DNS firewall.\n\nThe following example creates a rule group that contains one rule entry.\nThe rule blocks a list of custom domains contained in a file in the accelerator\nconfiguration repository. The rule group is shared to the entire organization.",
+      "description": "Use this configuration to define a group of rules for your DNS firewall.\nRule groups contain one to many rules that can be associated with VPCs in your environment.\nThese rules allow you to define the behavior of your DNS firewall.\n\nThe following example creates a rule group that contains one rule entry.\nThe rule blocks a list of custom domains contained in a file in the accelerator\nconfiguration repository. Nested directory paths are supported.\nThe domain list name is derived from the filename (e.g. `blocked-domains`).\nThe rule group is shared to the entire organization.",
       "properties": {
         "name": {
           "$ref": "#/definitions/NonEmptyString",

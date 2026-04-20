@@ -5339,12 +5339,13 @@ export type DnsFirewallManagedDomainListsType =
  * @example
  * The following example creates a rule that blocks requests from a custom list of domains.
  * The custom domain list path must exist in your accelerator configuration repository.
+ * Nested directory paths are supported. The domain list name is derived from the filename.
  * ```
  * - name: accelerator-dns-rule
  *   action: BLOCK
  *   priority: 100
  *   blockResponse: NXDOMAIN
- *   customDomainList: path/to/domains.txt
+ *   customDomainList: dns-firewall/blocked-domains.txt
  * ```
  *
  * The following example creates a rule referencing an AWS-managed domain list.
@@ -5407,8 +5408,14 @@ export interface IDnsFirewallRulesConfig {
    * A file containing a custom domain list in TXT format.
    *
    * @remarks
+   * The path is relative to the root of your accelerator configuration repository.
    * The file must exist in your accelerator configuration repository.
    * The file must contain domain names separated by newlines.
+   *
+   * The domain list name is derived from the filename (without extension). For example,
+   * `dns-firewall/lists/blocked-domains.txt` creates a domain list named `blocked-domains`.
+   * Nested directory paths are supported. Each domain list file must have a unique filename
+   * across all rules in the rule group, regardless of the directory structure.
    *
    * Include only one of `customDomainList` or `managedDomainList` for each rule definition.
    */
@@ -5440,7 +5447,9 @@ export interface IDnsFirewallRulesConfig {
  *
  * The following example creates a rule group that contains one rule entry.
  * The rule blocks a list of custom domains contained in a file in the accelerator
- * configuration repository. The rule group is shared to the entire organization.
+ * configuration repository. Nested directory paths are supported.
+ * The domain list name is derived from the filename (e.g. `blocked-domains`).
+ * The rule group is shared to the entire organization.
  * @example
  * ```
  * - name: accelerator-rule-group
@@ -5451,7 +5460,7 @@ export interface IDnsFirewallRulesConfig {
  *       action: BLOCK
  *       priority: 100
  *       blockResponse: NXDOMAIN
- *       customDomainList: path/to/domains.txt
+ *       customDomainList: dns-firewall/blocked-domains.txt
  *   shareTargets:
  *     organizationalUnits:
  *       - Root
@@ -5575,7 +5584,7 @@ export interface IVpcResolverConfig {
  *           action: BLOCK
  *           priority: 100
  *           blockResponse: NXDOMAIN
- *           customDomainList: path/to/domains.txt
+ *           customDomainList: dns-firewall/blocked-domains.txt
  *       shareTargets:
  *         organizationalUnits:
  *           - Root
