@@ -488,7 +488,8 @@ export class AcceleratorPipeline extends Construct {
                 cd rawDiff;
                 aws s3 sync "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/" .;
                 for file in ./*.tgz; do if command -v pigz &>/dev/null; then pigz -dc "$file" | tar xf - -C .; else tar -xf "$file" -C .; fi; done;
-                for file in ./*.diff; do cat "$file"; done;
+                for file in ./*.diff; do cat "$file"; echo; done;
+                for file in ./*.module.diff; do cat "$file"; done;
                 cd $WORK_DIR;
                 yarn run ts-node --cwdMode --transpile-only generate-diff-viewer-cli.ts rawDiff diff-viewer.html;
                 aws s3 cp diff-viewer.html "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/diff-viewer.html";
@@ -511,7 +512,8 @@ export class AcceleratorPipeline extends Construct {
                     touch full-synth-false.txt;
                   fi
                   if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
-                    find cdk.out -type f \\( -name "*.diff" -o -name "*.diff.json" \\) -print0 | { if command -v pigz &>/dev/null; then tar --transform='s|.*/||' -cf - --null -T - | pigz > diff_$ARCHIVE_NAME; else tar --transform='s|.*/||' -czf diff_$ARCHIVE_NAME --null -T -; fi; }
+                    CDK_OPTIONS=deploy yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ${cdk.Aws.PARTITION} --region ${cdk.Aws.REGION} --stage $ACCELERATOR_STAGE --dry-run --diff-output cdk.out/ --verbose || echo "Module dry-run unavailable for stage $ACCELERATOR_STAGE (expected on first deployment)"
+                    find cdk.out -type f \\( -name "*.diff" -o -name "*.diff.json" -o -name "*.module.diff" \\) -print0 | { if command -v pigz &>/dev/null; then tar --transform='s|.*/||' -cf - --null -T - | pigz > diff_$ARCHIVE_NAME; else tar --transform='s|.*/||' -czf diff_$ARCHIVE_NAME --null -T -; fi; }
                     aws s3 cp diff_$ARCHIVE_NAME $DIFFS_DIR/$CODEPIPELINE_EXECUTION_ID/
                   fi
                else

@@ -428,6 +428,16 @@ export type RunnerParametersType = {
   readonly dryRun: boolean;
 
   /**
+   * Optional directory path for writing module diff output files.
+   *
+   * @description
+   * When provided alongside --dry-run, module execution results are formatted
+   * as human-readable .module.diff files and written to this directory.
+   * Requires dryRun to be true.
+   */
+  readonly diffOutputDir?: string;
+
+  /**
    * Optional specific stage name for targeted execution.
    *
    * @description

@@ -133,6 +133,7 @@ import {
 } from 'aws-lza';
 import { AcceleratorResourceNames } from '../lib/accelerator-resource-names';
 import { getOrganizationSourceTableName } from './actions/utils/common-config';
+import { writeModuleDiffFile } from './actions/utils/module-diff-formatter';
 
 import { AccountsConfig, GlobalConfig } from '@aws-accelerator/config';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -725,24 +726,58 @@ export abstract class ModuleRunner {
           );
         }
 
+        const scopedModuleRunnerParameters = {
+          ...acceleratorModuleRunnerParameters,
+          ...(moduleSessionPolicy && {
+            sessionPolicy: moduleSessionPolicy.policy,
+          }),
+        };
+
+        const handler = ModuleRunner.wrapHandlerWithDiffOutput(
+          sortedModuleItem,
+          runnerParameters,
+          scopedModuleRunnerParameters,
+          stageItem.stage.runOrder,
+        );
         promiseItems.push({
           runOrder: sortedModuleItem.runOrder,
-          promise: () =>
-            sortedModuleItem.handler({
-              moduleItem: sortedModuleItem,
-              runnerParameters,
-              moduleRunnerParameters: {
-                ...acceleratorModuleRunnerParameters,
-                ...(moduleSessionPolicy && {
-                  sessionPolicy: moduleSessionPolicy.policy,
-                }),
-              },
-            }),
+          promise: handler,
         });
       }
     }
 
     return promiseItems;
+  }
+
+  /**
+   * Wraps a module handler to write diff output after execution when --diff-output is set.
+   */
+  private static wrapHandlerWithDiffOutput(
+    moduleItem: AcceleratorModuleDetailsType,
+    runnerParameters: RunnerParametersType,
+    moduleRunnerParameters: AcceleratorModuleRunnerParametersType,
+    stageRunOrder: number,
+  ): () => Promise<IModuleResponse> {
+    const baseHandler = () =>
+      moduleItem.handler({
+        moduleItem,
+        runnerParameters,
+        moduleRunnerParameters,
+      });
+
+    if (!runnerParameters.diffOutputDir || !runnerParameters.dryRun) {
+      return baseHandler;
+    }
+
+    return async () => {
+      const response = await baseHandler();
+      try {
+        writeModuleDiffFile(runnerParameters.diffOutputDir!, stageRunOrder, response);
+      } catch (err) {
+        logger.warn(`Failed to write diff file for module "${moduleItem.name}": ${err}`, '');
+      }
+      return response;
+    };
   }
 
   private static async executeStageDependentModules(
@@ -1044,19 +1079,26 @@ export abstract class ModuleRunner {
           );
         }
 
+        const scopedModuleRunnerParameters = {
+          ...acceleratorModuleRunnerParameters,
+          ...(moduleSessionPolicy && {
+            sessionPolicy: moduleSessionPolicy.policy,
+          }),
+        };
+
+        const stageRunOrder = params.stage
+          ? (AcceleratorModuleStageDetails.find(s => s.stage.name === params.stage)?.stage.runOrder ?? 0)
+          : 0;
+        const handler = ModuleRunner.wrapHandlerWithDiffOutput(
+          sortedModuleItem,
+          params,
+          scopedModuleRunnerParameters,
+          stageRunOrder,
+        );
+
         promiseItems.push({
           runOrder: synthPhase ? 1 : sortedModuleItem.runOrder,
-          promise: () =>
-            sortedModuleItem.handler({
-              moduleItem: sortedModuleItem,
-              runnerParameters: params,
-              moduleRunnerParameters: {
-                ...acceleratorModuleRunnerParameters,
-                ...(moduleSessionPolicy && {
-                  sessionPolicy: moduleSessionPolicy.policy,
-                }),
-              },
-            }),
+          promise: handler,
         });
       }
     }
@@ -1607,7 +1649,7 @@ export abstract class ModuleRunner {
  * - `--verbose`: Optional - Enable detailed logging output
  */
 export const scriptUsage =
-  'Usage: yarn run lza --config-dir <CONFIG_DIR_PATH> [--partition <PARTITION>] [--account-id <ACCOUNT_ID>] [--region <REGION>] [--stage <PIPELINE_STAGE_NAME>] [--accelerator-prefix <ACCELERATOR_PREFIX>] [--dry-run] [--verbose]';
+  'Usage: yarn run lza --config-dir <CONFIG_DIR_PATH> [--partition <PARTITION>] [--account-id <ACCOUNT_ID>] [--region <REGION>] [--stage <PIPELINE_STAGE_NAME>] [--accelerator-prefix <ACCELERATOR_PREFIX>] [--dry-run] [--diff-output <DIR>] [--verbose]';
 
 /**
  * Validates command-line arguments and constructs runner parameters for module execution.
@@ -1697,6 +1739,7 @@ export async function validateAndGetRunnerParameters(): Promise<RunnerParameters
       'config-dir': { type: 'string', default: undefined },
       stage: { type: 'string', default: undefined },
       'dry-run': { type: 'boolean', default: false },
+      'diff-output': { type: 'string', default: undefined },
     })
     .parseSync();
 
@@ -1705,6 +1748,10 @@ export async function validateAndGetRunnerParameters(): Promise<RunnerParameters
   }
 
   const dryRun = Boolean(argv['dry-run']);
+  const diffOutputDir = argv['diff-output'];
+  if (diffOutputDir && !dryRun) {
+    throw new Error(`--diff-output requires --dry-run. Diff output can only be generated during a dry run.`);
+  }
   const configDirPath = argv['config-dir'];
   const stage = argv.stage;
   const acceleratorPrefix = argv['accelerator-prefix'] ?? 'AWSAccelerator';
@@ -1724,6 +1771,7 @@ export async function validateAndGetRunnerParameters(): Promise<RunnerParameters
     prefix: acceleratorPrefix,
     solutionId,
     dryRun,
+    diffOutputDir,
     loadOrganizationsFromDynamoDbTable,
   };
 }

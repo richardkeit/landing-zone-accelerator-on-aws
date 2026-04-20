@@ -61,6 +61,13 @@ export interface StackDiffData {
   diff: StructuredStackDiff;
 }
 
+export interface DiffEntry {
+  section: string;
+  name: string;
+  hasChanges: boolean;
+  content: string;
+}
+
 // ============================================================================
 // NOTABLE RESOURCE TYPES
 // ----------------------------------------------------------------------------
@@ -236,6 +243,114 @@ export function extractSection(filename: string): string {
   return 'other';
 }
 
+export function hasModuleChanges(content: string): boolean {
+  if (content.includes('SKIPPED')) {
+    return false;
+  }
+  if (content.includes('[+]') || content.includes('[-]')) {
+    return true;
+  }
+  return !content.includes('No changes') && !content.includes('0 change(s)');
+}
+
+export function hasChanges(content: string): boolean {
+  if (content.includes('There were no differences')) {
+    return false;
+  }
+  return !isOnlyLambdaS3KeyChanges(content);
+}
+
+/**
+ * Strip ANSI escape sequences from a string.
+ */
+export function stripAnsi(str: string): string {
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/\x1b\[[\d;]*m/g, '');
+}
+
+/**
+ * Check whether every resource-level change block in a CDK diff is exclusively
+ * noise — i.e. Lambda S3Key changes (asset hash rotation) or CustomResource
+ * uuid changes. These appear on every deploy when source is rebuilt, even
+ * with no functional change.
+ *
+ * CDK diff output contains ANSI color codes, so we strip them before parsing.
+ */
+export function isOnlyLambdaS3KeyChanges(content: string): boolean {
+  const clean = stripAnsi(content);
+  const resourceChangeRegex = /^\s*\[([~+-])\]\s+((?:AWS|Custom)::\S+)\s+\S+/gm;
+  const resourceChanges = [...clean.matchAll(resourceChangeRegex)];
+
+  if (resourceChanges.length === 0) {
+    return false;
+  }
+
+  // Any [+] or [-] resource is a real change
+  // Only [~] on Lambda::Function or CloudFormation::CustomResource can be noise
+  const noiseTypes = new Set(['AWS::Lambda::Function', 'AWS::CloudFormation::CustomResource']);
+  for (const match of resourceChanges) {
+    if (match[1] !== '~') {
+      return false;
+    }
+    if (!noiseTypes.has(match[2]) && !match[2].startsWith('Custom::')) {
+      return false;
+    }
+  }
+
+  // Split content into blocks per resource change line
+  const lines = clean.split('\n');
+  const blocks: string[][] = [];
+  let current: string[] = [];
+
+  for (const line of lines) {
+    if (/^\s*\[([~+-])\]\s+(?:AWS|Custom)::\S+\s+\S+/.test(line)) {
+      if (current.length > 0) {
+        blocks.push(current);
+      }
+      current = [line];
+    } else if (current.length > 0) {
+      current.push(line);
+    }
+  }
+  if (current.length > 0) {
+    blocks.push(current);
+  }
+
+  // Every block must be a noise-only change
+  for (const block of blocks) {
+    const header = block[0];
+    const body = block.slice(1).join('\n');
+
+    if (header.includes('AWS::Lambda::Function')) {
+      // Lambda: only S3Key changes are noise
+      if (!body.includes('.S3Key')) {
+        return false;
+      }
+      const propertyChanges = body.match(/\[~\]\s+\.(\S+)/g) || [];
+      for (const prop of propertyChanges) {
+        const propName = prop.match(/\[~\]\s+\.(\S+)/)?.[1];
+        if (propName && propName !== 'S3Key:' && propName !== 'S3Key') {
+          return false;
+        }
+      }
+    } else if (header.includes('AWS::CloudFormation::CustomResource') || /Custom::\S+/.test(header)) {
+      // CustomResource: only uuid changes are noise
+      if (!body.includes('uuid')) {
+        return false;
+      }
+      const propertyChanges = body.match(/\[~\]\s+(\S+)/g) || [];
+      for (const prop of propertyChanges) {
+        const propName = prop.match(/\[~\]\s+(\S+)/)?.[1];
+        if (propName && propName !== 'uuid') {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
 /**
  * Extract `{account, region}` from an LZA stack name.
  *
@@ -277,6 +392,28 @@ export function readDiffJsonFiles(diffDir: string): StackDiffData[] {
         diff: raw,
       };
     });
+}
+
+/**
+ * Read all .diff and .module.diff files from a directory and return structured metadata + content.
+ */
+export function readDiffFiles(diffDir: string): DiffEntry[] {
+  const files = fs
+    .readdirSync(diffDir)
+    .filter(f => f.endsWith('.diff'))
+    .sort();
+
+  return files.map(file => {
+    const content = fs.readFileSync(path.join(diffDir, file), 'utf-8');
+    const isModuleDiff = file.endsWith('.module.diff');
+    const name = isModuleDiff ? file.replace(/\.module\.diff$/, '') : file.replace(/\.diff$/, '');
+    return {
+      section: isModuleDiff ? 'Modules' : extractSection(file),
+      name,
+      hasChanges: isModuleDiff ? hasModuleChanges(content) : hasChanges(content),
+      content,
+    };
+  });
 }
 
 // ============================================================================

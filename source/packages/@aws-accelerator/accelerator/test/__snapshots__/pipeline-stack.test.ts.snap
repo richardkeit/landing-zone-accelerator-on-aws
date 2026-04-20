@@ -2460,7 +2460,8 @@ phases:
                         cd rawDiff;
                         aws s3 sync "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/" .;
                         for file in ./*.tgz; do if command -v pigz &>/dev/null; then pigz -dc "$file" | tar xf - -C .; else tar -xf "$file" -C .; fi; done;
-                        for file in ./*.diff; do cat "$file"; done;
+                        for file in ./*.diff; do cat "$file"; echo; done;
+                        for file in ./*.module.diff; do cat "$file"; done;
                         cd $WORK_DIR;
                         yarn run ts-node --cwdMode --transpile-only generate-diff-viewer-cli.ts rawDiff diff-viewer.html;
                         aws s3 cp diff-viewer.html "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/diff-viewer.html";
@@ -2487,6 +2488,22 @@ phases:
                             yarn run ts-node --transpile-only cdk.ts $CDK_OPTIONS --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
+                },
+                ";
+                          fi
+                          if [ $FULL_SYNTH = "true" ]; then
+                            set -e && if command -v pigz &>/dev/null; then tar cf - -C cdk.out . | pigz > cf_$ARCHIVE_NAME; else tar -czf cf_$ARCHIVE_NAME -C cdk.out .; fi;
+                          else
+                            touch full-synth-false.txt;
+                          fi
+                          if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
+                            CDK_OPTIONS=deploy yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                " --region ",
+                {
+                  "Ref": "AWS::Region",
                 },
                 "REPLACED-JSON-PATH.json",
                 {
@@ -5455,7 +5472,8 @@ phases:
                         cd rawDiff;
                         aws s3 sync "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/" .;
                         for file in ./*.tgz; do if command -v pigz &>/dev/null; then pigz -dc "$file" | tar xf - -C .; else tar -xf "$file" -C .; fi; done;
-                        for file in ./*.diff; do cat "$file"; done;
+                        for file in ./*.diff; do cat "$file"; echo; done;
+                        for file in ./*.module.diff; do cat "$file"; done;
                         cd $WORK_DIR;
                         yarn run ts-node --cwdMode --transpile-only generate-diff-viewer-cli.ts rawDiff diff-viewer.html;
                         aws s3 cp diff-viewer.html "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/diff-viewer.html";
@@ -5482,6 +5500,22 @@ phases:
                             yarn run ts-node --transpile-only cdk.ts $CDK_OPTIONS --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
+                },
+                ";
+                          fi
+                          if [ $FULL_SYNTH = "true" ]; then
+                            set -e && if command -v pigz &>/dev/null; then tar cf - -C cdk.out . | pigz > cf_$ARCHIVE_NAME; else tar -czf cf_$ARCHIVE_NAME -C cdk.out .; fi;
+                          else
+                            touch full-synth-false.txt;
+                          fi
+                          if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
+                            CDK_OPTIONS=deploy yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                " --region ",
+                {
+                  "Ref": "AWS::Region",
                 },
                 "REPLACED-JSON-PATH.json",
                 {
@@ -7996,7 +8030,8 @@ phases:
                         cd rawDiff;
                         aws s3 sync "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/" .;
                         for file in ./*.tgz; do if command -v pigz &>/dev/null; then pigz -dc "$file" | tar xf - -C .; else tar -xf "$file" -C .; fi; done;
-                        for file in ./*.diff; do cat "$file"; done;
+                        for file in ./*.diff; do cat "$file"; echo; done;
+                        for file in ./*.module.diff; do cat "$file"; done;
                         cd $WORK_DIR;
                         yarn run ts-node --cwdMode --transpile-only generate-diff-viewer-cli.ts rawDiff diff-viewer.html;
                         aws s3 cp diff-viewer.html "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/diff-viewer.html";
@@ -8023,6 +8058,22 @@ phases:
                             yarn run ts-node --transpile-only cdk.ts $CDK_OPTIONS --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
+                },
+                ";
+                          fi
+                          if [ $FULL_SYNTH = "true" ]; then
+                            set -e && if command -v pigz &>/dev/null; then tar cf - -C cdk.out . | pigz > cf_$ARCHIVE_NAME; else tar -czf cf_$ARCHIVE_NAME -C cdk.out .; fi;
+                          else
+                            touch full-synth-false.txt;
+                          fi
+                          if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
+                            CDK_OPTIONS=deploy yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                " --region ",
+                {
+                  "Ref": "AWS::Region",
                 },
                 "REPLACED-JSON-PATH.json",
                 {
@@ -10768,7 +10819,8 @@ phases:
                         cd rawDiff;
                         aws s3 sync "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/" .;
                         for file in ./*.tgz; do if command -v pigz &>/dev/null; then pigz -dc "$file" | tar xf - -C .; else tar -xf "$file" -C .; fi; done;
-                        for file in ./*.diff; do cat "$file"; done;
+                        for file in ./*.diff; do cat "$file"; echo; done;
+                        for file in ./*.module.diff; do cat "$file"; done;
                         cd $WORK_DIR;
                         yarn run ts-node --cwdMode --transpile-only generate-diff-viewer-cli.ts rawDiff diff-viewer.html;
                         aws s3 cp diff-viewer.html "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/diff-viewer.html";
@@ -10795,6 +10847,22 @@ phases:
                             yarn run ts-node --transpile-only cdk.ts $CDK_OPTIONS --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
+                },
+                ";
+                          fi
+                          if [ $FULL_SYNTH = "true" ]; then
+                            set -e && if command -v pigz &>/dev/null; then tar cf - -C cdk.out . | pigz > cf_$ARCHIVE_NAME; else tar -czf cf_$ARCHIVE_NAME -C cdk.out .; fi;
+                          else
+                            touch full-synth-false.txt;
+                          fi
+                          if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
+                            CDK_OPTIONS=deploy yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                " --region ",
+                {
+                  "Ref": "AWS::Region",
                 },
                 "REPLACED-JSON-PATH.json",
                 {
@@ -13309,7 +13377,8 @@ phases:
                         cd rawDiff;
                         aws s3 sync "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/" .;
                         for file in ./*.tgz; do if command -v pigz &>/dev/null; then pigz -dc "$file" | tar xf - -C .; else tar -xf "$file" -C .; fi; done;
-                        for file in ./*.diff; do cat "$file"; done;
+                        for file in ./*.diff; do cat "$file"; echo; done;
+                        for file in ./*.module.diff; do cat "$file"; done;
                         cd $WORK_DIR;
                         yarn run ts-node --cwdMode --transpile-only generate-diff-viewer-cli.ts rawDiff diff-viewer.html;
                         aws s3 cp diff-viewer.html "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/diff-viewer.html";
@@ -13336,6 +13405,22 @@ phases:
                             yarn run ts-node --transpile-only cdk.ts $CDK_OPTIONS --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
+                },
+                ";
+                          fi
+                          if [ $FULL_SYNTH = "true" ]; then
+                            set -e && if command -v pigz &>/dev/null; then tar cf - -C cdk.out . | pigz > cf_$ARCHIVE_NAME; else tar -czf cf_$ARCHIVE_NAME -C cdk.out .; fi;
+                          else
+                            touch full-synth-false.txt;
+                          fi
+                          if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
+                            CDK_OPTIONS=deploy yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                " --region ",
+                {
+                  "Ref": "AWS::Region",
                 },
                 "REPLACED-JSON-PATH.json",
                 {
