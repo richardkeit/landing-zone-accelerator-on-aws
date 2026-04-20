@@ -16,6 +16,7 @@ import { describe, beforeEach, afterEach, expect, test, it, vi } from 'vitest';
 import { handler } from '../index';
 import {
   AuditManagerClient,
+  AccessDeniedException,
   AccountStatus,
   GetAccountStatusCommand,
   GetOrganizationAdminAccountCommand,
@@ -552,5 +553,104 @@ describe('enable-organization-admin-account', () => {
       Status: 'Success',
       StatusCode: 200,
     });
+  });
+
+  test('should return success when Audit Manager is not available in the region (AccessDeniedException)', async () => {
+    // When - Audit Manager is not available in the region, GetAccountStatus throws AccessDeniedException
+    const accessDeniedError = new AccessDeniedException({
+      message: 'AWS Audit Manager is not available in this region',
+      $metadata: {},
+    });
+
+    (AuditManagerClient as any).mockImplementation(() => ({
+      send: vi.fn().mockImplementation(command => {
+        if (command instanceof GetAccountStatusCommand) {
+          return Promise.reject(accessDeniedError);
+        }
+        return Promise.resolve({});
+      }),
+    }));
+
+    // Execute
+    const response = await handler(mockEvent);
+
+    // Verify - should gracefully return success, not throw/timeout
+    expect(response).toEqual({
+      Status: 'Success',
+      StatusCode: 200,
+    });
+  });
+
+  test('should return success when Audit Manager throws AccessDeniedException on Update', async () => {
+    // When - same scenario but on Update event
+    mockEvent.RequestType = 'Update';
+
+    const accessDeniedError = new AccessDeniedException({
+      message: 'AWS Audit Manager is not available in this region',
+      $metadata: {},
+    });
+
+    (AuditManagerClient as any).mockImplementation(() => ({
+      send: vi.fn().mockImplementation(command => {
+        if (command instanceof GetAccountStatusCommand) {
+          return Promise.reject(accessDeniedError);
+        }
+        return Promise.resolve({});
+      }),
+    }));
+
+    // Execute
+    const response = await handler(mockEvent);
+
+    // Verify
+    expect(response).toEqual({
+      Status: 'Success',
+      StatusCode: 200,
+    });
+  });
+
+  test('should return success when Audit Manager throws AccessDeniedException on Delete', async () => {
+    // When - service unavailable during a Delete event
+    mockEvent.RequestType = 'Delete';
+
+    const accessDeniedError = new AccessDeniedException({
+      message: 'AWS Audit Manager is not available in this region',
+      $metadata: {},
+    });
+
+    (AuditManagerClient as any).mockImplementation(() => ({
+      send: vi.fn().mockImplementation(command => {
+        if (command instanceof GetAccountStatusCommand) {
+          return Promise.reject(accessDeniedError);
+        }
+        return Promise.resolve({});
+      }),
+    }));
+
+    // Execute
+    const response = await handler(mockEvent);
+
+    // Verify
+    expect(response).toEqual({
+      Status: 'Success',
+      StatusCode: 200,
+    });
+  });
+
+  test('should rethrow non-AccessDeniedException errors from GetAccountStatus', async () => {
+    // When - a different error occurs (not service unavailability)
+    const internalError = new Error('Internal server error');
+
+    (AuditManagerClient as any).mockImplementation(() => ({
+      send: vi.fn().mockImplementation(command => {
+        if (command instanceof GetAccountStatusCommand) {
+          return Promise.reject(internalError);
+        }
+        return Promise.resolve({});
+      }),
+    }));
+
+    // Execute & Verify - should throw for non-AccessDeniedException errors
+    await expect(handler(mockEvent)).rejects.toThrow('Internal server error');
   });
 });

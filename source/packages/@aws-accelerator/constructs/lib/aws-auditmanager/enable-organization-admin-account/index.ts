@@ -13,6 +13,7 @@
 
 import {
   AccountStatus,
+  AccessDeniedException,
   AuditManagerClient,
   DeregisterOrganizationAdminAccountCommand,
   GetAccountStatusCommand,
@@ -61,6 +62,13 @@ export async function handler(event: CloudFormationCustomResourceEvent): Promise
   });
 
   const auditManagerEnabled = await isAuditManagerEnabled(client);
+
+  // If Audit Manager is not available in this region, skip all operations
+  if (auditManagerEnabled === null) {
+    console.log(`Audit Manager is not available in ${region}, skipping configuration`);
+    return { Status: 'Success', StatusCode: 200 };
+  }
+
   const existingAdminAccountId = await getOrganizationAdminAccountId(client, auditManagerEnabled);
 
   switch (event.RequestType) {
@@ -111,17 +119,25 @@ async function getOrganizationAdminAccountId(
 /**
  * Function to check if Audit Manager is enabled
  * @param client {@link AuditManagerClient}
- * @returns status boolean
+ * @returns status boolean, or null if the service is not available in the region
  */
-async function isAuditManagerEnabled(client: AuditManagerClient): Promise<boolean> {
-  const response = await throttlingBackOff(() => client.send(new GetAccountStatusCommand({})));
-  console.log(response);
-  const status = response.status;
+async function isAuditManagerEnabled(client: AuditManagerClient): Promise<boolean | null> {
+  try {
+    const response = await throttlingBackOff(() => client.send(new GetAccountStatusCommand({})));
+    console.log(response);
+    const status = response.status;
 
-  if (status === AccountStatus.INACTIVE) {
-    return false;
+    if (status === AccountStatus.INACTIVE) {
+      return false;
+    }
+    return true;
+  } catch (e: unknown) {
+    if (e instanceof AccessDeniedException) {
+      console.warn(`Audit Manager is not available in this region or access is denied: ${e.name}: ${e.message}`);
+      return null;
+    }
+    throw e;
   }
-  return true;
 }
 
 /**
