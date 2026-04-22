@@ -741,6 +741,16 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 1`] = `
     },
     "GitHubPipelineRole6F4DEF1B": {
       "Condition": "UseGitHubCondition",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-IAM5",
+              "reason": "IAM role requires wildcard permissions.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -4697,6 +4707,16 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 2`] = `
     },
     "GitHubPipelineRole6F4DEF1B": {
       "Condition": "UseGitHubCondition",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-IAM5",
+              "reason": "IAM role requires wildcard permissions.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -8674,6 +8694,16 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 3`] = `
     },
     "GitHubPipelineRole6F4DEF1B": {
       "Condition": "UseGitHubCondition",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-IAM5",
+              "reason": "IAM role requires wildcard permissions.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -12669,6 +12699,16 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 4`] = `
     },
     "GitHubPipelineRole6F4DEF1B": {
       "Condition": "UseGitHubCondition",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-IAM5",
+              "reason": "IAM role requires wildcard permissions.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -16654,6 +16694,16 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 5`] = `
     },
     "GitHubPipelineRole6F4DEF1B": {
       "Condition": "UseGitHubCondition",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-IAM5",
+              "reason": "IAM role requires wildcard permissions.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -20625,6 +20675,16 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 6`] = `
     },
     "GitHubPipelineRole6F4DEF1B": {
       "Condition": "UseGitHubCondition",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-IAM5",
+              "reason": "IAM role requires wildcard permissions.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -24614,6 +24674,16 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 7`] = `
     },
     "GitHubPipelineRole6F4DEF1B": {
       "Condition": "UseGitHubCondition",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-IAM5",
+              "reason": "IAM role requires wildcard permissions.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -28985,6 +29055,16 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 8`] = `
     },
     "GitHubPipelineRole6F4DEF1B": {
       "Condition": "UseGitHubCondition",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-IAM5",
+              "reason": "IAM role requires wildcard permissions.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -33387,6 +33467,16 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 9`] = `
     },
     "GitHubPipelineRole6F4DEF1B": {
       "Condition": "UseGitHubCondition",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-IAM5",
+              "reason": "IAM role requires wildcard permissions.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
