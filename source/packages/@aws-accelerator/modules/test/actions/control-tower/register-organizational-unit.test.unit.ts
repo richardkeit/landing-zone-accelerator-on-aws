@@ -26,6 +26,9 @@ import { AccountsConfig, OrganizationConfig } from '@aws-accelerator/config';
 import * as awsLza from '../../../../../@aws-lza/index';
 
 import { SSMClient } from '@aws-sdk/client-ssm';
+import { STSClient } from '@aws-sdk/client-sts';
+import { ServiceCatalogClient } from '@aws-sdk/client-service-catalog';
+import * as serviceCatalogModule from '@aws-sdk/client-service-catalog';
 
 // Mock SSM Client
 vi.mock('@aws-sdk/client-ssm', () => ({
@@ -34,6 +37,34 @@ vi.mock('@aws-sdk/client-ssm', () => ({
   })),
   PutParameterCommand: vi.fn(),
 }));
+
+// Mock STS Client
+vi.mock('@aws-sdk/client-sts', () => ({
+  STSClient: vi.fn().mockImplementation(() => ({
+    send: vi.fn().mockResolvedValue({ Arn: 'arn:aws:sts::123456789012:assumed-role/MockRole/session' }),
+  })),
+  GetCallerIdentityCommand: vi.fn(),
+}));
+
+// Mock Service Catalog Client
+vi.mock('@aws-sdk/client-service-catalog', async importOriginal => {
+  const original = await importOriginal<typeof serviceCatalogModule>();
+  return {
+    ...original,
+    ServiceCatalogClient: vi.fn().mockImplementation(() => ({
+      send: vi.fn().mockResolvedValue({}),
+    })),
+    paginateListPortfolios: vi.fn().mockImplementation(() => ({
+      async *[Symbol.asyncIterator]() {
+        yield {
+          PortfolioDetails: [{ Id: 'port-mock123', DisplayName: 'AWS Control Tower Account Factory Portfolio' }],
+        };
+      },
+    })),
+    AssociatePrincipalWithPortfolioCommand: vi.fn(),
+    PrincipalType: original.PrincipalType,
+  };
+});
 
 describe('RegisterOrganizationalUnitModule', () => {
   const unregisteredOrganizationalUnits = MOCK_CONSTANTS.configs.organizationConfig.organizationalUnits.filter(
@@ -53,6 +84,26 @@ describe('RegisterOrganizationalUnitModule', () => {
     (SSMClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
       send: vi.fn().mockResolvedValue({}),
     }));
+
+    // Re-establish STSClient mock after clearAllMocks
+    (STSClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      send: vi.fn().mockResolvedValue({ Arn: 'arn:aws:sts::123456789012:assumed-role/MockRole/session' }),
+    }));
+
+    // Re-establish ServiceCatalogClient mock after clearAllMocks
+    (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      send: vi.fn().mockResolvedValue({}),
+    }));
+    vi.mocked(serviceCatalogModule.paginateListPortfolios).mockImplementation(
+      () =>
+        ({
+          async *[Symbol.asyncIterator]() {
+            yield {
+              PortfolioDetails: [{ Id: 'port-mock123', DisplayName: 'AWS Control Tower Account Factory Portfolio' }],
+            };
+          },
+        }) as ReturnType<typeof serviceCatalogModule.paginateListPortfolios>,
+    );
 
     vi.spyOn(awsLza, 'registerOrganizationalUnit').mockResolvedValue(`Successful`);
     vi.spyOn(awsLza, 'getOrganizationalUnitsDetail').mockResolvedValue(MOCK_CONSTANTS.organizationUnitsDetail);
@@ -287,6 +338,92 @@ describe('RegisterOrganizationalUnitModule', () => {
       MOCK_CONSTANTS.credentials,
       { '/accelerator/control-tower/govern-regions-updated': 'false' },
     );
+  });
+
+  describe('associateCallerWithControlTowerPortfolio', () => {
+    const createParams = (): ModuleParams => ({
+      moduleItem: {
+        name: AcceleratorModules.REGISTER_ORGANIZATIONAL_UNIT,
+        description: '',
+        runOrder: 1,
+        handler: vi.fn().mockResolvedValue(`Module 1 of ${AcceleratorStage.ACCOUNTS} stage executed`),
+        executionPhase: ModuleExecutionPhase.DEPLOY,
+      },
+      runnerParameters: MOCK_CONSTANTS.runnerParameters,
+      moduleRunnerParameters: {
+        configs: {
+          ...MOCK_CONSTANTS.configs,
+          accountsConfig: mockAccountsConfig as AccountsConfig,
+          globalConfig: mockGlobalConfiguration,
+        },
+        globalRegion: MOCK_CONSTANTS.globalRegion,
+        resourcePrefixes: MOCK_CONSTANTS.resourcePrefixes,
+        acceleratorResourceNames: MOCK_CONSTANTS.acceleratorResourceNames,
+        logging: MOCK_CONSTANTS.logging,
+        organizationDetails: MOCK_CONSTANTS.organizationDetails,
+        organizationAccounts: MOCK_CONSTANTS.organizationAccounts,
+        managementAccountCredentials: MOCK_CONSTANTS.credentials,
+      },
+    });
+
+    test('should associate caller role with Control Tower portfolio on successful execution', async () => {
+      const mockScSend = vi.fn().mockResolvedValue({});
+      (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+        send: mockScSend,
+      }));
+
+      await RegisterOrganizationalUnitModule.execute(createParams());
+
+      expect(mockScSend).toHaveBeenCalledTimes(1);
+      expect(serviceCatalogModule.AssociatePrincipalWithPortfolioCommand).toHaveBeenCalledWith({
+        PortfolioId: 'port-mock123',
+        PrincipalARN: 'arn:mockPartition:iam::123456789012:role/MockRole',
+        PrincipalType: serviceCatalogModule.PrincipalType.IAM,
+      });
+    });
+
+    test('should skip association when portfolio is not found', async () => {
+      vi.mocked(serviceCatalogModule.paginateListPortfolios).mockImplementation(
+        () =>
+          ({
+            async *[Symbol.asyncIterator]() {
+              yield { PortfolioDetails: [] };
+            },
+          }) as ReturnType<typeof serviceCatalogModule.paginateListPortfolios>,
+      );
+
+      const mockScSend = vi.fn();
+      (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+        send: mockScSend,
+      }));
+
+      const response = await RegisterOrganizationalUnitModule.execute(createParams());
+
+      expect(mockScSend).not.toHaveBeenCalled();
+      expect(response).toContain('completed successfully');
+    });
+
+    test('should continue execution when association fails', async () => {
+      (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+        send: vi.fn().mockRejectedValue(new Error('Access denied')),
+      }));
+
+      const response = await RegisterOrganizationalUnitModule.execute(createParams());
+
+      expect(awsLza.registerOrganizationalUnit).toHaveBeenCalled();
+      expect(response).toContain('completed successfully');
+    });
+
+    test('should continue execution when caller identity fails', async () => {
+      (STSClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+        send: vi.fn().mockRejectedValue(new Error('STS error')),
+      }));
+
+      const response = await RegisterOrganizationalUnitModule.execute(createParams());
+
+      expect(awsLza.registerOrganizationalUnit).toHaveBeenCalled();
+      expect(response).toContain('completed successfully');
+    });
   });
 
   afterEach(() => {

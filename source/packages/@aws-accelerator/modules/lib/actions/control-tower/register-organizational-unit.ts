@@ -18,8 +18,17 @@ import {
   IRegisterOrganizationalUnitHandlerParameter,
   registerOrganizationalUnit,
   getParametersValue,
+  setRetryStrategy,
+  throttlingBackOff,
 } from '../../../../../@aws-lza/index';
+import {
+  ServiceCatalogClient,
+  paginateListPortfolios,
+  AssociatePrincipalWithPortfolioCommand,
+  PrincipalType,
+} from '@aws-sdk/client-service-catalog';
 import { SSMClient, PutParameterCommand } from '@aws-sdk/client-ssm';
+import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { ModuleParams } from '../../../models/types';
 
 const statusLogger = createStatusLogger([path.parse(path.basename(__filename)).name]);
@@ -39,6 +48,9 @@ export abstract class RegisterOrganizationalUnitModule {
     }
 
     statusLogger.info(`Executing "${params.moduleItem.name}" module.`);
+
+    // Associate current IAM role with Control Tower Account Factory portfolio (best-effort)
+    await RegisterOrganizationalUnitModule.associateCallerWithControlTowerPortfolio(params);
 
     // Get SSM parameter to check if governed regions were updated
     const governRegionsUpdatedParamName =
@@ -154,5 +166,87 @@ export abstract class RegisterOrganizationalUnitModule {
     }
 
     return `Module "${params.moduleItem.name}" completed successfully with status ${statuses.join('\n')}`;
+  }
+
+  /**
+   * Associate the current IAM role with the AWS Control Tower Account Factory portfolio.
+   *
+   * @remarks
+   * This is a best-effort operation. If the portfolio is not found or the association fails,
+   * a warning is logged and execution continues without throwing.
+   *
+   * @param params {@link ModuleParams}
+   */
+  private static async associateCallerWithControlTowerPortfolio(params: ModuleParams): Promise<void> {
+    try {
+      const homeRegion = params.moduleRunnerParameters.configs.globalConfig.homeRegion;
+      const credentials = params.moduleRunnerParameters.managementAccountCredentials;
+      const solutionId = params.runnerParameters.solutionId;
+
+      const stsClient = new STSClient({
+        region: homeRegion,
+        customUserAgent: solutionId,
+        retryStrategy: setRetryStrategy(),
+        credentials,
+      });
+
+      const serviceCatalogClient = new ServiceCatalogClient({
+        region: homeRegion,
+        customUserAgent: solutionId,
+        retryStrategy: setRetryStrategy(),
+        credentials,
+      });
+
+      const callerIdentity = await throttlingBackOff(() => stsClient.send(new GetCallerIdentityCommand({})));
+      const callerArn = callerIdentity.Arn;
+
+      if (!callerArn) {
+        statusLogger.warn('Unable to determine caller identity ARN, skipping Control Tower portfolio association.');
+        return;
+      }
+
+      // Convert assumed-role ARN to IAM role ARN
+      let roleArn = callerArn;
+      const assumedRoleMatch = callerArn.match(/^arn:[^:]+:sts::(\d+):assumed-role\/([^/]+)\/.+$/);
+      if (assumedRoleMatch) {
+        roleArn = `arn:${params.runnerParameters.partition}:iam::${assumedRoleMatch[1]}:role/${assumedRoleMatch[2]}`;
+      }
+
+      // Find the Control Tower Account Factory portfolio
+      let portfolioId: string | undefined;
+      const paginator = paginateListPortfolios({ client: serviceCatalogClient }, {});
+      for await (const page of paginator) {
+        const portfolio = (page.PortfolioDetails ?? []).find(
+          item => item.DisplayName === 'AWS Control Tower Account Factory Portfolio',
+        );
+        if (portfolio?.Id) {
+          portfolioId = portfolio.Id;
+          break;
+        }
+      }
+
+      if (!portfolioId) {
+        statusLogger.warn('AWS Control Tower Account Factory Portfolio not found, skipping portfolio association.');
+        return;
+      }
+
+      statusLogger.info(
+        `Associating IAM role "${roleArn}" with AWS Control Tower Account Factory Portfolio "${portfolioId}".`,
+      );
+      await throttlingBackOff(() =>
+        serviceCatalogClient.send(
+          new AssociatePrincipalWithPortfolioCommand({
+            PortfolioId: portfolioId,
+            PrincipalARN: roleArn,
+            PrincipalType: PrincipalType.IAM,
+          }),
+        ),
+      );
+      statusLogger.info(`Successfully associated IAM role "${roleArn}" with Control Tower Account Factory Portfolio.`);
+    } catch (error) {
+      statusLogger.warn(
+        `Failed to associate IAM role with Control Tower Account Factory Portfolio: ${error}. This is non-fatal, continuing execution anyway.`,
+      );
+    }
   }
 }
