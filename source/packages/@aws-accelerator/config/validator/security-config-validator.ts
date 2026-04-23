@@ -1114,13 +1114,13 @@ export class SecurityConfigValidator {
         }
         // Validate lookupType is a supported value and lookupKey is provided when required
         const lookupType = rule.customRule.triggeringResources.lookupType;
-        const validLookupTypes = ['ResourceId', 'Tag'];
+        const validLookupTypes = ['ResourceId', 'Tag', 'ResourceTypes'];
 
         if (!validLookupTypes.includes(lookupType)) {
           errors.push(
             `Custom rule: ${rule.name} has unsupported lookupType '${lookupType}'. Valid values are: ${validLookupTypes.join(', ')}`,
           );
-        } else if (!rule.customRule.triggeringResources.lookupKey) {
+        } else if (lookupType !== 'ResourceTypes' && !rule.customRule.triggeringResources.lookupKey) {
           errors.push(`Custom rule: ${rule.name} with lookupType '${lookupType}' requires a lookupKey value`);
         }
       }
