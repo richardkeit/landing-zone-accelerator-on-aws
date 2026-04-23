@@ -748,14 +748,14 @@ export class SecurityResourcesStack extends AcceleratorStack {
 
     if (rule.customRule.triggeringResources.lookupType == 'ResourceId') {
       ruleScope = cdk.aws_config.RuleScope.fromResource(
-        cdk.aws_config.ResourceType.of(rule.customRule.triggeringResources.lookupKey),
+        cdk.aws_config.ResourceType.of(rule.customRule.triggeringResources.lookupKey!),
         rule.customRule.triggeringResources.lookupValue[0],
       );
     }
 
     if (rule.customRule.triggeringResources.lookupType == 'Tag') {
       ruleScope = cdk.aws_config.RuleScope.fromTag(
-        rule.customRule.triggeringResources.lookupKey,
+        rule.customRule.triggeringResources.lookupKey!,
         rule.customRule.triggeringResources.lookupValue[0],
       );
     }

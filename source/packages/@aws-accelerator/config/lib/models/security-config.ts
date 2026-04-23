@@ -2597,7 +2597,6 @@ export interface ICustomRuleLambdaType {
  * ```
  * triggeringResources:
  *   lookupType: ResourceTypes
- *   lookupKey: ""
  *   lookupValue:
  *     - AWS::EC2::Instance
  *     - AWS::S3::Bucket
@@ -2616,8 +2615,11 @@ export interface ITriggeringResourceType {
   readonly lookupType: 'ResourceId' | 'Tag' | 'ResourceTypes' | string;
   /**
    * The lookup key used to identify resources based on the specified lookup type.
+   *
+   * @remarks
+   * This property is required when lookupType is `ResourceId` or `Tag`.
    */
-  readonly lookupKey: t.NonEmptyString;
+  readonly lookupKey?: t.NonEmptyString;
   /**
    * Array of values used to match resources based on the lookup type and key.
    */

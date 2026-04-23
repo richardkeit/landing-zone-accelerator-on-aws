@@ -486,7 +486,7 @@ export class CustomRuleLambda implements i.ICustomRuleLambdaType {
 
 export class TriggeringResource implements i.ITriggeringResourceType {
   readonly lookupType: string = 'ResourceId';
-  readonly lookupKey: t.NonEmptyString = '';
+  readonly lookupKey?: t.NonEmptyString = undefined;
   readonly lookupValue: t.NonEmptyString[] = [];
 }
 
