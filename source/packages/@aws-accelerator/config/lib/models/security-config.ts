@@ -3030,7 +3030,7 @@ export interface IAwsConfigRuleSet {
  * ```
  * aggregation:
  *   enable: true
- *   delegatedAdminAccount: LogArchive
+ *   delegatedAdminAccount: Audit
  * ```
  * AWS Config Aggregation in the management account:
  * ```
@@ -3078,7 +3078,7 @@ export interface IAwsConfigAggregation {
  *   useServiceLinkedRole: true
  *   aggregation:
  *     enable: true
- *     delegatedAdminAccount: LogArchive
+ *     delegatedAdminAccount: Audit
  *   ruleSets:
  *     - deploymentTargets:
  *         organizationalUnits:
