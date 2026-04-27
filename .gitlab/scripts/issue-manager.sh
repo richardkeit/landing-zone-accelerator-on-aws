@@ -17,6 +17,22 @@ gitlab_api() {
   echo "$response"
 }
 
+add_scan_comment() {
+  local issue_iid=$1 pkg=$2 versions=$3 fixed_ver=$4 severity=$5 suffix=${6:+" $6"}
+
+  local body="Still present in daily vulnerability scan on **${SCAN_DATE}**${suffix}
+
+- Package: \`${pkg}\`
+- Affected Versions: \`${versions}\`
+- Fixed Version: \`${fixed_ver}\`
+- Severity: **${severity}**"
+
+  gitlab_api --request POST \
+    --header "Content-Type: application/json" \
+    --data "$(jq -n --arg body "$body" '{body: $body}')" \
+    "${GITLAB_API}/issues/${issue_iid}/notes" > /dev/null
+}
+
 VULN_ASSIGNEE="${VULN_ASSIGNEE:?VULN_ASSIGNEE CI variable must be set}"
 ASSIGNEE_ID=$(gitlab_api \
   "${GITLAB_API}/members/all?query=${VULN_ASSIGNEE}" | jq -r --arg u "$VULN_ASSIGNEE" '.[] | select(.username == $u) | .id // empty' | head -1)
@@ -66,19 +82,7 @@ jq -c '.[]' "$FINDINGS_FILE" | while read -r vuln; do
 
   if [ -n "$EXISTING_ISSUE" ]; then
     echo "  Found existing issue #$EXISTING_ISSUE, adding comment..."
-
-    COMMENT_BODY="Still present in daily vulnerability scan on **${SCAN_DATE}**
-
-- Package: \`${PKG_NAME}\`
-- Affected Versions: \`${VERSIONS}\`
-- Fixed Version: \`${FIXED_VER}\`
-- Severity: **${SEVERITY}**"
-
-    gitlab_api --request POST \
-      --header "Content-Type: application/json" \
-      --data "$(jq -n --arg body "$COMMENT_BODY" '{body: $body}')" \
-      "${GITLAB_API}/issues/${EXISTING_ISSUE}/notes" > /dev/null
-
+    add_scan_comment "$EXISTING_ISSUE" "$PKG_NAME" "$VERSIONS" "$FIXED_VER" "$SEVERITY"
     echo "  Updated issue #$EXISTING_ISSUE"
   else
     echo "  Creating new issue..."
@@ -145,7 +149,9 @@ if [ -f "$MASKED_FILE" ] && [ "$(jq 'length' "$MASKED_FILE")" -gt 0 ]; then
     fi
 
     if [ -n "$EXISTING_ISSUE" ]; then
-      echo "  Found existing issue #$EXISTING_ISSUE, skipping"
+      echo "  Found existing issue #$EXISTING_ISSUE, adding comment..."
+      add_scan_comment "$EXISTING_ISSUE" "$PKG_NAME" "$VERSIONS" "$FIXED_VER" "$SEVERITY" "(masked by yarn resolution)"
+      echo "  Updated issue #$EXISTING_ISSUE"
     else
       echo "  Creating masked vulnerability issue..."
       CLEAN_TITLE=$(echo "$TITLE" | sed "s/^${PKG_NAME}: //g; s/^${PKG_NAME}: //g")
