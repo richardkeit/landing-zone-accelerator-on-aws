@@ -15,6 +15,7 @@ import type { AwsCredentialIdentity, AwsCredentialIdentityProvider } from '@smit
 import * as winston from 'winston';
 import { setRetryStrategy } from './common-functions';
 import { createLogger } from './logger';
+import { isThrottlingError } from './throttle';
 
 /**
  * Options for the SDK logging middleware.
@@ -129,8 +130,10 @@ export class AwsClientFactory {
   /**
    * Build the SDK logging middleware function.
    *
-   * Success is logged at `info`, failure at `error`. Both include
-   * client name, command name, request ID, duration, and request input.
+   * Success is logged at `info`, retryable/throttling failures at `warn`
+   * (they're expected at scale and handled by the retry strategy),
+   * and non-retryable failures at `error`. All include client name,
+   * command name, request ID, duration, and request input.
    */
 
   private static createLoggingMiddleware(_client: unknown, options: LoggingMiddlewareOptions) {
@@ -156,8 +159,9 @@ export class AwsClientFactory {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const errorRequestId = (error as any)?.$metadata?.requestId || requestId || 'no-request-id';
         const meta = [...loggingContext, ...baseMetadata, errorRequestId].join(' | ');
+        const level = isThrottlingError(error) ? 'warn' : 'error';
 
-        logger.error(`${meta} | Error | ${duration}ms | ${error} | Request: ${requestInput}`);
+        logger[level](`${meta} | Error | ${duration}ms | ${error} | Request: ${requestInput}`);
         throw error;
       }
     };

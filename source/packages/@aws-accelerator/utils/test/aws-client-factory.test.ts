@@ -303,5 +303,92 @@ describe('AwsClientFactory', () => {
       const logMessage = mockLogger.info.mock.calls[0][0] as string;
       expect(logMessage).toContain('fallback-id');
     });
+
+    it('should log throttling errors at warn level (SDKv3 name field)', async () => {
+      const client = AwsClientFactory.create(FakeClient);
+
+      const loggingEntry = client.middlewareStack.handlers[0];
+      const throttleError = Object.assign(new Error('Rate exceeded'), {
+        name: 'TooManyRequestsException',
+      });
+      const mockNext = vi.fn().mockRejectedValue(throttleError);
+      const context = {
+        clientName: 'OrganizationsClient',
+        commandName: 'ListOrganizationalUnitsForParentCommand',
+        requestId: 'req-throttle-1',
+      };
+
+      const handler = invokeMiddleware(loggingEntry, mockNext, context);
+      await expect(handler({ input: { ParentId: 'ou-1234' } })).rejects.toThrow('Rate exceeded');
+
+      expect(mockLogger.warn).toHaveBeenCalledTimes(1);
+      expect(mockLogger.error).not.toHaveBeenCalled();
+      const logMessage = mockLogger.warn.mock.calls[0][0] as string;
+      expect(logMessage).toContain('OrganizationsClient');
+      expect(logMessage).toContain('ListOrganizationalUnitsForParentCommand');
+      expect(logMessage).toContain('Error');
+    });
+
+    it('should log throttling errors at warn level (SDKv2 code field)', async () => {
+      const client = AwsClientFactory.create(FakeClient);
+
+      const loggingEntry = client.middlewareStack.handlers[0];
+      const throttleError = Object.assign(new Error('Throttling'), {
+        code: 'ThrottlingException',
+      });
+      const mockNext = vi.fn().mockRejectedValue(throttleError);
+      const context = { clientName: 'EC2Client', commandName: 'DescribeInstancesCommand', requestId: 'req-throttle-2' };
+
+      const handler = invokeMiddleware(loggingEntry, mockNext, context);
+      await expect(handler({ input: {} })).rejects.toThrow('Throttling');
+
+      expect(mockLogger.warn).toHaveBeenCalledTimes(1);
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    it('should log transient network errors at warn level', async () => {
+      const client = AwsClientFactory.create(FakeClient);
+
+      const loggingEntry = client.middlewareStack.handlers[0];
+      const networkError = Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
+      const mockNext = vi.fn().mockRejectedValue(networkError);
+      const context = { clientName: 'S3Client', commandName: 'GetObjectCommand', requestId: 'req-network-1' };
+
+      const handler = invokeMiddleware(loggingEntry, mockNext, context);
+      await expect(handler({ input: { Key: 'file.txt' } })).rejects.toThrow('socket hang up');
+
+      expect(mockLogger.warn).toHaveBeenCalledTimes(1);
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    it('should log retryable: true errors at warn level', async () => {
+      const client = AwsClientFactory.create(FakeClient);
+
+      const loggingEntry = client.middlewareStack.handlers[0];
+      const retryableError = Object.assign(new Error('internal'), { retryable: true });
+      const mockNext = vi.fn().mockRejectedValue(retryableError);
+      const context = { clientName: 'CFNClient', commandName: 'UpdateStackCommand', requestId: 'req-retryable' };
+
+      const handler = invokeMiddleware(loggingEntry, mockNext, context);
+      await expect(handler({ input: {} })).rejects.toThrow('internal');
+
+      expect(mockLogger.warn).toHaveBeenCalledTimes(1);
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    it('should log non-retryable errors at error level (not warn)', async () => {
+      const client = AwsClientFactory.create(FakeClient);
+
+      const loggingEntry = client.middlewareStack.handlers[0];
+      const nonRetryableError = Object.assign(new Error('Access Denied'), { name: 'AccessDeniedException' });
+      const mockNext = vi.fn().mockRejectedValue(nonRetryableError);
+      const context = { clientName: 'S3Client', commandName: 'GetObjectCommand', requestId: 'req-denied' };
+
+      const handler = invokeMiddleware(loggingEntry, mockNext, context);
+      await expect(handler({ input: { Key: 'secret.txt' } })).rejects.toThrow('Access Denied');
+
+      expect(mockLogger.error).toHaveBeenCalledTimes(1);
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
   });
 });
