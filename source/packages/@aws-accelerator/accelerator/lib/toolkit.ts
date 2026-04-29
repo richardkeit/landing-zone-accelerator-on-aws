@@ -20,10 +20,13 @@ import { cdkOptionsConfig, GlobalConfig } from '@aws-accelerator/config';
 import { createCdkApp } from './app-lib';
 import {
   createLogger,
+  flushFileTransports,
   getCloudFormationTemplate,
   getAllFilesInPattern,
   checkDiffFiles,
   printStackDiff,
+  CachingCredentialProvider,
+  getCurrentAccountId,
 } from '@aws-accelerator/utils';
 
 import { AcceleratorStackNames } from './accelerator';
@@ -43,12 +46,13 @@ import {
   ToolkitError,
 } from '@aws-cdk/toolkit-lib';
 import { SDKv3CompatibleCredentialProvider } from '@aws-cdk/cli-plugin-contract';
-import { fromNodeProviderChain, fromTemporaryCredentials } from '@aws-sdk/credential-providers';
-import { setRetryStrategy, getGlobalRegion } from '@aws-accelerator/utils/lib/common-functions';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { getGlobalRegion } from '@aws-accelerator/utils/lib/common-functions';
 
 const logger = createLogger(['toolkit']);
-process.on('unhandledRejection', err => {
+process.on('unhandledRejection', async err => {
   logger.error(err);
+  await flushFileTransports();
   throw new Error('Runtime Error');
 });
 
@@ -203,6 +207,7 @@ export class AcceleratorToolkit {
     AcceleratorToolkit.validateOptions(options);
 
     logger.info(`Starting CDK toolkit execution`);
+    const startTime = Date.now();
     //
     const toolkitStackName = `${options.stackPrefix}-CDKToolkit`;
     const cli = await this.getCdkToolKit(options, toolkitStackName);
@@ -227,6 +232,11 @@ export class AcceleratorToolkit {
         logger.error(`Unsupported command: ${options.command}`);
         throw new Error(`Unsupported command: ${options.command}`);
     }
+
+    const elapsedMs = Date.now() - startTime;
+    const minutes = Math.floor(elapsedMs / 60000);
+    const seconds = ((elapsedMs % 60000) / 1000).toFixed(1);
+    logger.info(`CDK toolkit ${options.command} completed in ${minutes}m ${seconds}s`);
   }
 
   /**
@@ -405,12 +415,14 @@ export class AcceleratorToolkit {
    */
   private static async diffStacks(options: AcceleratorToolkitProps) {
     const stackName = await AcceleratorToolkit.getStackNames(options);
+    logger.debug(`Starting diff for ${stackName.length} stack(s): ${stackName.join(', ')}`);
 
     const diffPromises: Promise<void>[] = [];
     for (const stack of stackName) {
       diffPromises.push(AcceleratorToolkit.runDiffStackCli(options, stack));
     }
     await Promise.all(diffPromises);
+    logger.debug(`Diff complete for account ${options.accountId} region ${options.region}`);
   }
   /**
    * Function to get stack names for bootstrapping
@@ -532,9 +544,22 @@ export class AcceleratorToolkit {
     logger.info('End Accelerator CDK App');
   }
 
-  private static async getCdkToolKit(options: AcceleratorToolkitProps, toolkitStackName: string) {
-    logger.debug(`Getting toolkit for command ${options.command}`);
-    const agentOptions: https.AgentOptions = {};
+  /**
+   * Shared HTTPS agent across all CDK Toolkit instances.
+   * Created once on first use, reused for all subsequent stacks
+   * to share a single connection pool.
+   */
+  private static sharedAgent: https.Agent | undefined;
+
+  private static getSharedAgent(options: AcceleratorToolkitProps): https.Agent {
+    if (AcceleratorToolkit.sharedAgent) {
+      return AcceleratorToolkit.sharedAgent;
+    }
+
+    const agentOptions: https.AgentOptions = {
+      maxSockets: Number(process.env['SHARED_HTTPS_AGENT_MAX_SOCKETS'] ?? 200),
+      keepAlive: true,
+    };
 
     // Add CA bundle if provided
     if (options.caBundlePath) {
@@ -547,6 +572,13 @@ export class AcceleratorToolkit {
       agentOptions.host = proxyUrl.hostname;
       agentOptions.port = parseInt(proxyUrl.port);
     }
+
+    AcceleratorToolkit.sharedAgent = new https.Agent(agentOptions);
+    return AcceleratorToolkit.sharedAgent;
+  }
+
+  private static async getCdkToolKit(options: AcceleratorToolkitProps, toolkitStackName: string) {
+    logger.debug(`Getting toolkit for command ${options.command}`);
 
     const accountPrefix = options.accountId ?? '';
 
@@ -579,7 +611,7 @@ export class AcceleratorToolkit {
       ioHost,
       sdkConfig: {
         httpOptions: {
-          agent: new https.Agent(agentOptions),
+          agent: AcceleratorToolkit.getSharedAgent(options),
         },
         baseCredentials: BaseCredentials.custom({
           provider: await sdkProvider(
@@ -642,12 +674,16 @@ export class AcceleratorToolkit {
       stacksInFolder = stacksInFolder.filter(stackInFolder => stackInFolder.includes(stack));
     }
     const roleName = GlobalConfig.loadRawGlobalConfig(options.configDirPath!).managementAccountAccessRole;
+    logger.debug(`Found ${stacksInFolder.length} template(s) in ${savePath} for stack ${stack}`);
 
-    for (const eachStack of stacksInFolder) {
-      logger.debug(
-        `Running diff for stack ${eachStack} in stage ${options.stage} for account ${options.accountId} in region ${options.region}`,
-      );
-      await getCloudFormationTemplate(
+    // Resolve current account identity once for all stacks in this account/region
+    const stsClient = CachingCredentialProvider.get().getStsClient(options.region!);
+    const currentAccountId = await getCurrentAccountId(options.partition!, options.region!, stsClient);
+
+    // Fetch all templates in parallel
+    const fetchPromises = stacksInFolder.map(eachStack => {
+      logger.debug(`Fetching CloudFormation template for ${eachStack}`);
+      return getCloudFormationTemplate(
         options.accountId!,
         options.region!,
         options.partition!,
@@ -655,7 +691,15 @@ export class AcceleratorToolkit {
         eachStack,
         savePath,
         roleName,
+        currentAccountId,
       );
+    });
+    await Promise.all(fetchPromises);
+    logger.debug(`All templates fetched for ${stack}, computing diffs`);
+
+    // Compute diffs (CPU-bound, run sequentially to avoid memory spikes)
+    for (const eachStack of stacksInFolder) {
+      logger.debug(`Computing diff for ${eachStack}`);
       const stream = fs.createWriteStream(path.join(savePath, `${eachStack}.diff`), { flags: 'w' });
       await stream.write(`\nStack: ${eachStack} \n`);
       await printStackDiff(
@@ -668,9 +712,11 @@ export class AcceleratorToolkit {
         stream,
       );
       await stream.close();
+      logger.debug(`Diff written for ${eachStack}`);
     }
     // Customizations stack will evaluate on a per stack basis, so no need to check the diff files on this stage.
     if (options.stage !== AcceleratorStage.CUSTOMIZATIONS) {
+      logger.debug(`Checking diff files in ${savePath}`);
       await checkDiffFiles(savePath, '.template.json', '.diff');
     }
   }
@@ -754,24 +800,12 @@ async function sdkProvider(
     logger.debug(
       `Using chained temporary credentials for external deployment: Management Account ${process.env['MANAGEMENT_ACCOUNT_ID']} -> Target Account ${accountId} with role ${assumeRoleName}`,
     );
-    return fromTemporaryCredentials({
-      params: {
-        RoleArn: `arn:${partition}:iam::${accountId}:role/${assumeRoleName}`,
-        RoleSessionName: 'cdk-toolkit-session',
-      },
-      clientConfig: { retryStrategy: setRetryStrategy(), region: region ?? getGlobalRegion(partition) },
-    });
+    return CachingCredentialProvider.get().forRole(accountId, assumeRoleName!, region ?? getGlobalRegion(partition));
   } else if (isManagementAccount || !assumeRoleName || !accountId) {
     logger.debug(`Using environment credentials`);
     return fromNodeProviderChain();
   }
   // this is non-management account of regular deployment
   logger.debug(`Using temporary credentials for account ${accountId} with role ${assumeRoleName}`);
-  return fromTemporaryCredentials({
-    params: {
-      RoleArn: `arn:${partition}:iam::${accountId}:role/${assumeRoleName}`,
-      RoleSessionName: 'lza-session',
-    },
-    clientConfig: { retryStrategy: setRetryStrategy(), region: region ?? getGlobalRegion(partition) },
-  });
+  return CachingCredentialProvider.get().forRole(accountId, assumeRoleName!, region ?? getGlobalRegion(partition));
 }

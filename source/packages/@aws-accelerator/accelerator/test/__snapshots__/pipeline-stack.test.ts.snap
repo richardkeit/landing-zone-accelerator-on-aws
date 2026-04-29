@@ -2421,6 +2421,7 @@ phases:
       nodejs: 22
   pre_build:
     commands:
+      - ulimit -n 65535
       - "export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
 
         \\               export ARCHIVE_NAME=\\"\${ACCELERATOR_STAGE}.tgz\\"
@@ -5430,6 +5431,7 @@ phases:
       nodejs: 22
   pre_build:
     commands:
+      - ulimit -n 65535
       - "export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
 
         \\               export ARCHIVE_NAME=\\"\${ACCELERATOR_STAGE}.tgz\\"
@@ -7985,6 +7987,7 @@ phases:
       nodejs: 22
   pre_build:
     commands:
+      - ulimit -n 65535
       - "export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
 
         \\               export ARCHIVE_NAME=\\"\${ACCELERATOR_STAGE}.tgz\\"
@@ -10771,6 +10774,7 @@ phases:
       nodejs: 22
   pre_build:
     commands:
+      - ulimit -n 65535
       - "export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
 
         \\               export ARCHIVE_NAME=\\"\${ACCELERATOR_STAGE}.tgz\\"
@@ -13326,6 +13330,7 @@ phases:
       nodejs: 22
   pre_build:
     commands:
+      - ulimit -n 65535
       - "export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
 
         \\               export ARCHIVE_NAME=\\"\${ACCELERATOR_STAGE}.tgz\\"

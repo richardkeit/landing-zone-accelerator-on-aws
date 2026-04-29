@@ -64,15 +64,17 @@ export async function getCrossAccountCredentials(
   }
 }
 
-export async function getCurrentAccountId(partition: string, region: string): Promise<string> {
-  logger.debug(
-    `Sts endpoint for partition ${partition} and region ${region} is : ${getStsEndpoint(partition, region)}`,
-  );
-  const stsClient = new STSClient({
-    region,
-    retryStrategy: setRetryStrategy(),
-    endpoint: getStsEndpoint(partition, region),
-  });
+export async function getCurrentAccountId(partition: string, region: string, stsClient?: STSClient): Promise<string> {
+  if (!stsClient) {
+    logger.debug(
+      `Sts endpoint for partition ${partition} and region ${region} is : ${getStsEndpoint(partition, region)}`,
+    );
+    stsClient = new STSClient({
+      region,
+      retryStrategy: setRetryStrategy(),
+      endpoint: getStsEndpoint(partition, region),
+    });
+  }
   try {
     const response = await throttlingBackOff(() => stsClient.send(new GetCallerIdentityCommand({})));
     logger.debug(`Current account id is ${response.Account!}`);

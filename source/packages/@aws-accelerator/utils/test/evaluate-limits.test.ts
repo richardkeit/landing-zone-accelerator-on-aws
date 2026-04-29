@@ -15,6 +15,7 @@ import { mockClient, AwsClientStub } from 'aws-sdk-client-mock';
 import { STSClient, AssumeRoleCommand, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 import { GetServiceQuotaCommand, ServiceQuotasClient } from '@aws-sdk/client-service-quotas';
 import { evaluateLimits } from '../lib/evaluate-limits';
+import { CachingCredentialProvider } from '../lib/caching-credential-provider';
 
 let stsMock: AwsClientStub<STSClient>;
 let serviceQuotasMock: AwsClientStub<ServiceQuotasClient>;
@@ -22,10 +23,25 @@ let serviceQuotasMock: AwsClientStub<ServiceQuotasClient>;
 beforeEach(() => {
   stsMock = mockClient(STSClient);
   serviceQuotasMock = mockClient(ServiceQuotasClient);
+  // Initialize the caching credential provider for cross-account tests
+  try {
+    CachingCredentialProvider.get().shutdown();
+  } catch {
+    // Not initialized yet
+  }
+  CachingCredentialProvider.init({
+    partition: 'aws',
+    regions: ['us-east-1'],
+  });
 });
 afterEach(() => {
   stsMock.reset();
   serviceQuotasMock.reset();
+  try {
+    CachingCredentialProvider.get().shutdown();
+  } catch {
+    // Already shut down
+  }
 });
 
 test('evaluateLimits everything works in same account', async () => {

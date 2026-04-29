@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { Accelerator, AcceleratorProps, getCentralLogBucketKmsKeyArn, shouldLookupDynamoDb } from '../lib/accelerator';
 import { AcceleratorStage } from '../lib/accelerator-stage';
 import { AcceleratorToolkit, AcceleratorToolkitProps } from '../lib/toolkit';
+import { CachingCredentialProvider } from '@aws-accelerator/utils';
 
 let stsMock: AwsClientStub<STSClient>;
 let ssmMock: AwsClientStub<SSMClient>;
@@ -108,10 +109,12 @@ const runPropsTemplate: AcceleratorToolkitProps = {
 
 describe('getCentralLogBucketKmsKeyArn', () => {
   beforeEach(() => {
+    CachingCredentialProvider.init({ partition: 'aws', regions: ['us-east-1'] });
     stsMock = mockClient(STSClient);
     ssmMock = mockClient(SSMClient);
   });
   afterEach(() => {
+    CachingCredentialProvider.get().shutdown();
     stsMock.reset();
     ssmMock.reset();
   });

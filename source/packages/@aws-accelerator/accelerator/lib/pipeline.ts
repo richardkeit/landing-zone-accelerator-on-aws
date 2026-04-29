@@ -461,6 +461,7 @@ export class AcceleratorPipeline extends Construct {
           },
           pre_build: {
             commands: [
+              'ulimit -n 65535',
               `export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
                export ARCHIVE_NAME="\${ACCELERATOR_STAGE}.tgz"
                export DIFFS_DIR="${this.diffS3Uri}"

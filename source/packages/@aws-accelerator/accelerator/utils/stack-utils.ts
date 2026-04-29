@@ -13,6 +13,7 @@
 
 import { ASEAMapping, AseaResourceMapping } from '@aws-accelerator/config';
 import { createLogger, setRetryStrategy, throttlingBackOff } from '@aws-accelerator/utils';
+import { CachingCredentialProvider } from '@aws-accelerator/utils';
 import * as cdk from 'aws-cdk-lib';
 import { AwsSolutionsChecks, NagSuppressions } from 'cdk-nag';
 import { version } from '../../../../package.json';
@@ -49,7 +50,7 @@ import { AcceleratorAspects, AseaLambdaRuntimeAspect, PermissionsBoundaryAspect 
 import { ResourcePolicyEnforcementStack } from '../lib/stacks/resource-policy-enforcement-stack';
 import { DiagnosticsPackStack } from '../lib/stacks/diagnostics-pack-stack';
 import { AcceleratorToolkit } from '../lib/toolkit';
-import { AssumeRoleCommand, GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
+import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { ControlTowerClient, ListLandingZonesCommand } from '@aws-sdk/client-controltower';
 import { createAndGetV2NetworkVpcDependencyStacks } from '../lib/stacks/v2-network/utils/functions';
 import { GuardDutyMalwareStack } from '../lib/stacks/security-guardduty-malware-stack';
@@ -1542,6 +1543,7 @@ async function getCredentials(options: {
   const roleArn =
     options.assumeRoleArn ?? `arn:${options.partition}:iam::${options.accountId}:role/${options.assumeRoleName}`;
 
+  // Check if already in the target role
   const client: STSClient = new STSClient({
     region: options.region,
     customUserAgent: options.solutionId,
@@ -1556,33 +1558,16 @@ async function getCredentials(options: {
     return undefined;
   }
 
-  const response = await throttlingBackOff(() =>
-    client.send(
-      new AssumeRoleCommand({ RoleArn: roleArn, RoleSessionName: options.sessionName ?? 'AcceleratorAssumeRole' }),
-    ),
-  );
+  // Extract role name from ARN for the caching provider
+  const roleName = options.assumeRoleName ?? roleArn.split('/').pop()!;
 
-  if (!response.Credentials) {
-    throw new Error(`Credentials undefined from AssumeRole command`);
-  }
-
-  //
-  // Validate response
-  if (!response.Credentials.AccessKeyId) {
-    throw new Error(`Access key ID not returned from AssumeRole command`);
-  }
-  if (!response.Credentials.SecretAccessKey) {
-    throw new Error(`Secret access key not returned from AssumeRole command`);
-  }
-  if (!response.Credentials.SessionToken) {
-    throw new Error(`Session token not returned from AssumeRole command`);
-  }
+  const credentials = await CachingCredentialProvider.get().forRole(options.accountId, roleName, options.region)();
 
   return {
-    accessKeyId: response.Credentials.AccessKeyId,
-    secretAccessKey: response.Credentials.SecretAccessKey,
-    sessionToken: response.Credentials.SessionToken,
-    expiration: response.Credentials.Expiration,
+    accessKeyId: credentials.accessKeyId,
+    secretAccessKey: credentials.secretAccessKey,
+    sessionToken: credentials.sessionToken!,
+    expiration: credentials.expiration,
   };
 }
 

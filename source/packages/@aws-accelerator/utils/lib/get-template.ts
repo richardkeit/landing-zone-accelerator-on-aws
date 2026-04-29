@@ -5,7 +5,8 @@ import {
   CloudFormationServiceException,
   TemplateStage,
 } from '@aws-sdk/client-cloudformation';
-import { getCrossAccountCredentials, getCurrentAccountId } from './common-functions';
+import { getCurrentAccountId } from './common-functions';
+import { CachingCredentialProvider } from './caching-credential-provider';
 import { throttlingBackOff } from './throttle';
 import { AwsClientFactory } from './aws-client-factory';
 import * as fs from 'fs';
@@ -21,9 +22,13 @@ export async function getCloudFormationTemplate(
   stackName: string,
   savePath: string,
   roleName: string,
+  currentAccountId?: string,
 ) {
   try {
-    const currentAccountId = await getCurrentAccountId(partition, region);
+    if (!currentAccountId) {
+      const stsClient = CachingCredentialProvider.get().getStsClient(region);
+      currentAccountId = await getCurrentAccountId(partition, region, stsClient);
+    }
     const client = await getCloudFormationClient(region, accountId, partition, roleName, currentAccountId);
 
     let template = await getTemplate(client, stackName);
@@ -51,22 +56,17 @@ export async function getCloudFormationTemplate(
 async function getCloudFormationClient(
   region: string,
   accountId: string,
-  partition: string,
+  _partition: string,
   roleName: string,
   currentAccountId: string,
 ): Promise<CloudFormationClient> {
   if (currentAccountId === accountId || currentAccountId === process.env['MANAGEMENT_ACCOUNT_ID']) {
     return AwsClientFactory.create(CloudFormationClient, { region, enableLogging: false });
   } else {
-    const crossAccountCredentials = await getCrossAccountCredentials(accountId, region, partition, roleName);
     return AwsClientFactory.create(CloudFormationClient, {
       region,
-      credentials: {
-        accessKeyId: crossAccountCredentials.Credentials!.AccessKeyId!,
-        secretAccessKey: crossAccountCredentials.Credentials!.SecretAccessKey!,
-        sessionToken: crossAccountCredentials.Credentials!.SessionToken!,
-      },
-      logger,
+      credentials: CachingCredentialProvider.get().forRole(accountId, roleName, region),
+      enableLogging: false,
     });
   }
 }

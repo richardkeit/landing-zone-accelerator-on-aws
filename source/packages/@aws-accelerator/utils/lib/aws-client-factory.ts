@@ -11,6 +11,7 @@
  *  and limitations under the License.
  */
 
+import type { AwsCredentialIdentity, AwsCredentialIdentityProvider } from '@smithy/types';
 import * as winston from 'winston';
 import { setRetryStrategy } from './common-functions';
 import { createLogger } from './logger';
@@ -26,15 +27,6 @@ export interface LoggingMiddlewareOptions {
 }
 
 /**
- * Credential configuration for AWS SDK clients.
- */
-export interface AwsCredentialIdentity {
-  readonly accessKeyId: string;
-  readonly secretAccessKey: string;
-  readonly sessionToken?: string;
-}
-
-/**
  * Options for {@link AwsClientFactory.create}.
  */
 export interface AwsClientFactoryOptions {
@@ -42,8 +34,14 @@ export interface AwsClientFactoryOptions {
   readonly region?: string;
   /** @default process.env['SOLUTION_ID'] */
   readonly customUserAgent?: string;
-  /** Explicit credentials. Omit to use the SDK default credential chain. */
-  readonly credentials?: AwsCredentialIdentity;
+  /**
+   * Explicit credentials — either a static identity or an async provider function.
+   * Omit to use the SDK default credential chain.
+   *
+   * Static: `{ accessKeyId, secretAccessKey, sessionToken? }`
+   * Provider: `CachingCredentialProvider.get().forRole(account, role, region)`
+   */
+  readonly credentials?: AwsCredentialIdentity | AwsCredentialIdentityProvider;
   /** Endpoint override for partition-specific endpoints (e.g. STS in isolated regions). */
   readonly endpoint?: string;
   /** @default true */
@@ -71,10 +69,18 @@ export type AwsClientConstructor<T> = new (config: any) => T;
  * @example
  * ```typescript
  * import { S3Client } from '@aws-sdk/client-s3';
- * import { AwsClientFactory } from '@aws-accelerator/utils';
+ * import { AwsClientFactory, CachingCredentialProvider } from '@aws-accelerator/utils';
  *
+ * // Same-account — uses default credential chain
  * const s3 = AwsClientFactory.create(S3Client);
  *
+ * // Cross-account — uses CachingCredentialProvider
+ * const crossAccountS3 = AwsClientFactory.create(S3Client, {
+ *   region: 'us-east-1',
+ *   credentials: CachingCredentialProvider.get().forRole('123456789012', 'MyRole', 'us-east-1'),
+ * });
+ *
+ * // Static credentials
  * const sts = AwsClientFactory.create(STSClient, {
  *   region: 'us-east-1',
  *   endpoint: getStsEndpoint(partition, region),
@@ -163,7 +169,7 @@ export class AwsClientFactory {
   private static buildConfig(params: {
     region?: string;
     customUserAgent: string;
-    credentials?: AwsCredentialIdentity;
+    credentials?: AwsCredentialIdentity | AwsCredentialIdentityProvider;
     endpoint?: string;
     useRetryStrategy: boolean;
   }) {
@@ -175,11 +181,7 @@ export class AwsClientFactory {
     if (params.endpoint) config['endpoint'] = params.endpoint;
     if (params.useRetryStrategy) config['retryStrategy'] = setRetryStrategy();
     if (params.credentials) {
-      config['credentials'] = {
-        accessKeyId: params.credentials.accessKeyId,
-        secretAccessKey: params.credentials.secretAccessKey,
-        sessionToken: params.credentials.sessionToken,
-      };
+      config['credentials'] = params.credentials;
     }
 
     return config;

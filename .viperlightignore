@@ -228,8 +228,8 @@ source/packages/@aws-config-converter/src/config/global-config.ts:2305
 source/packages/@aws-config-converter/src/config/global-config.ts:2306
 
 # Assume role declaration
-source/packages/@aws-accelerator/utils/test/get-template.test.ts:67
-source/packages/@aws-accelerator/utils/test/get-template.test.ts:74
+source/packages/@aws-accelerator/utils/test/get-template.test.ts:83
+source/packages/@aws-accelerator/utils/test/get-template.test.ts:90
 
 # Unit Test Ignores
 source/packages/@aws-accelerator/accelerator/test/unit-tests/network/tgw-resources.test.unit.ts:37
@@ -269,10 +269,10 @@ source/packages/@aws-accelerator/config/lib/organization-config.ts:209
 source/packages/@aws-accelerator/utils/lib/test-util/common/integration-test.ts:280
 source/packages/@aws-accelerator/utils/lib/test-util/common/integration-test.ts:281
 
-source/packages/@aws-accelerator/utils/lib/common-functions.ts:129
-source/packages/@aws-accelerator/utils/lib/common-functions.ts:130
-source/packages/@aws-accelerator/utils/lib/common-functions.ts:141
-source/packages/@aws-accelerator/utils/lib/common-functions.ts:142
+source/packages/@aws-accelerator/utils/lib/common-functions.ts:131
+source/packages/@aws-accelerator/utils/lib/common-functions.ts:132
+source/packages/@aws-accelerator/utils/lib/common-functions.ts:143
+source/packages/@aws-accelerator/utils/lib/common-functions.ts:144
 
 ### aws-lza Unit Test Files
 source/packages/@aws-lza/test/lib/amazon-macie/functions.test.unit.ts:154

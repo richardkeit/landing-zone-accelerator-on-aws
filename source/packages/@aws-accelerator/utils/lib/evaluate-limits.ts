@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 import { GetServiceQuotaCommand, ServiceQuotasClient } from '@aws-sdk/client-service-quotas';
-import { getCrossAccountCredentials } from './common-functions';
+import { CachingCredentialProvider } from './caching-credential-provider';
 import { throttlingBackOff } from './throttle';
 import { createLogger } from './logger';
 import { AwsClientFactory } from './aws-client-factory';
@@ -94,19 +94,13 @@ async function getServiceQuotasClient(accountMetadata: {
   ) {
     return AwsClientFactory.create(ServiceQuotasClient, { region: accountMetadata.region, logger });
   } else {
-    const crossAccountCredentials = await getCrossAccountCredentials(
-      accountMetadata.accountId,
-      accountMetadata.region,
-      accountMetadata.partition,
-      accountMetadata.roleName,
-    );
     return AwsClientFactory.create(ServiceQuotasClient, {
       region: accountMetadata.region,
-      credentials: {
-        accessKeyId: crossAccountCredentials.Credentials!.AccessKeyId!,
-        secretAccessKey: crossAccountCredentials.Credentials!.SecretAccessKey!,
-        sessionToken: crossAccountCredentials.Credentials!.SessionToken!,
-      },
+      credentials: CachingCredentialProvider.get().forRole(
+        accountMetadata.accountId,
+        accountMetadata.roleName,
+        accountMetadata.region,
+      ),
       logger,
     });
   }

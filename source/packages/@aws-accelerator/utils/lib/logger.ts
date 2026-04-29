@@ -47,3 +47,30 @@ export const createLogger = (logInfo: string[]) => {
   const logInfoString = logInfo.join(' | ');
   return Logger.child({ childLabel: logInfoString });
 };
+
+/**
+ * Drains and closes all File transports on the shared Logger.
+ *
+ * Winston's File transport buffers writes asynchronously. When a process
+ * calls `process.exit()` while writes are still pending, those writes are
+ * lost. Call this before exiting to guarantee the final log lines reach disk.
+ *
+ * Safe to call multiple times. Resolves even if no File transports exist.
+ *
+ * Note: this ends the underlying stream, so the Logger cannot be used for
+ * File writes after calling this. Intended for use on exit paths only.
+ */
+export async function flushFileTransports(): Promise<void> {
+  const fileTransports = Logger.transports.filter(
+    (t): t is winston.transports.FileTransportInstance => t instanceof winston.transports.File,
+  );
+  await Promise.all(
+    fileTransports.map(
+      t =>
+        new Promise<void>(resolve => {
+          t.once('finish', () => resolve());
+          t.end();
+        }),
+    ),
+  );
+}

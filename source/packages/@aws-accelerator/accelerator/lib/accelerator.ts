@@ -21,7 +21,6 @@ import {
 } from '@aws-sdk/client-ssm';
 import { S3Client } from '@aws-sdk/client-s3';
 import { IAMClient } from '@aws-sdk/client-iam';
-import { AssumeRoleCommandOutput } from '@aws-sdk/client-sts';
 import {
   AccountsConfig,
   GlobalConfig,
@@ -32,13 +31,14 @@ import {
 import {
   AwsClientFactory,
   createLogger,
+  flushFileTransports,
   throttlingBackOff,
-  getCrossAccountCredentials,
   getGlobalRegion,
   getCurrentAccountId,
   getManagementAccountCredentials,
   setExternalManagementAccountCredentials,
   getRegionList,
+  CachingCredentialProvider,
 } from '@aws-accelerator/utils';
 
 import { writeImportResources } from '../utils/app-utils';
@@ -108,8 +108,9 @@ export type ApplicationStackRunOrder = {
 };
 const logger = createLogger(['accelerator']);
 
-process.on('uncaughtException', err => {
+process.on('uncaughtException', async err => {
   logger.error(err);
+  await flushFileTransports();
   throw new Error('Synthesis failed');
 });
 
@@ -190,9 +191,8 @@ export interface AcceleratorProps {
   readonly enableSingleAccountMode: boolean;
   readonly qualifier?: string;
 }
-// Reducing concurrency as high concurrency is saturating socket with sdk calls
-// https://github.com/aws/aws-sdk-js-v3/issues/7310#issuecomment-3259235981
-let maxStacks = Number(process.env['MAX_CONCURRENT_STACKS'] ?? 100);
+
+let maxStacks = Number(process.env['MAX_CONCURRENT_STACKS'] ?? 800);
 
 /**
  * Wrapper around the CdkToolkit. The Accelerator defines this wrapper to add
@@ -227,11 +227,33 @@ export abstract class Accelerator {
     //
     const isConfigDependentStage = this.isConfigDependentStage(props.stage);
     const managementAccountId = await getManagementAccount(props.partition);
+
+    //
+    // Initialize centralized credential cache early with global region.
+    // Additional regions are added after config is loaded.
+    //
+    const initRegions = [globalRegion];
+    if (props.region && !initRegions.includes(props.region)) {
+      initRegions.push(props.region);
+    }
+    CachingCredentialProvider.init({
+      partition: props.partition,
+      regions: initRegions,
+      sessionName: 'lza',
+      enableDebug: process.env['LOG_LEVEL'] === 'debug',
+      maxSockets: Number(process.env['CREDENTIAL_PROVIDER_MAX_SOCKETS'] ?? 150),
+    });
+
     const acceleratorConfig = await Accelerator.loadAcceleratorConfiguration({
       isConfigDependentStage,
       loadFromDDB,
       acceleratorProps: props,
     });
+
+    // Expand credential cache with all enabled regions from config
+    if (acceleratorConfig?.globalConfig?.enabledRegions) {
+      CachingCredentialProvider.get().addRegions(acceleratorConfig.globalConfig.enabledRegions);
+    }
 
     await checkDiffStage(props);
 
@@ -261,7 +283,7 @@ export abstract class Accelerator {
         ? acceleratorConfig?.globalConfig?.acceleratorSettings?.maxConcurrentStacks
         : // Reducing concurrency as high concurrency is saturating socket with sdk calls
           // https://github.com/aws/aws-sdk-js-v3/issues/7310#issuecomment-3259235981
-          Number(process.env['MAX_CONCURRENT_STACKS'] ?? 100);
+          Number(process.env['MAX_CONCURRENT_STACKS'] ?? 800);
     }
 
     //
@@ -1170,28 +1192,22 @@ async function getSsmParameterValue(parameterName: string, ssmClient: SSMClient)
 
 function getCrossAccountClient(
   region: string,
-  assumeRoleCredential: AssumeRoleCommandOutput,
+  accountId: string,
+  roleName: string,
   clientType: string,
 ): IAMClient | S3Client | SSMClient {
-  const credentials = {
-    accessKeyId: assumeRoleCredential.Credentials!.AccessKeyId!,
-    secretAccessKey: assumeRoleCredential.Credentials!.SecretAccessKey!,
-    sessionToken: assumeRoleCredential.Credentials?.SessionToken,
-  };
-
-  const clientMap: Record<string, new (config: Record<string, unknown>) => IAMClient | S3Client | SSMClient> = {
-    IAM: IAMClient,
-    S3: S3Client,
-    SSM: SSMClient,
-  };
-
-  const ClientClass = clientMap[clientType];
-  if (!ClientClass) {
-    logger.error(`Could not create client for client type ${clientType} in region ${region}`);
-    throw new Error(`Configuration validation failed at runtime.`);
+  const credentials = CachingCredentialProvider.get().forRole(accountId, roleName, region);
+  switch (clientType) {
+    case 'IAM':
+      return AwsClientFactory.create(IAMClient, { credentials, region, enableLogging: false });
+    case 'S3':
+      return AwsClientFactory.create(S3Client, { credentials, region, enableLogging: false });
+    case 'SSM':
+      return AwsClientFactory.create(SSMClient, { credentials, region, enableLogging: false });
+    default:
+      logger.error(`Could not create client for client type ${clientType} in region ${region}`);
+      throw new Error(`Configuration validation failed at runtime.`);
   }
-
-  return AwsClientFactory.create(ClientClass, { region, credentials, enableLogging: false });
 }
 
 export async function getCentralLogBucketKmsKeyArn(
@@ -1211,13 +1227,7 @@ export async function getCentralLogBucketKmsKeyArn(
     const currentAccountId = await getCurrentAccountId(partition, region);
     // if its not the current account then get the credentials from the logArchive account
     if (currentAccountId !== accountId) {
-      const crossAccountCredentials = await getCrossAccountCredentials(
-        accountId,
-        region,
-        partition,
-        managementAccountAccessRole,
-      );
-      ssmClient = (await getCrossAccountClient(region, crossAccountCredentials, 'SSM')) as SSMClient;
+      ssmClient = getCrossAccountClient(region, accountId, managementAccountAccessRole, 'SSM') as SSMClient;
     } else {
       ssmClient = AwsClientFactory.create(SSMClient, { region, enableLogging: false });
     }

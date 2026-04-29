@@ -22,16 +22,32 @@ import { STSClient, AssumeRoleCommand, GetCallerIdentityCommand } from '@aws-sdk
 import { expect, it, beforeEach, afterEach } from 'vitest';
 import * as path from 'path';
 import * as fs from 'fs';
+import { CachingCredentialProvider } from '../lib/caching-credential-provider';
 
 let cfnMock: AwsClientStub<CloudFormationClient>;
 let stsMock: AwsClientStub<STSClient>;
 beforeEach(() => {
   cfnMock = mockClient(CloudFormationClient);
   stsMock = mockClient(STSClient);
+  // Initialize the caching credential provider for cross-account tests
+  try {
+    CachingCredentialProvider.get().shutdown();
+  } catch {
+    // Not initialized yet
+  }
+  CachingCredentialProvider.init({
+    partition: 'aws',
+    regions: ['us-east-1', 'region'],
+  });
 });
 afterEach(() => {
   cfnMock.reset();
   stsMock.reset();
+  try {
+    CachingCredentialProvider.get().shutdown();
+  } catch {
+    // Already shut down
+  }
 });
 
 it('same account, template is valid', async () => {
