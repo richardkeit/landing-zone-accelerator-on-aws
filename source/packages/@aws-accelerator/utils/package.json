@@ -22,7 +22,7 @@
     "build-prod": "tsc"
   },
   "dependencies": {
-    "@aws-sdk/client-sts": "3.1018.0",
+    "@aws-sdk/client-sts": "3.1041.0",
     "@smithy/node-http-handler": "^4.0.0",
     "@smithy/types": "^3.0.0",
     "exponential-backoff": "3.1.1"
