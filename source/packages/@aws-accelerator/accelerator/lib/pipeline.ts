@@ -487,8 +487,8 @@ export class AcceleratorPipeline extends Construct {
                 mkdir rawDiff;
                 cd rawDiff;
                 aws s3 sync "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/" .;
-                for file in ./*.tgz; do tar -xf "$file" -C .; done;
-                for file in ./*.diff; do cat "$file"; echo; done;
+                for file in ./*.tgz; do if command -v pigz &>/dev/null; then pigz -dc "$file" | tar xf - -C .; else tar -xf "$file" -C .; fi; done;
+                for file in ./*.diff; do cat "$file"; done;
                 cd $WORK_DIR;
                 yarn run ts-node --cwdMode --transpile-only generate-diff-viewer-cli.ts rawDiff diff-viewer.html;
                 aws s3 cp diff-viewer.html "\${DIFFS_DIR}/\${CODEPIPELINE_EXECUTION_ID}/diff-viewer.html";
@@ -506,20 +506,19 @@ export class AcceleratorPipeline extends Construct {
                     yarn run ts-node --transpile-only cdk.ts $CDK_OPTIONS --config-dir $CODEBUILD_SRC_DIR_Config --partition ${cdk.Aws.PARTITION};
                   fi
                   if [ $FULL_SYNTH = "true" ]; then
-                    set -e && tar -czf cf_$ARCHIVE_NAME -C cdk.out .;
+                    set -e && if command -v pigz &>/dev/null; then tar cf - -C cdk.out . | pigz > cf_$ARCHIVE_NAME; else tar -czf cf_$ARCHIVE_NAME -C cdk.out .; fi;
                   else
                     touch full-synth-false.txt;
                   fi
                   if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
-                    tar -czf diff_cdk_out_$ARCHIVE_NAME -C cdk.out .
-                    find cdk.out -type f -name "*.diff" -print0 | tar --transform='s|.*/||' -czf diff_$ARCHIVE_NAME --null -T -
+                    find cdk.out -type f -name "*.diff" -print0 | { if command -v pigz &>/dev/null; then tar --transform='s|.*/||' -cf - --null -T - | pigz > diff_$ARCHIVE_NAME; else tar --transform='s|.*/||' -czf diff_$ARCHIVE_NAME --null -T -; fi; }
                     aws s3 cp diff_$ARCHIVE_NAME $DIFFS_DIR/$CODEPIPELINE_EXECUTION_ID/
                   fi
                else
                 eval ARTIFACTS='$'CODEBUILD_SRC_DIR_$STAGE_ARTIFACT
                 if [ -f "\${ARTIFACTS}/cf_\${ARCHIVE_NAME}" ]; then
                      mkdir -p cdk.out
-                     tar -xzf $ARTIFACTS/cf_$ARCHIVE_NAME -C cdk.out;
+                     if command -v pigz &>/dev/null; then pigz -dc $ARTIFACTS/cf_$ARCHIVE_NAME | tar xf - -C cdk.out; else tar -xzf $ARTIFACTS/cf_$ARCHIVE_NAME -C cdk.out; fi;
                  else
                     set -e && yarn run ts-node --transpile-only cdk.ts synth --stage $ACCELERATOR_STAGE --config-dir $CODEBUILD_SRC_DIR_Config --partition ${cdk.Aws.PARTITION};
                  fi
@@ -531,7 +530,7 @@ export class AcceleratorPipeline extends Construct {
         },
         artifacts: {
           'base-directory': '$WORK_DIR',
-          files: ['cf_$ARCHIVE_NAME', 'diff_cdk_out_$ARCHIVE_NAME', 'full-synth-false.txt'],
+          files: ['cf_$ARCHIVE_NAME', 'full-synth-false.txt'],
         },
       }),
       environment: {
