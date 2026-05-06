@@ -3845,6 +3845,20 @@
           "$ref": "#/definitions/NonEmptyString",
           "description": "The AWS Region for the attachment."
         },
+        "routeTableAssociations": {
+          "description": "(OPTIONAL) The friendly name of a Transit Gateway route table to associate the Connect attachment to.",
+          "items": {
+            "$ref": "#/definitions/NonEmptyString"
+          },
+          "type": "array"
+        },
+        "routeTablePropagations": {
+          "description": "(OPTIONAL) An array of friendly names of Transit Gateway route tables to propagate the Connect attachment.",
+          "items": {
+            "$ref": "#/definitions/NonEmptyString"
+          },
+          "type": "array"
+        },
         "tags": {
           "description": "(OPTIONAL) An array of tag objects for the Transit Gateway attachment.",
           "items": {

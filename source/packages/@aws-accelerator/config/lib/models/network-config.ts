@@ -2100,6 +2100,29 @@ export interface ITransitGatewayConnectConfig {
    */
   readonly options?: ITransitGatewayConnectOptionsConfig;
   /**
+   * (OPTIONAL) The friendly name of a Transit Gateway route table to associate the Connect attachment to.
+   *
+   * @remarks
+   * This is the logical `name` property of the route table as defined in network-config.yaml.
+   *
+   * **CAUTION**: Changing this value after initial deployment causes a new association to be created.
+   * Attachments can only have a single association at a time.
+   * To avoid core pipeline failures, use multiple core pipeline runs to 1) delete the existing
+   * association and then 2) add the new association.
+   *
+   * @see {@link TransitGatewayRouteTableConfig}
+   */
+  readonly routeTableAssociations?: t.NonEmptyString[];
+  /**
+   * (OPTIONAL) An array of friendly names of Transit Gateway route tables to propagate the Connect attachment.
+   *
+   * @remarks
+   * This is the logical `name` property of the route table as defined in network-config.yaml.
+   *
+   * @see {@link TransitGatewayRouteTableConfig}
+   */
+  readonly routeTablePropagations?: t.NonEmptyString[];
+  /**
    * (OPTIONAL) An array of tag objects for the Transit Gateway attachment.
    */
   readonly tags?: t.ITag[];

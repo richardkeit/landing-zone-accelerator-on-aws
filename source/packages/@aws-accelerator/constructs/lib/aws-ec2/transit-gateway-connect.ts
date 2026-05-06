@@ -40,14 +40,18 @@ export interface TransitGatewayConnectProps {
  * Creates a Transit Gateway Route Table
  */
 export class TransitGatewayConnect extends Construct {
+  public readonly transitGatewayAttachmentId: string;
+
   constructor(scope: Construct, id: string, props: TransitGatewayConnectProps) {
     super(scope, id);
 
-    new ec2.CfnTransitGatewayConnect(this, pascalCase(`${props.name}TransitGatewayConnect`), {
+    const connect = new ec2.CfnTransitGatewayConnect(this, pascalCase(`${props.name}TransitGatewayConnect`), {
       transportTransitGatewayAttachmentId: props.transitGatewayAttachmentId,
       options: props.options,
       tags: props.tags,
     });
     cdk.Tags.of(this).add('Name', props.name);
+
+    this.transitGatewayAttachmentId = connect.ref;
   }
 }

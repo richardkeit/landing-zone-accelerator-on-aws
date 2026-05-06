@@ -2368,6 +2368,82 @@ exports[`NetworkAssociationsStack > Construct(NetworkAssociationsStack):  Snapsh
       },
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
     },
+    "NetworkCrossAccountConnectNetworkMainCoreConnectAssociation0C656CEB": {
+      "DependsOn": [
+        "NetworkCrossAccountConnectTransitGatewayConnectAttachmentNetworkCrossAccountConnectTransitGatewayConnect437597DC",
+      ],
+      "Properties": {
+        "TransitGatewayAttachmentId": {
+          "Ref": "NetworkCrossAccountConnectTransitGatewayConnectAttachmentNetworkCrossAccountConnectTransitGatewayConnect437597DC",
+        },
+        "TransitGatewayRouteTableId": {
+          "Ref": "SsmParameterValueacceleratornetworktransitGatewaysNetworkMainrouteTablesNetworkMainCoreidC96584B6F00A464EAD1953AFF4B05118Parameter",
+        },
+      },
+      "Type": "AWS::EC2::TransitGatewayRouteTableAssociation",
+    },
+    "NetworkCrossAccountConnectNetworkMainSegregatedConnectPropagationC59F457E": {
+      "DependsOn": [
+        "NetworkCrossAccountConnectTransitGatewayConnectAttachmentNetworkCrossAccountConnectTransitGatewayConnect437597DC",
+      ],
+      "Properties": {
+        "TransitGatewayAttachmentId": {
+          "Ref": "NetworkCrossAccountConnectTransitGatewayConnectAttachmentNetworkCrossAccountConnectTransitGatewayConnect437597DC",
+        },
+        "TransitGatewayRouteTableId": {
+          "Ref": "SsmParameterValueacceleratornetworktransitGatewaysNetworkMainrouteTablesNetworkMainSegregatedidC96584B6F00A464EAD1953AFF4B05118Parameter",
+        },
+      },
+      "Type": "AWS::EC2::TransitGatewayRouteTablePropagation",
+    },
+    "NetworkCrossAccountConnectNetworkMainSharedConnectPropagationB15358FF": {
+      "DependsOn": [
+        "NetworkCrossAccountConnectTransitGatewayConnectAttachmentNetworkCrossAccountConnectTransitGatewayConnect437597DC",
+      ],
+      "Properties": {
+        "TransitGatewayAttachmentId": {
+          "Ref": "NetworkCrossAccountConnectTransitGatewayConnectAttachmentNetworkCrossAccountConnectTransitGatewayConnect437597DC",
+        },
+        "TransitGatewayRouteTableId": {
+          "Ref": "SsmParameterValueacceleratornetworktransitGatewaysNetworkMainrouteTablesNetworkMainSharedidC96584B6F00A464EAD1953AFF4B05118Parameter",
+        },
+      },
+      "Type": "AWS::EC2::TransitGatewayRouteTablePropagation",
+    },
+    "NetworkCrossAccountConnectTransitGatewayConnectAttachmentNetworkCrossAccountConnectTransitGatewayConnect437597DC": {
+      "Properties": {
+        "Options": {
+          "Protocol": "gre",
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "SharedServicesAttachment",
+          },
+          {
+            "Key": "Name",
+            "Value": "Network-CrossAccountConnect",
+          },
+        ],
+        "TransportTransitGatewayAttachmentId": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::Split": [
+                ",",
+                {
+                  "Fn::GetAtt": [
+                    "BatchTgwAttachmentLookup4DD094C3",
+                    "attachmentIds",
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+      "Type": "AWS::EC2::TransitGatewayConnect",
+    },
     "NetworkDxgwNetworkMainCoreAssociation1B0096A1": {
       "Properties": {
         "TransitGatewayAttachmentId": {
@@ -2646,6 +2722,20 @@ exports[`NetworkAssociationsStack > Construct(NetworkAssociationsStack):  Snapsh
       },
       "Type": "AWS::Route53Resolver::ResolverRuleAssociation",
     },
+    "NetworkInspectionNetworkMainCoreConnectAssociation70D36F64": {
+      "DependsOn": [
+        "NetworkInspectionTransitGatewayConnectAttachmentNetworkInspectionTransitGatewayConnectAD31631B",
+      ],
+      "Properties": {
+        "TransitGatewayAttachmentId": {
+          "Ref": "NetworkInspectionTransitGatewayConnectAttachmentNetworkInspectionTransitGatewayConnectAD31631B",
+        },
+        "TransitGatewayRouteTableId": {
+          "Ref": "SsmParameterValueacceleratornetworktransitGatewaysNetworkMainrouteTablesNetworkMainCoreidC96584B6F00A464EAD1953AFF4B05118Parameter",
+        },
+      },
+      "Type": "AWS::EC2::TransitGatewayRouteTableAssociation",
+    },
     "NetworkInspectionNetworkMainCorePropagation37D40A21": {
       "Properties": {
         "TransitGatewayAttachmentId": {
@@ -2653,6 +2743,20 @@ exports[`NetworkAssociationsStack > Construct(NetworkAssociationsStack):  Snapsh
         },
         "TransitGatewayRouteTableId": {
           "Ref": "SsmParameterValueacceleratornetworktransitGatewaysNetworkMainrouteTablesNetworkMainCoreidC96584B6F00A464EAD1953AFF4B05118Parameter",
+        },
+      },
+      "Type": "AWS::EC2::TransitGatewayRouteTablePropagation",
+    },
+    "NetworkInspectionNetworkMainSegregatedConnectPropagation5B45955C": {
+      "DependsOn": [
+        "NetworkInspectionTransitGatewayConnectAttachmentNetworkInspectionTransitGatewayConnectAD31631B",
+      ],
+      "Properties": {
+        "TransitGatewayAttachmentId": {
+          "Ref": "NetworkInspectionTransitGatewayConnectAttachmentNetworkInspectionTransitGatewayConnectAD31631B",
+        },
+        "TransitGatewayRouteTableId": {
+          "Ref": "SsmParameterValueacceleratornetworktransitGatewaysNetworkMainrouteTablesNetworkMainSegregatedidC96584B6F00A464EAD1953AFF4B05118Parameter",
         },
       },
       "Type": "AWS::EC2::TransitGatewayRouteTablePropagation",
@@ -2678,6 +2782,20 @@ exports[`NetworkAssociationsStack > Construct(NetworkAssociationsStack):  Snapsh
         },
       },
       "Type": "AWS::EC2::TransitGatewayRouteTableAssociation",
+    },
+    "NetworkInspectionNetworkMainSharedConnectPropagationC7F0D13C": {
+      "DependsOn": [
+        "NetworkInspectionTransitGatewayConnectAttachmentNetworkInspectionTransitGatewayConnectAD31631B",
+      ],
+      "Properties": {
+        "TransitGatewayAttachmentId": {
+          "Ref": "NetworkInspectionTransitGatewayConnectAttachmentNetworkInspectionTransitGatewayConnectAD31631B",
+        },
+        "TransitGatewayRouteTableId": {
+          "Ref": "SsmParameterValueacceleratornetworktransitGatewaysNetworkMainrouteTablesNetworkMainSharedidC96584B6F00A464EAD1953AFF4B05118Parameter",
+        },
+      },
+      "Type": "AWS::EC2::TransitGatewayRouteTablePropagation",
     },
     "NetworkInspectionNetworkMainSharedPropagation9C8183A3": {
       "Properties": {

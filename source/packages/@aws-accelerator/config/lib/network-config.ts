@@ -273,6 +273,8 @@ export class TransitGatewayConnectConfig implements i.ITransitGatewayConnectConf
   readonly vpc?: i.ITransitGatewayConnectVpcConfig | undefined;
   readonly directConnect?: string = '';
   readonly options: TransitGatewayConnectOptionsConfig | undefined = undefined;
+  readonly routeTableAssociations: string[] | undefined = undefined;
+  readonly routeTablePropagations: string[] | undefined = undefined;
   readonly tags: t.Tag[] | undefined = undefined;
 }
 

@@ -18,6 +18,30 @@ transitGatewayConnects:
     tags:
       - key: Environment
         value: CentralInspection
+    routeTableAssociations: 
+      - Network-Main-Core
+    routeTablePropagations:
+      - Network-Main-Shared
+      - Network-Main-Segregated
+  
+  - name: Network-CrossAccountConnect
+    region: *HOME_REGION
+    transitGateway:
+      name: Network-Main
+      account: Network
+    vpc:
+      vpcName: SharedServices-Main
+      vpcAttachment: SharedServices-Main
+    options:
+      protocol: gre
+    tags:
+      - key: Environment
+        value: SharedServicesAttachment
+    routeTableAssociations: 
+      - Network-Main-Core
+    routeTablePropagations:
+      - Network-Main-Shared
+      - Network-Main-Segregated
 
 transitGateways:
   - name: MutlicastTgw

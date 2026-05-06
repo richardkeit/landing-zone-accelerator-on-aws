@@ -38,6 +38,7 @@ import {
   TargetGroupItemConfig,
   TransitGatewayAttachmentConfig,
   TransitGatewayConfig,
+  TransitGatewayConnectConfig,
   TransitGatewayRouteEntryConfig,
   TransitGatewayRouteTableConfig,
   TransitGatewayRouteTableDxGatewayEntryConfig,
@@ -1382,13 +1383,74 @@ export class NetworkAssociationsStack extends NetworkStack {
         }
 
         this.logger.info(`Creating a TGW Connect for: ${connectItem.name}`);
-        new TransitGatewayConnect(this, pascalCase(`${connectItem.name}TransitGatewayConnectAttachment`), {
-          name: connectItem.name,
-          transitGatewayAttachmentId: transitGatewayAttachmentId,
-          options: connectItem.options!,
-          tags: connectItem.tags,
-        });
+        const connectAttachment = new TransitGatewayConnect(
+          this,
+          pascalCase(`${connectItem.name}TransitGatewayConnectAttachment`),
+          {
+            name: connectItem.name,
+            transitGatewayAttachmentId: transitGatewayAttachmentId,
+            options: connectItem.options!,
+            tags: connectItem.tags,
+          },
+        );
+
+        // Create route table associations and propagations for the Connect attachment
+        this.createTransitGatewayConnectRouteTableAssociationsAndPropagations(connectItem, connectAttachment);
       }
+    }
+  }
+
+  /**
+   * Create transit gateway route table associations and propagations for a Connect attachment
+   * @param connectItem {@link TransitGatewayConnectConfig}
+   * @param connectAttachment {@link TransitGatewayConnect}
+   */
+  private createTransitGatewayConnectRouteTableAssociationsAndPropagations(
+    connectItem: TransitGatewayConnectConfig,
+    connectAttachment: TransitGatewayConnect,
+  ): void {
+    const connectAttachmentId = connectAttachment.transitGatewayAttachmentId;
+
+    // Create route table associations
+    for (const routeTableItem of connectItem.routeTableAssociations ?? []) {
+      const routeTableKey = `${connectItem.transitGateway.name}_${routeTableItem}`;
+      const transitGatewayRouteTableId = this.transitGatewayRouteTables.get(routeTableKey);
+
+      if (!transitGatewayRouteTableId) {
+        this.logger.error(`Transit Gateway Route Table ${routeTableKey} not found`);
+        throw new Error(`Configuration validation failed at runtime.`);
+      }
+
+      const association = new TransitGatewayRouteTableAssociation(
+        this,
+        pascalCase(`${connectItem.name}${routeTableItem}ConnectAssociation`),
+        {
+          transitGatewayAttachmentId: connectAttachmentId,
+          transitGatewayRouteTableId,
+        },
+      );
+      association.node.addDependency(connectAttachment);
+    }
+
+    // Create route table propagations
+    for (const routeTableItem of connectItem.routeTablePropagations ?? []) {
+      const routeTableKey = `${connectItem.transitGateway.name}_${routeTableItem}`;
+      const transitGatewayRouteTableId = this.transitGatewayRouteTables.get(routeTableKey);
+
+      if (!transitGatewayRouteTableId) {
+        this.logger.error(`Transit Gateway Route Table ${routeTableKey} not found`);
+        throw new Error(`Configuration validation failed at runtime.`);
+      }
+
+      const propagation = new TransitGatewayRouteTablePropagation(
+        this,
+        pascalCase(`${connectItem.name}${routeTableItem}ConnectPropagation`),
+        {
+          transitGatewayAttachmentId: connectAttachmentId,
+          transitGatewayRouteTableId,
+        },
+      );
+      propagation.node.addDependency(connectAttachment);
     }
   }
 

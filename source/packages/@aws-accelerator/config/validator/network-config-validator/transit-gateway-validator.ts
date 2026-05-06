@@ -61,7 +61,7 @@ export class TransitGatewayValidator {
     //
     // Validate TGW Connect attachment configurations
     //
-    this.validateTgwConnectConfiguration(values, errors);
+    this.validateTgwConnectConfiguration(values, helpers, errors);
     //
     // Validate TGW flow logs configurations
     //
@@ -265,13 +265,15 @@ export class TransitGatewayValidator {
    * @param helpers
    * @param errors
    */
-  private validateTgwConnectConfiguration(values: NetworkConfig, errors: string[]) {
+  private validateTgwConnectConfiguration(values: NetworkConfig, helpers: NetworkValidatorFunctions, errors: string[]) {
     // Validate use of VPC of Direct Connect configurations
     this.validateDxVpcTgwConnectConfigurations(values, errors);
     // Validate resources specified in Transit Gateway Connect
     this.validateTgwConnectResources(values, errors);
     // Validate Transit Gateway region for connect attachment
     this.validateTgwConnectRegion(values, errors);
+    // Validate Transit Gateway Connect route table associations and propagations
+    this.validateTgwConnectRouteTableAssociationsAndPropagations(values, helpers, errors);
   }
 
   /**
@@ -332,6 +334,66 @@ export class TransitGatewayValidator {
         errors.push(
           `[Transit Gateway Connect ${connectItem.name}]: The VPC: ${vpcItem?.name} and Transit Gateway: ${tgwItem?.name} must be in the same region for a Transit Gateway Connect attachment.`,
         );
+      }
+    }
+  }
+
+  /**
+   * Validate Transit Gateway Connect route table associations and propagations.
+   * Ensures that:
+   * - No more than one route table association is defined per Connect attachment
+   * - Referenced route tables exist on the associated Transit Gateway
+   * - No duplicate route table propagations are defined
+   * @param values
+   * @param helpers
+   * @param errors
+   */
+  private validateTgwConnectRouteTableAssociationsAndPropagations(
+    values: NetworkConfig,
+    helpers: NetworkValidatorFunctions,
+    errors: string[],
+  ) {
+    for (const connectItem of values.transitGatewayConnects ?? []) {
+      const tgw = values.transitGateways.find(item => item.name === connectItem.transitGateway.name);
+      if (!tgw) {
+        // TGW existence is validated elsewhere; skip if not found
+        continue;
+      }
+
+      // Validate route table associations
+      if (connectItem.routeTableAssociations && connectItem.routeTableAssociations.length > 1) {
+        errors.push(
+          `[Transit Gateway Connect ${connectItem.name}]: cannot define more than one TGW route table association`,
+        );
+      }
+
+      if (connectItem.routeTableAssociations) {
+        for (const association of connectItem.routeTableAssociations) {
+          if (!tgw.routeTables.find(table => table.name === association)) {
+            errors.push(
+              `[Transit Gateway Connect ${connectItem.name}]: route table "${association}" does not exist on TGW "${tgw.name}"`,
+            );
+          }
+        }
+      }
+
+      // Validate route table propagations
+      if (connectItem.routeTablePropagations) {
+        const propagationNames: string[] = [];
+        for (const propagation of connectItem.routeTablePropagations) {
+          propagationNames.push(propagation);
+          if (!tgw.routeTables.find(table => table.name === propagation)) {
+            errors.push(
+              `[Transit Gateway Connect ${connectItem.name}]: route table "${propagation}" does not exist on TGW "${tgw.name}"`,
+            );
+          }
+        }
+
+        if (helpers.hasDuplicates(propagationNames)) {
+          errors.push(
+            `[Transit Gateway Connect ${connectItem.name}]: duplicate TGW route table propagations defined. Propagations must be unique. Propagations configured: ${propagationNames}`,
+          );
+        }
       }
     }
   }
