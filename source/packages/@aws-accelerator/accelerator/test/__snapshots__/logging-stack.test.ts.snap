@@ -12766,20 +12766,6 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
           "IgnorePublicAcls": true,
           "RestrictPublicBuckets": true,
         },
-        "Tags": [
-          {
-            "Key": "aws-cdk:auto-auditmanager-access-bucket",
-            "Value": "true",
-          },
-          {
-            "Key": "aws-cdk:auto-guardduty-access-bucket",
-            "Value": "true",
-          },
-          {
-            "Key": "aws-cdk:auto-macie-access-bucket",
-            "Value": "true",
-          },
-        ],
         "VersioningConfiguration": {
           "Status": "Enabled",
         },
@@ -12822,48 +12808,6 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
                     ],
                   ],
                 },
-              },
-              "Resource": "*",
-            },
-            {
-              "Action": [
-                "kms:Decrypt",
-                "kms:DescribeKey",
-                "kms:Encrypt",
-                "kms:ReEncrypt*",
-                "kms:GenerateDataKey*",
-              ],
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "macie.amazonaws.com",
-              },
-              "Resource": "*",
-            },
-            {
-              "Action": [
-                "kms:Decrypt",
-                "kms:DescribeKey",
-                "kms:Encrypt",
-                "kms:ReEncrypt*",
-                "kms:GenerateDataKey*",
-              ],
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "guardduty.amazonaws.com",
-              },
-              "Resource": "*",
-            },
-            {
-              "Action": [
-                "kms:Decrypt",
-                "kms:DescribeKey",
-                "kms:Encrypt",
-                "kms:ReEncrypt*",
-                "kms:GenerateDataKey*",
-              ],
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "auditmanager.amazonaws.com",
               },
               "Resource": "*",
             },
@@ -13163,129 +13107,10 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
               "Sid": "deny-insecure-connections",
             },
             {
-              "Action": [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
-                "s3:DeleteObject*",
-                "s3:PutObject",
-                "s3:PutObjectLegalHold",
-                "s3:PutObjectRetention",
-                "s3:PutObjectTagging",
-                "s3:PutObjectVersionTagging",
-                "s3:Abort*",
-              ],
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "macie.amazonaws.com",
-              },
-              "Resource": [
-                {
-                  "Fn::GetAtt": [
-                    "CentralLogsBucket447B5C59",
-                    "Arn",
-                  ],
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      {
-                        "Fn::GetAtt": [
-                          "CentralLogsBucket447B5C59",
-                          "Arn",
-                        ],
-                      },
-                      "/*",
-                    ],
-                  ],
-                },
-              ],
-            },
-            {
-              "Action": [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
-                "s3:DeleteObject*",
-                "s3:PutObject",
-                "s3:PutObjectLegalHold",
-                "s3:PutObjectRetention",
-                "s3:PutObjectTagging",
-                "s3:PutObjectVersionTagging",
-                "s3:Abort*",
-              ],
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "guardduty.amazonaws.com",
-              },
-              "Resource": [
-                {
-                  "Fn::GetAtt": [
-                    "CentralLogsBucket447B5C59",
-                    "Arn",
-                  ],
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      {
-                        "Fn::GetAtt": [
-                          "CentralLogsBucket447B5C59",
-                          "Arn",
-                        ],
-                      },
-                      "/*",
-                    ],
-                  ],
-                },
-              ],
-            },
-            {
-              "Action": [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
-                "s3:DeleteObject*",
-                "s3:PutObject",
-                "s3:PutObjectLegalHold",
-                "s3:PutObjectRetention",
-                "s3:PutObjectTagging",
-                "s3:PutObjectVersionTagging",
-                "s3:Abort*",
-              ],
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "auditmanager.amazonaws.com",
-              },
-              "Resource": [
-                {
-                  "Fn::GetAtt": [
-                    "CentralLogsBucket447B5C59",
-                    "Arn",
-                  ],
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      {
-                        "Fn::GetAtt": [
-                          "CentralLogsBucket447B5C59",
-                          "Arn",
-                        ],
-                      },
-                      "/*",
-                    ],
-                  ],
-                },
-              ],
-            },
-            {
               "Action": "s3:PutObject",
               "Condition": {
                 "StringEquals": {
+                  "aws:SourceOrgID": "o-asdf123456",
                   "s3:x-amz-acl": "bucket-owner-full-control",
                 },
               },
@@ -13318,6 +13143,11 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
                 "s3:GetBucketAcl",
                 "s3:ListBucket",
               ],
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceOrgID": "o-asdf123456",
+                },
+              },
               "Effect": "Allow",
               "Principal": {
                 "Service": [
@@ -13332,6 +13162,144 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
                   "Arn",
                 ],
               },
+            },
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging",
+                "s3:Abort*",
+                "s3:DeleteObject*",
+              ],
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceOrgID": "o-asdf123456",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "macie.amazonaws.com",
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "CentralLogsBucket447B5C59",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "CentralLogsBucket447B5C59",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+              "Sid": "Allow Macie service access",
+            },
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging",
+                "s3:Abort*",
+                "s3:DeleteObject*",
+              ],
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceOrgID": "o-asdf123456",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "guardduty.amazonaws.com",
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "CentralLogsBucket447B5C59",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "CentralLogsBucket447B5C59",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+              "Sid": "Allow Guardduty service access",
+            },
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging",
+                "s3:Abort*",
+                "s3:DeleteObject*",
+              ],
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceOrgID": "o-asdf123456",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "auditmanager.amazonaws.com",
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "CentralLogsBucket447B5C59",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "CentralLogsBucket447B5C59",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+              "Sid": "Allow AuditManager service access",
             },
             {
               "Action": [

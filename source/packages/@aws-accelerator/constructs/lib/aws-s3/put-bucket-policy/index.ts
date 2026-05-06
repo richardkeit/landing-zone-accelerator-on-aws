@@ -148,6 +148,8 @@ export function generateBucketPolicy(
 
         break;
       case AcceleratorImportedBucketType.CENTRAL_LOGS_BUCKET:
+        const sourceOrgId = principalOrgIdCondition?.['aws:PrincipalOrgID'];
+
         policyStatements.push({
           Sid: 'deny-insecure-connections',
           Effect: 'Deny',
@@ -178,6 +180,7 @@ export function generateBucketPolicy(
           Condition: {
             StringEquals: {
               's3:x-amz-acl': 'bucket-owner-full-control',
+              ...(sourceOrgId ? { 'aws:SourceOrgID': sourceOrgId } : {}),
             },
           },
         });
@@ -189,6 +192,15 @@ export function generateBucketPolicy(
           },
           Action: ['s3:GetBucketAcl', 's3:ListBucket'],
           Resource: [bucketArn],
+          ...(sourceOrgId
+            ? {
+                Condition: {
+                  StringEquals: {
+                    'aws:SourceOrgID': sourceOrgId,
+                  },
+                },
+              }
+            : {}),
         });
 
         policyStatements.push({
@@ -279,6 +291,15 @@ export function generateBucketPolicy(
                 Service: [item.principal],
               },
               Resource: [bucketArn, `${bucketArn}/*`],
+              ...(sourceOrgId
+                ? {
+                    Condition: {
+                      StringEquals: {
+                        'aws:SourceOrgID': sourceOrgId,
+                      },
+                    },
+                  }
+                : {}),
             });
           }
         });

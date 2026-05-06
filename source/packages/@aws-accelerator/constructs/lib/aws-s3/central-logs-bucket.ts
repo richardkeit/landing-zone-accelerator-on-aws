@@ -67,7 +67,14 @@ export class CentralLogsBucket extends Construct {
 
     const awsPrincipalAccesses = props.awsPrincipalAccesses ?? [];
 
+    // Derive the SourceOrgID condition value from principalOrgIdCondition
+    const sourceOrgId = props.principalOrgIdCondition['aws:PrincipalOrgID'];
+
     // Create Central Logs Bucket
+    // Note: awsPrincipalAccesses are NOT passed to the Bucket construct here because
+    // the Bucket construct uses CDK grant methods (grantRead/grantWrite/grantReadWrite)
+    // which do not support IAM conditions. Instead, explicit bucket policy statements
+    // with aws:SourceOrgID conditions are added below for each security service principal.
     this.bucket = new Bucket(this, 'Resource', {
       encryptionType: BucketEncryptionType.SSE_KMS,
       s3BucketName: props.s3BucketName,
@@ -75,7 +82,6 @@ export class CentralLogsBucket extends Construct {
       kmsDescription: props.kmsDescription,
       serverAccessLogsBucket: props.serverAccessLogsBucket,
       s3LifeCycleRules: props.s3LifeCycleRules,
-      awsPrincipalAccesses: awsPrincipalAccesses.filter(item => item.accessType !== BucketAccessType.NO_ACCESS),
       bucketPrefixProps: props.bucketPrefixProps,
       nagSuppressionPrefix: `${id}/Resource`,
     });
@@ -102,6 +108,9 @@ export class CentralLogsBucket extends Construct {
         conditions: {
           StringEquals: {
             's3:x-amz-acl': 'bucket-owner-full-control',
+            ...(props.principalOrgIdCondition['aws:PrincipalOrgID']
+              ? { 'aws:SourceOrgID': props.principalOrgIdCondition['aws:PrincipalOrgID'] }
+              : {}),
           },
         },
       }),
@@ -116,6 +125,11 @@ export class CentralLogsBucket extends Construct {
         ],
         actions: ['s3:GetBucketAcl', 's3:ListBucket'],
         resources: [this.bucket.getS3Bucket().bucketArn],
+        conditions: {
+          ...(props.principalOrgIdCondition['aws:PrincipalOrgID']
+            ? { StringEquals: { 'aws:SourceOrgID': props.principalOrgIdCondition['aws:PrincipalOrgID'] } }
+            : {}),
+        },
       }),
     );
 
@@ -207,6 +221,40 @@ export class CentralLogsBucket extends Construct {
         }),
       );
     }
+
+    // Add explicit S3 bucket policy for security service principals with aws:SourceOrgID condition.
+    // These are handled here instead of in the Bucket construct because CDK grant methods
+    // (grantRead/grantWrite/grantReadWrite) do not support IAM conditions.
+    awsPrincipalAccesses
+      .filter(item => item.accessType !== BucketAccessType.NO_ACCESS && item.name !== 'SessionManager')
+      .forEach(item => {
+        const actions: string[] = [];
+        if (item.accessType === BucketAccessType.READONLY || item.accessType === BucketAccessType.READWRITE) {
+          actions.push('s3:GetObject*', 's3:GetBucket*', 's3:List*');
+        }
+        if (item.accessType === BucketAccessType.WRITEONLY || item.accessType === BucketAccessType.READWRITE) {
+          actions.push(
+            's3:PutObject',
+            's3:PutObjectLegalHold',
+            's3:PutObjectRetention',
+            's3:PutObjectTagging',
+            's3:PutObjectVersionTagging',
+            's3:Abort*',
+            's3:DeleteObject*',
+          );
+        }
+        this.bucket.getS3Bucket().addToResourcePolicy(
+          new cdk.aws_iam.PolicyStatement({
+            sid: `Allow ${item.name} service access`,
+            principals: [new cdk.aws_iam.ServicePrincipal(item.principal)],
+            actions,
+            resources: [this.bucket.getS3Bucket().bucketArn, this.bucket.getS3Bucket().arnForObjects('*')],
+            conditions: {
+              ...(sourceOrgId ? { StringEquals: { 'aws:SourceOrgID': sourceOrgId } } : {}),
+            },
+          }),
+        );
+      });
 
     props.awsPrincipalAccesses?.forEach(item => {
       if (item.name === 'SessionManager') {

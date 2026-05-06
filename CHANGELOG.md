@@ -16,6 +16,7 @@ feat(networking): add tcp timeout property to gateway load balancer listener
 
 ### Changed
 chore(logging): update elb access logs bucket for service principal 
+chore(logging): add sourceOrgId condition to central s3 bucket policy
 
 ### Added
 - feat(networking): added support for VPN route propagation on route table
