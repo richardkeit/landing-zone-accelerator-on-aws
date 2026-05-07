@@ -1373,11 +1373,11 @@
     },
     "INotificationConfig": {
       "additionalProperties": false,
-      "description": "## Notification Configuration\n\nUsed to configure notifications for budget reports\n\n### Key Features\n- **Recipients**: Configure multiple recipients for the notification\n- **Threshold**: Define the threshold to trigger the notification\n- **Subscription Type**: Choose the subscription type (e.g., email, SNS) for delivery\n\n\n### Example ```yaml notifications:  - type: ACTUAL    thresholdType: PERCENTAGE    threshold: 90    comparisonOperator: GREATER_THAN    subscriptionType: EMAIL    recipients:     - myemail+pa1-budg@example.com     - myemail+pa2-budg@example.com ```",
+      "description": "## Notification Configuration\n\nUsed to configure notifications for budget reports\n\n### Key Features\n- **Recipients**: Configure multiple recipients for the notification\n- **Threshold**: Define the threshold to trigger the notification\n- **Subscription Type**: Choose the subscription type (e.g., email, SNS) for delivery\n\n\n### Example ```yaml notifications:  - type: ACTUAL    thresholdType: PERCENTAGE    threshold: 90    comparisonOperator: GREATER_THAN    subscriptionType: EMAIL    recipients:     - myemail+pa1-budg@example.com     - myemail+pa2-budg@example.com  - type: FORECASTED    thresholdType: PERCENTAGE    threshold: 80    comparisonOperator: GREATER_THAN    subscriptionType: SNS    recipients:     - arn:aws:sns:us-east-1:123456789012:budget-alerts ```",
       "properties": {
         "address": {
           "$ref": "#/definitions/NonEmptyString",
-          "deprecated": "Please use recipients property to specify recipients of the notification\n\nThe address that AWS sends budget notifications to, either an SNS topic or an email.",
+          "deprecated": "Please use recipients property to specify recipients of the notification\n\nThe address that AWS sends budget notifications to, either an SNS topic ARN or an email.\n\nWhen `subscriptionType` is `EMAIL`, this must be a valid email address.\nWhen `subscriptionType` is `SNS`, this must be a full SNS topic ARN\n(e.g., `arn:aws:sns:us-east-1:123456789012:my-topic`).",
           "description": "**Address** *(Optional)*"
         },
         "comparisonOperator": {
@@ -1392,7 +1392,7 @@
           "description": "**Comparison Operator** *(Required)*\n\nThe comparison that's used for this notification.\n\nValid values are `GREATER_THAN`, `LESS_THAN`, and `EQUAL_TO`"
         },
         "recipients": {
-          "description": "**Recipients** *(Optional)*\n\nA list of recipients that the notification will be sent to. Must be either an SNS topic or an email.",
+          "description": "**Recipients** *(Optional)*\n\nA list of recipients that the notification will be sent to.\n\nWhen `subscriptionType` is `EMAIL`, each entry must be a valid email address. When `subscriptionType` is `SNS`, the list must contain exactly one full SNS topic ARN (e.g., `arn:aws:sns:us-east-1:123456789012:my-topic`).",
           "items": {
             "$ref": "#/definitions/NonEmptyString"
           },

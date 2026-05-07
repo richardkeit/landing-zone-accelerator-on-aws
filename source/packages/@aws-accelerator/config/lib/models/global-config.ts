@@ -3893,6 +3893,13 @@ export interface IBudgetReportConfig {
  *    recipients:
  *     - myemail+pa1-budg@example.com
  *     - myemail+pa2-budg@example.com
+ *  - type: FORECASTED
+ *    thresholdType: PERCENTAGE
+ *    threshold: 80
+ *    comparisonOperator: GREATER_THAN
+ *    subscriptionType: SNS
+ *    recipients:
+ *     - arn:aws:sns:us-east-1:123456789012:budget-alerts
  * ```
  *
  * @category Global Configuration
@@ -3936,14 +3943,36 @@ export interface INotificationConfig {
    *
    * @deprecated Please use recipients property to specify recipients of the notification
    *
-   * The address that AWS sends budget notifications to, either an SNS topic or an email.
+   * The address that AWS sends budget notifications to, either an SNS topic ARN or an email.
+   *
+   * When `subscriptionType` is `EMAIL`, this must be a valid email address.
+   * When `subscriptionType` is `SNS`, this must be a full SNS topic ARN
+   * (e.g., `arn:aws:sns:us-east-1:123456789012:my-topic`).
    *
    */
   readonly address?: t.NonEmptyString;
   /**
    * **Recipients** *(Optional)*
    *
-   * A list of recipients that the notification will be sent to. Must be either an SNS topic or an email.
+   * A list of recipients that the notification will be sent to.
+   *
+   * When `subscriptionType` is `EMAIL`, each entry must be a valid email address.
+   * When `subscriptionType` is `SNS`, the list must contain exactly one full SNS topic ARN
+   * (e.g., `arn:aws:sns:us-east-1:123456789012:my-topic`).
+   *
+   * @example
+   * ```yaml
+   * # EMAIL recipients
+   * subscriptionType: EMAIL
+   * recipients:
+   *   - user1@example.com
+   *   - user2@example.com
+   *
+   * # SNS recipient (must be a full ARN, only one allowed)
+   * subscriptionType: SNS
+   * recipients:
+   *   - arn:aws:sns:us-east-1:123456789012:my-topic
+   * ```
    *
    */
   readonly recipients?: t.NonEmptyString[];
