@@ -12,9 +12,10 @@
  */
 
 import { AcceleratorStage } from '../lib/accelerator-stage';
-import { describe } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { snapShotTest } from './snapshot-test';
 import { Create } from './accelerator-test-helpers';
+import { SecurityResourcesStack } from '../lib/stacks/security-resources-stack';
 
 const testNamePrefix = 'Construct(SecurityResourcesStack): ';
 
@@ -32,4 +33,76 @@ describe('delegatedAdminStack', () => {
       'all-enabled-delegated-admin',
     ]),
   );
+});
+
+describe('SecurityResourcesStack.getRemediationParameters', () => {
+  // Cast through unknown to reach the private method without re-exporting it.
+  type GetRemediationParameters = (
+    ruleName: string,
+    params?: unknown,
+    assumeRoleArn?: string[],
+    configFunctionName?: string,
+  ) => Record<string, { StaticValue?: { Values: string[] }; ResourceValue?: { Value: string } }> | undefined;
+
+  const getStack = () =>
+    Create.stack('Management-us-east-1', AcceleratorStage.SECURITY_RESOURCES) as SecurityResourcesStack;
+
+  const callPrivate = (
+    stack: SecurityResourcesStack,
+    params: unknown,
+    assumeRoleArn?: string[],
+  ): ReturnType<GetRemediationParameters> => {
+    const fn = (stack as unknown as { getRemediationParameters: GetRemediationParameters }).getRemediationParameters;
+    return fn.call(stack, 'test-rule', params as never, assumeRoleArn);
+  };
+
+  test('returns undefined when neither params nor assumeRoleArn provided', () => {
+    expect(callPrivate(getStack(), undefined, undefined)).toBeUndefined();
+  });
+
+  test('injects AutomationAssumeRole with empty Values when assumeRoleArn is an empty array', () => {
+    const result = callPrivate(getStack(), undefined, []);
+    expect(result).toEqual({
+      AutomationAssumeRole: {
+        StaticValue: { Values: [] },
+      },
+    });
+  });
+
+  test('injects AutomationAssumeRole when params is omitted', () => {
+    const result = callPrivate(getStack(), undefined, ['arn:aws:iam::111122223333:role/RemediationRole']);
+    expect(result).toEqual({
+      AutomationAssumeRole: {
+        StaticValue: { Values: ['arn:aws:iam::111122223333:role/RemediationRole'] },
+      },
+    });
+  });
+
+  test('matches the `parameters: []` workaround behavior', () => {
+    const stack = getStack();
+    const omitted = callPrivate(stack, undefined, ['arn:aws:iam::111122223333:role/RemediationRole']);
+    const empty = callPrivate(stack, [], ['arn:aws:iam::111122223333:role/RemediationRole']);
+    expect(omitted).toEqual(empty);
+  });
+
+  test('does not inject AutomationAssumeRole when assumeRoleArn is not provided', () => {
+    const result = callPrivate(getStack(), [{ name: 'BucketName', value: 'RESOURCE_ID', type: 'String' }], undefined);
+    expect(result).toBeDefined();
+    expect(result!).not.toHaveProperty('AutomationAssumeRole');
+    expect(result!['BucketName']).toEqual({ ResourceValue: { Value: 'RESOURCE_ID' } });
+  });
+
+  test('preserves existing parameters and adds AutomationAssumeRole when both are provided', () => {
+    const result = callPrivate(
+      getStack(),
+      [{ name: 'BucketName', value: 'RESOURCE_ID', type: 'String' }],
+      ['arn:aws:iam::111122223333:role/RemediationRole'],
+    );
+    expect(result).toEqual({
+      AutomationAssumeRole: {
+        StaticValue: { Values: ['arn:aws:iam::111122223333:role/RemediationRole'] },
+      },
+      BucketName: { ResourceValue: { Value: 'RESOURCE_ID' } },
+    });
+  });
 });
