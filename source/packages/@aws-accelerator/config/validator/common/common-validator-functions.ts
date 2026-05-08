@@ -18,6 +18,22 @@ import { GlobalConfig } from '../../lib/global-config';
 import { ReplacementsConfig } from '../../lib/replacements-config';
 
 /**
+ * Set of account names currently declared in accounts-config.yaml
+ * (mandatoryAccounts + workloadAccounts). Used by validators to detect
+ * dangling references to accounts that have been removed (for example,
+ * because their organizational unit was marked `ignore: true`).
+ */
+export function getValidAccountNameSet(accountsConfig: AccountsConfig): Set<string> {
+  const names = new Set<string>();
+  for (const account of [...accountsConfig.mandatoryAccounts, ...accountsConfig.workloadAccounts]) {
+    if (account.name) {
+      names.add(account.name);
+    }
+  }
+  return names;
+}
+
+/**
  * Class for common helper functions
  */
 export class CommonValidatorFunctions {

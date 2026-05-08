@@ -14,6 +14,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import {
+  AccountReferenceValidator,
   AccountsConfig,
   AccountsConfigValidator,
   CustomizationsConfig,
@@ -361,6 +362,22 @@ function runValidators(
   if (replacementsPresent && replacementsConfig) {
     try {
       new ReplacementsConfigValidator(replacementsConfig, configDirPath);
+    } catch (e) {
+      configErrors.push(e);
+    }
+  }
+
+  // Cross-config account reference validator
+  if (accountsConfig) {
+    try {
+      new AccountReferenceValidator(
+        accountsConfig,
+        globalConfig,
+        iamConfig,
+        networkConfig,
+        securityConfig,
+        customizationsConfig,
+      ).validate();
     } catch (e) {
       configErrors.push(e);
     }

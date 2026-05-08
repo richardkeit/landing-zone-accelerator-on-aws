@@ -26,6 +26,7 @@ export * from './lib/models/iam-config';
 export * from './lib/models/network-config';
 export * from './lib/models/organization-config';
 export * from './lib/models/security-config';
+export * from './validator/account-reference-validator';
 export * from './validator/accounts-config-validator';
 export * from './validator/customizations-config-validator';
 export * from './validator/global-config-validator';
