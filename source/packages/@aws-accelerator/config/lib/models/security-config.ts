@@ -2864,21 +2864,21 @@ export interface IConfigRuleRemediationType {
  *   type: Custom
  *   description: Custom rule for checking EC2 instance IAM profile attachment
  *   inputParameters:
- *     customRule:
- *       lambda:
- *         sourceFilePath: path/to/function.zip
- *         handler: index.handler
- *         runtime: nodejsXX.x
- *         rolePolicyFile: path/to/policy.json
- *         timeout: 3
- *       periodic: true
- *       maximumExecutionFrequency: Six_Hours
- *       configurationChanges: true
- *       triggeringResources:
- *         lookupType: Tag
- *         lookupKey: EnvironmentA
- *         lookupValue:
- *           - AWS::EC2::Instance
+ *   customRule:
+ *     lambda:
+ *       sourceFilePath: path/to/function.zip
+ *       handler: index.handler
+ *       runtime: nodejsXX.x
+ *       rolePolicyFile: path/to/policy.json
+ *       timeout: 3
+ *     periodic: true
+ *     maximumExecutionFrequency: Six_Hours
+ *     configurationChanges: true
+ *     triggeringResources:
+ *       lookupType: Tag
+ *       lookupKey: EnvironmentA
+ *       lookupValue:
+ *         - AWS::EC2::Instance
  * ```
  * Managed Config rule with remediation:
  * ```
@@ -2983,28 +2983,28 @@ export interface IAwsConfigRuleSet {
    * @example
    * ```
    * rules:
-   *         - name: accelerator-attach-ec2-instance-profile
-   *           type: Custom
-   *           description: Custom role to remediate ec2 instance profile to EC2 instances
-   *           inputParameters:
-   *           customRule:
-   *             lambda:
-   *               sourceFilePath: custom-config-rules/attach-ec2-instance-profile.zip
-   *               handler: index.handler
-   *               runtime: nodejsXX.x
-   *               timeout: 3
-   *             periodic: true
-   *             maximumExecutionFrequency: Six_Hours
-   *             configurationChanges: true
-   *             triggeringResources:
-   *               lookupType: Tag
-   *               lookupKey: EnvironmentA
-   *               lookupValue:
-   *                 - AWS::EC2::Instance
-   *          - name: accelerator-iam-user-group-membership-check
-   *           complianceResourceTypes:
-   *             - AWS::IAM::User
-   *           identifier: IAM_USER_GROUP_MEMBERSHIP_CHECK
+   *   - name: accelerator-attach-ec2-instance-profile
+   *     type: Custom
+   *     description: Custom role to remediate ec2 instance profile to EC2 instances
+   *     inputParameters:
+   *     customRule:
+   *       lambda:
+   *         sourceFilePath: custom-config-rules/attach-ec2-instance-profile.zip
+   *         handler: index.handler
+   *         runtime: nodejsXX.x
+   *         timeout: 3
+   *       periodic: true
+   *       maximumExecutionFrequency: Six_Hours
+   *       configurationChanges: true
+   *       triggeringResources:
+   *         lookupType: Tag
+   *         lookupKey: EnvironmentA
+   *         lookupValue:
+   *           - AWS::EC2::Instance
+   *   - name: accelerator-iam-user-group-membership-check
+   *     complianceResourceTypes:
+   *       - AWS::IAM::User
+   *     identifier: IAM_USER_GROUP_MEMBERSHIP_CHECK
    * ```
    */
   readonly rules: IConfigRule[];
