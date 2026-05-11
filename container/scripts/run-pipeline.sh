@@ -80,7 +80,7 @@ echo "management account $MANAGEMENT_ACCOUNT_ID"
 
 # Define stacks to be deployed
 # AllStacks contains the stacks to be deployed after prepare and accounts stages
-AllStacks=( 'key' 'logging' 'organizations' 'security-audit' 'network-prep' 'security' 'operations' 'network-vpc' 'security-resources' 'network-associations' 'customizations' 'finalize' )
+AllStacks=( 'key' 'logging' 'organizations' 'security-audit' 'network-prep' 'security' 'operations' 'network-vpc' 'security-resources' 'identity-center' 'network-associations' 'customizations' 'finalize' )
 # SomeStacks can be used to deploy specific stacks only
 SomeStacks=( $stack1 $stack2 $stack3 $stack4 $stack5 $stack6 $stack7 $stack8 $stack9 $stack10 $stack11 $stack12 $stack13 $stack14 )
 
