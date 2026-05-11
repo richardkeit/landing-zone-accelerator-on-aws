@@ -2911,6 +2911,7 @@ exports[`NetworkAssociationsStack > Construct(NetworkAssociationsStack):  Snapsh
         "TargetType": "ip",
         "Targets": [
           {
+            "AvailabilityZone": "all",
             "Id": "10.3.100.20",
           },
         ],

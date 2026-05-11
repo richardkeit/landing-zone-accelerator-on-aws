@@ -126,7 +126,7 @@ export class TargetGroup extends cdk.Resource implements ITargetGroupResource {
       protocol: props.protocol,
       protocolVersion: props.protocolVersion ?? undefined,
       targetGroupAttributes: this.buildAttributes(props) ?? undefined,
-      targets: props.targets ? this.buildTargets(props.targets) : undefined,
+      targets: props.targets ? this.buildTargets(props.targets, props.type) : undefined,
       targetType: props.type,
       unhealthyThresholdCount: props.threshold ? props.threshold.healthy : undefined,
       vpcId: props.vpc,
@@ -232,13 +232,24 @@ export class TargetGroup extends cdk.Resource implements ITargetGroupResource {
     return undefined;
   }
 
+  /**
+   * Build target descriptions for the target group.
+   * For IP-type target groups, sets availabilityZone to 'all' to enable
+   * cross-VPC target registration. This is safe for in-VPC targets as
+   * AWS auto-detects the AZ when the IP is within the VPC.
+   */
   private buildTargets(
     targets: string[] | Reference,
+    targetType: string,
   ): cdk.aws_elasticloadbalancingv2.CfnTargetGroup.TargetDescriptionProperty[] | Reference {
+    // Reference targets (from NLB IP lookup Lambda) already include AvailabilityZone
     if (targets instanceof Reference) {
       return targets;
     }
     return targets.map(target => {
+      if (targetType === 'ip') {
+        return { id: target, availabilityZone: 'all' };
+      }
       return { id: target };
     });
   }
