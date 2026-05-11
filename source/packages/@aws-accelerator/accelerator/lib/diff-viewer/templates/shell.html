@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LZA CDK Diff Viewer</title>
 <style>
@@ -12,17 +12,18 @@
 <body>
 <nav class="sidebar" aria-label="Stack list">
   <div class="sidebar-header">
-    <h1>LZA CDK Diff Viewer <span style="display:flex;gap:0.3rem"><button class="theme-toggle" id="help-toggle" aria-label="Help">?</button><button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark theme">☀️</button></span></h1>
+    <h1>LZA CDK Diff Viewer <span style="display:flex;gap:0.3rem"><button class="theme-toggle" id="help-toggle" aria-label="Help">?</button><button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark theme">☀️</button><button class="theme-toggle" id="sidebar-collapse-btn" aria-label="Collapse sidebar" title="Collapse sidebar">◀</button></span></h1>
     <div class="summary" id="summary">Initializing...</div>
     <input type="text" id="search" placeholder="Filter stacks..." aria-label="Filter by stack name">
     <div class="sidebar-filters">
       <button id="filter-toggle">Filter: <span id="filter-label">Unreviewed</span> ▾</button>
     </div>
   </div>
-  <div class="summary-link" id="summary-link" role="button" tabindex="0">CloudFormation Diff Summary</div>
+  <div class="summary-link" id="summary-link" role="button" tabindex="0"><span class="section-chevron" aria-hidden="true" style="visibility:hidden">&#x25bc;</span>CloudFormation Diff Summary</div>
   <div class="sidebar-list" id="sidebar-list"></div>
 </nav>
 <div class="resize-handle" id="resize-handle"></div>
+<button type="button" id="sidebar-expand-btn" class="sidebar-expand-btn" aria-label="Show sidebar" title="Show sidebar">▶</button>
 <main class="main" id="main"><div id="cards"></div></main>
 <div class="filter-overlay" id="filter-overlay">
   <div class="help-modal">
@@ -40,20 +41,71 @@
 <div class="help-overlay" id="help-overlay">
   <div class="help-modal">
     <div class="help-close" id="help-close">&times;</div>
-    <h2 style="margin-bottom:0.75rem">How to use LZA CDK Diff Viewer</h2>
-    <ul style="padding-left:1.2rem;line-height:1.8;font-size:0.85rem">
-      <li>Click <strong>CloudFormation Diff Summary</strong> at the top of the sidebar for an impact report showing high-risk resource changes, affected accounts/regions, and resource type breakdown.</li>
-      <li>Stacks are grouped into sections. Click a section header to expand/collapse.</li>
-      <li>Click a stack name to view its diff.</li>
-      <li>Use the <strong>Filter</strong> button to show: Unreviewed, Changed, Unchanged, Reviewed, or All.</li>
-      <li>Search by stack name or section.</li>
-      <li>Check the box to mark a stack as reviewed (strikethrough).</li>
-      <li>Unchanged stacks are auto-marked as reviewed. Stacks with only Lambda S3Key changes (asset hash rotation) are treated as unchanged.</li>
-      <li>Diff content is color-coded: <span style="color:var(--red)">red for removals [-]</span>, <span style="color:var(--green)">blue for additions [+]</span>, <span style="color:var(--yellow)">yellow for modifications [~]</span>.</li>
-      <li>IAM Statement Changes tables highlight entire removal/addition blocks, including continuation rows.</li>
-      <li>In the impact report, use the search box and filter dropdown to find specific stacks. Results are paginated (25 per page).</li>
-      <li>High-risk resource types (VPCs, Transit Gateways, Security Groups, NAT Gateways, etc.) are flagged in the summary with modify/delete counts.</li>
-      <li>Drag the sidebar edge to resize. Toggle theme with ☀️/🌙.</li>
+    <h2 style="margin-bottom:0.5rem">How to use LZA CDK Diff Viewer</h2>
+    <div style="font-size:0.82rem;line-height:1.5;margin-bottom:1rem;padding:0.6rem 0.75rem;border-left:3px solid var(--yellow);background:rgba(209,154,102,0.1);border-radius:3px">
+      <strong style="color:var(--yellow)">⚠️ Experimental feature.</strong>
+      This viewer is a <em>review aid</em>, not a safety gate. It highlights what the synthesized CloudFormation templates <em>appear</em> likely to change relative to the deployed stacks, but it does not enforce any outcome. Pair it with authoritative controls. Use <strong><a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/protect-stack-resources.html" target="_blank" rel="noopener noreferrer">stack policies</a></strong> to protect specific resources from unintended replace or delete actions, and use <strong><a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-changesets-create.html" target="_blank" rel="noopener noreferrer">CloudFormation change sets</a></strong> to confirm exactly which resources will be created, modified, or deleted at deploy time. Together these ensure the changes applied by CloudFormation match the changes you intended.
+    </div>
+
+    <h3 style="font-size:0.92rem;margin-bottom:0.35rem">Sidebar — finding stacks</h3>
+    <ul style="padding-left:1.2rem;line-height:1.6;font-size:0.82rem;margin-bottom:0.75rem">
+      <li>Stacks are grouped by section (NetworkVpc, Security, Logging, etc.). Click a section header (▼/▶) to collapse or expand it.</li>
+      <li>Click a stack name to open its full diff.</li>
+      <li><strong>Search</strong> filters by stack name or section.</li>
+      <li><strong>Filter</strong> button: <em>Unreviewed</em> (default), <em>Changed</em>, <em>Unchanged</em>, <em>Reviewed</em>, <em>All</em>.</li>
+      <li>Drag the sidebar edge to resize. Click the <strong>◀</strong> button in the sidebar header to collapse the whole sidebar; the floating <strong>▶</strong> button in the top-left brings it back. Preference saved per browser.</li>
+    </ul>
+
+    <h3 style="font-size:0.92rem;margin-bottom:0.35rem">Review workflow</h3>
+    <ul style="padding-left:1.2rem;line-height:1.6;font-size:0.82rem;margin-bottom:0.75rem">
+      <li>Each stack has a <em>Reviewed</em> checkbox — tick to mark as reviewed (strikethrough + dim). <strong>Ticking a checkbox also collapses that stack's detail row</strong> on the summary page so you can move on.</li>
+      <li>Unchanged stacks are auto-marked as reviewed.</li>
+      <li>Stacks with only Lambda <code>S3Key</code> churn (asset hash rotation), <code>AcceleratorVersion</code> SSM bumps, or <code>Custom::*</code> UUID-only changes are treated as unchanged.</li>
+    </ul>
+
+    <h3 style="font-size:0.92rem;margin-bottom:0.35rem">CloudFormation Diff Summary (top of sidebar)</h3>
+    <p style="font-size:0.82rem;line-height:1.5;margin-bottom:0.5rem">The summary page has two collapsible sections (both expanded by default). Click a section title to collapse; click again to expand.</p>
+    <ul style="padding-left:1.2rem;line-height:1.6;font-size:0.82rem;margin-bottom:0.75rem">
+      <li><strong>Critical Networking Changes</strong> — per-stack table of networking resources that will be <span style="color:var(--red)">deleted, replaced, conditionally replaced, or orphaned</span>. Each row has its own expand chevron showing resource type, logical ID, and the properties that trigger any replacement. If you collapse the whole section while changes exist, an inline <span style="color:var(--red)">⚠️ Critical networking changes exist — expand to review</span> warning stays next to the title.</li>
+      <li><strong>Stacks Requiring Review</strong> — every stack that touches a tracked resource type. Layout mirrors Critical Networking Changes: two-column table with an expand chevron per stack and one badge + resource type + logical ID line per resource. Paginated 25 per page.
+        <ul style="margin-top:0.3rem">
+          <li><strong>Filters</strong> block at the top of the card holds the stack search box, the Unreviewed/Reviewed/All filter, and a collapsible <em>Resource Types to Track</em> chevron (closed by default). Inside are <strong>Select all</strong> and <strong>Clear all</strong> buttons plus one checkbox per resource type discovered in the diff. Tweaking any of these updates the table immediately.</li>
+          <li>Default selection is <em>every</em> resource type.</li>
+        </ul>
+      </li>
+      <li><strong>Scope</strong> — total accounts and regions affected.</li>
+    </ul>
+
+    <h3 style="font-size:0.92rem;margin-bottom:0.35rem">Stack diff view</h3>
+    <ul style="padding-left:1.2rem;line-height:1.6;font-size:0.82rem;margin-bottom:0.75rem">
+      <li>Sections are collapsible (▼/▶): Parameters · Conditions · IAM Statement Changes · Security Group Rule Changes · Resources · Outputs · Noise.</li>
+      <li><strong style="color:var(--red)">Resource cards with a red border are destructive</strong> — they will be deleted, replaced (definitely or possibly), or orphaned. Click the card header to expand property-level diffs.</li>
+      <li>Action badges: <span class="action-badge action-create">Will Create</span> <span class="action-badge action-modify">Will Update</span> <span class="action-badge action-delete">Will Destroy</span> <span class="action-badge action-replace">Will Replace</span> <span class="action-badge action-may-replace">May Replace</span>.</li>
+      <li>Replacement banners explain when a change forces delete-and-recreate, and list the triggering properties.</li>
+      <li>Each property change shows the old value, new value, and an expandable full JSON diff. <strong>📋 Old</strong> / <strong>📋 New</strong> buttons copy the raw JSON to the clipboard.</li>
+      <li><strong>IAM Statement Changes</strong> and <strong>Security Group Rule Changes</strong> tables show additions and removals as full-row highlights.</li>
+      <li><strong>Noise</strong> section (collapsed by default) contains low-signal churn — Lambda code bundles, version parameters, CDK custom-resource UUIDs.</li>
+    </ul>
+
+    <h3 style="font-size:0.92rem;margin-bottom:0.35rem">Diff colors (colorblind-safe)</h3>
+    <ul style="padding-left:1.2rem;line-height:1.6;font-size:0.82rem;margin-bottom:0.75rem">
+      <li><span style="color:var(--red)">Red with <code>-</code> prefix and left border</span> — removal</li>
+      <li><span style="color:var(--blue)">Blue with <code>+</code> prefix and left border</span> — addition</li>
+      <li><span style="color:var(--muted);font-style:italic">Muted italic</span> — context / identity line</li>
+    </ul>
+
+    <h3 style="font-size:0.92rem;margin-bottom:0.35rem">Export and share (top of Diff Summary)</h3>
+    <ul style="padding-left:1.2rem;line-height:1.6;font-size:0.82rem;margin-bottom:0.75rem">
+      <li><strong>⬇️ Markdown</strong> — downloads a formatted summary with destructive and networking change tables, suitable for change-approval tickets or COE docs.</li>
+      <li><strong>⬇️ JSON</strong> — downloads the full structured impact report for programmatic consumption.</li>
+      <li><strong>URL review state</strong> — if you open the viewer with a <code>#r=&lt;indices&gt;</code> fragment appended to the URL, those stack indices load as already-reviewed. Useful for scripting or hand-crafted review links.</li>
+    </ul>
+
+    <h3 style="font-size:0.92rem;margin-bottom:0.35rem">Tips</h3>
+    <ul style="padding-left:1.2rem;line-height:1.6;font-size:0.82rem">
+      <li>☀️/🌙 toggles light/dark theme (saved per browser).</li>
+      <li>Selected resource-type filters, the sidebar collapse state, and theme preference are all saved in <code>localStorage</code> for this file URL. Review-state checkboxes are in-memory only (share progress via the <code>#r=&lt;indices&gt;</code> URL fragment).</li>
+      <li>The HTML is fully self-contained and works offline — no network requests are made.</li>
     </ul>
   </div>
 </div>

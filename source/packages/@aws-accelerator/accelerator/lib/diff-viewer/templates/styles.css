@@ -31,9 +31,32 @@
   --badge-changes-bg: rgba(154,103,0,0.1); --badge-no-changes-bg: rgba(26,127,55,0.1);
   --section-bg: rgba(0,0,0,0.03);
 }
+
+/* Base */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
-.sidebar { width: var(--sidebar-width); min-width: 200px; max-width: 60vw; background: var(--sidebar-bg); display: flex; flex-direction: column; height: 100vh; flex-shrink: 0; }
+
+/* Keep every link (including :visited) readable on both themes — browser-
+ * default purple for visited links is unreadable on the dark surface. */
+a, a:visited { color: var(--blue); }
+
+/* Sidebar */
+.sidebar { width: var(--sidebar-width); min-width: 200px; max-width: 60vw; background: var(--sidebar-bg); display: flex; flex-direction: column; height: 100vh; flex-shrink: 0; transition: width 0.15s, min-width 0.15s; }
+/* Collapsed — hidden from layout; floating expand button takes its place */
+.sidebar.collapsed { width: 0; min-width: 0; overflow: hidden; }
+
+/* When the sidebar is collapsed, push the main content right so it doesn't
+ * overlap the floating expand button (top-left corner). */
+.sidebar.collapsed ~ .main { padding-left: 3.5rem; }
+
+/* Floating button shown only when the sidebar is collapsed */
+.sidebar-expand-btn {
+  display: none; position: fixed; top: 0.75rem; left: 0.5rem;
+  width: 2rem; height: 2rem; padding: 0; border-radius: 4px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  cursor: pointer; font-size: 0.85rem; line-height: 1; z-index: 50;
+}
+.sidebar-expand-btn:hover { border-color: var(--blue); background: var(--hover-bg); }
 .resize-handle { width: 5px; cursor: col-resize; background: var(--border); flex-shrink: 0; transition: background 0.15s; }
 .resize-handle:hover, .resize-handle.dragging { background: var(--blue); }
 .sidebar-header { padding: 1rem; border-bottom: 1px solid var(--border); }
@@ -43,12 +66,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monos
 .sidebar-filters { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .sidebar-filters button { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; width: 100%; text-align: left; }
 .sidebar-filters button:hover { border-color: var(--blue); }
-.filter-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
-.filter-overlay.open { display: flex; }
-.filter-options { display: flex; flex-direction: column; gap: 0.5rem; }
-.filter-option { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 0.6rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; text-align: left; transition: border-color 0.15s, background 0.15s; }
-.filter-option:hover { background: var(--hover-bg); }
-.filter-option.active { border-color: var(--blue); color: var(--blue); background: var(--active-bg); }
 .sidebar-list { flex: 1; overflow-y: auto; list-style: none; }
 .section-header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: var(--section-bg); border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; font-size: 0.8rem; font-weight: 600; }
 .section-header:hover { background: var(--hover-bg); }
@@ -56,7 +73,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monos
 .section-header.collapsed .section-chevron { transform: rotate(-90deg); }
 .section-header .section-counts { color: var(--muted); font-weight: 400; font-size: 0.75rem; }
 .section-items { list-style: none; }
-.section-header.collapsed + .section-items { display: none; }
 .sidebar-item { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.75rem 0.4rem 1.5rem; cursor: pointer; font-size: 0.78rem; border-bottom: 1px solid var(--sidebar-border-item); transition: background 0.15s; }
 .sidebar-item:hover { background: var(--hover-bg); }
 .sidebar-item.active { background: var(--active-bg); border-left: 3px solid var(--blue); }
@@ -66,28 +82,38 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monos
 .sidebar-item .dot.no-changes { background: var(--badge-no-changes); }
 .sidebar-item .review-cb { margin-right: 0.4rem; cursor: pointer; flex-shrink: 0; }
 .sidebar-item.reviewed .name { text-decoration: line-through; color: var(--muted); }
+.summary-link { padding: 0.6rem 0.75rem; cursor: pointer; font-size: 0.85rem; font-weight: 600; border-bottom: 1px solid var(--border); background: var(--section-bg); transition: background 0.15s; }
+.summary-link:hover { background: var(--hover-bg); text-decoration: underline; }
+
+/* Main content */
 .main { flex: 1; overflow-y: auto; padding: 2rem; }
 .diff-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 1rem; overflow: hidden; }
 .diff-header { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; cursor: pointer; user-select: none; }
 .diff-header:hover { background: var(--header-hover); }
 .diff-title { font-size: 0.9rem; font-weight: 600; }
+.chevron { transition: transform 0.2s; display: inline-block; margin-right: 0.5rem; }
+.diff-card.open .chevron { transform: rotate(90deg); }
 .badge { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 600; }
 .badge.changes { background: var(--badge-changes-bg); color: var(--badge-changes); }
 .badge.no-changes { background: var(--badge-no-changes-bg); color: var(--badge-no-changes); }
 .diff-body { display: none; padding: 1rem; border-top: 1px solid var(--border); overflow-x: auto; }
-.diff-body pre { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 0.8rem; line-height: 1.5; white-space: pre; }
 .diff-card.open .diff-body { display: block; }
-.ansi-red { color: var(--red); } .ansi-green { color: var(--green); } .ansi-yellow { color: var(--yellow); }
-.ansi-blue { color: var(--blue); } .ansi-cyan { color: var(--cyan); } .ansi-bold { font-weight: 700; }
-.ansi-underline { text-decoration: underline; } .ansi-muted { color: var(--muted); }
-.chevron { transition: transform 0.2s; display: inline-block; margin-right: 0.5rem; }
-.diff-card.open .chevron { transform: rotate(90deg); }
-.theme-toggle { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; flex-shrink: 0; }
-.help-overlay, .filter-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
-.help-overlay.open { display: flex; }
-.help-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; max-width: 500px; width: 90%; position: relative; color: var(--text); }
+.back-to-summary { display: inline-block; margin-bottom: 1rem; color: var(--blue); text-decoration: none; font-size: 0.85rem; }
+.back-to-summary:hover { text-decoration: underline; }
+
+/* Overlays */
+.filter-overlay, .help-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+.filter-overlay.open, .help-overlay.open { display: flex; }
+.filter-options { display: flex; flex-direction: column; gap: 0.5rem; }
+.filter-option { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 0.6rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; text-align: left; transition: border-color 0.15s, background 0.15s; }
+.filter-option:hover { background: var(--hover-bg); }
+.filter-option.active { border-color: var(--blue); color: var(--blue); background: var(--active-bg); }
+.help-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; max-width: 640px; width: 90%; max-height: 85vh; overflow-y: auto; position: relative; color: var(--text); }
 .help-close { position: absolute; top: 0.5rem; right: 0.75rem; font-size: 1.4rem; cursor: pointer; color: var(--muted); line-height: 1; }
 .help-close:hover { color: var(--text); }
+.theme-toggle { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; flex-shrink: 0; }
+
+/* Impact report */
 .impact-report { max-width: 960px; }
 .report-title { font-size: 1.3rem; margin-bottom: 1rem; }
 .report-summary { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
@@ -97,32 +123,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monos
 .stat-create .stat-value { color: var(--green); }
 .stat-modify .stat-value { color: var(--yellow); }
 .stat-delete .stat-value { color: var(--red); }
+.stat-replace .stat-value { color: var(--red); }
 .report-section { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1rem; overflow-x: auto; }
 .report-section-title { font-size: 0.95rem; margin-bottom: 0.75rem; }
-.risk-high { color: var(--badge-changes); }
+/* Collapsible section title — clickable, shows a chevron */
+.section-collapsible { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+.section-collapsible:hover { opacity: 0.85; }
+.section-collapsible:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 2px; }
+/* Chevron uses muted colour so it does not inherit the red accent of .destructive-title.
+ * Size matches the sidebar section chevron for visual consistency. */
+.section-collapse-chevron { font-size: 0.7rem; display: inline-block; width: 0.9rem; color: var(--muted); }
+/* Author-style override so [hidden] wins over any display rule on .section-body */
+.section-body[hidden] { display: none; }
+/* Warning shown next to the title ONLY when there are changes and the user
+ * collapses the section. Keeps the signal visible without re-expanding. */
+.crit-collapsed-warning {
+  display: none;
+  font-size: 0.78rem; font-weight: 500; color: var(--red);
+  background: rgba(224,108,117,0.12); border: 1px solid var(--red);
+  padding: 0.15rem 0.5rem; border-radius: 3px;
+  margin-left: 0.6rem;
+}
+.destructive-section.section-collapsed .crit-collapsed-warning { display: inline-block; }
 .report-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
 .report-table th { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 600; }
 .report-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--sidebar-border-item); vertical-align: top; }
 .report-table code { font-size: 0.78rem; }
-.stack-name-cell { max-width: 320px; word-break: break-all; font-size: 0.75rem; }
-.action-badge { display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 3px; text-transform: uppercase; }
-.action-modify { background: var(--badge-changes-bg); color: var(--badge-changes); }
-.action-delete { background: rgba(224,108,117,0.15); color: var(--red); }
-.action-create { background: var(--badge-no-changes-bg); color: var(--badge-no-changes); }
 .report-ok { color: var(--cyan); font-size: 0.9rem; }
-.stack-link { color: var(--blue); text-decoration: none; font-size: 0.78rem; word-break: break-all; }
-.stack-link:hover { text-decoration: underline; }
-.summary-link { padding: 0.6rem 0.75rem; cursor: pointer; font-size: 0.85rem; font-weight: 600; border-bottom: 1px solid var(--border); background: var(--section-bg); transition: background 0.15s; }
-.summary-link:hover { background: var(--hover-bg); }
-.type-filter-grid { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.type-filter-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; padding: 0.2rem 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; cursor: pointer; user-select: none; }
-.type-filter-item:hover { border-color: var(--blue); }
-.type-filter-item input { cursor: pointer; }
-.back-to-summary { display: inline-block; margin-bottom: 1rem; color: var(--blue); text-decoration: none; font-size: 0.85rem; }
-.back-to-summary:hover { text-decoration: underline; }
-.reviewed-link { text-decoration: line-through; color: var(--muted); }
-.report-reviewed { opacity: 0.6; }
-.report-review-cb { cursor: pointer; }
 .report-controls { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
 .report-search { flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 0.4rem 0.6rem; border-radius: 4px; font-size: 0.8rem; }
 .report-select { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 0.4rem 0.6rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; }
@@ -132,3 +159,188 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monos
 .page-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.78rem; }
 .page-btn:hover:not(:disabled) { border-color: var(--blue); }
 .page-btn:disabled { opacity: 0.4; cursor: default; }
+.stack-link { color: var(--blue); text-decoration: none; font-size: 0.78rem; word-break: break-all; }
+.stack-link:hover { text-decoration: underline; }
+.reviewed-link { text-decoration: line-through; color: var(--muted); }
+.report-reviewed { opacity: 0.6; }
+.report-review-cb { cursor: pointer; }
+.type-filter-grid { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.type-filter-grid[hidden] { display: none; }  /* author-style override: beats .type-filter-grid above when `hidden` attribute is set */
+.type-filter-body[hidden] { display: none; }
+.type-filter-bulk { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; font-size: 0.78rem; }
+.type-filter-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; padding: 0.2rem 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; cursor: pointer; user-select: none; }
+.type-filter-item:hover { border-color: var(--blue); }
+.type-filter-item input { cursor: pointer; }
+
+/* Collapsible "Resource Types to Track" subsection inside Stacks Requiring Review */
+.filters-block {
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 0.6rem 0.75rem; margin-bottom: 0.75rem;
+  background: var(--surface);  /* same as the parent card */
+}
+.filters-label {
+  font-size: 0.72rem; font-weight: 600; color: var(--text);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+.filters-block .report-controls { margin-bottom: 0.5rem; }
+.filters-block .type-filter-subsection { margin-bottom: 0; }
+.type-filter-subsection { margin-bottom: 0.75rem; }
+.type-filter-toggle {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.3rem 0.4rem; margin-bottom: 0.4rem;
+  background: var(--section-bg); border-radius: 3px;
+  font-size: 0.82rem; font-weight: 600; color: var(--muted);
+  cursor: pointer; user-select: none;
+}
+.type-filter-toggle:hover { color: var(--text); }
+.type-filter-toggle:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.type-filter-chevron { font-size: 0.7rem; display: inline-block; width: 0.8rem; }
+.type-filter-count { color: var(--muted); font-weight: 400; font-size: 0.75rem; }
+.type-filter-subsection .type-filter-grid { padding: 0.4rem 0; }
+
+/* Action badges */
+.action-badge { display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 3px; text-transform: uppercase; }
+.action-create { background: rgba(137,180,250,0.15); color: var(--blue); }
+.action-modify { background: var(--badge-changes-bg); color: var(--badge-changes); }
+.action-delete { background: rgba(224,108,117,0.15); color: var(--red); }
+.action-replace { background: rgba(224,108,117,0.25); color: var(--red); font-weight: 700; }
+
+/* Structured diff cards */
+.sd-section { margin-bottom: 1rem; }
+.sd-section-title { font-size: 0.85rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid var(--border); }
+.sd-section-toggle { cursor: pointer; user-select: none; }
+.sd-section-toggle:hover { color: var(--text); }
+.sd-sec-chevron { font-size: 0.7rem; display: inline-block; }
+.sd-policy-counts { font-size: 0.72rem; font-weight: 600; margin-left: 0.35rem; }
+.sd-pcount-add { color: var(--blue); }
+.sd-pcount-rem { color: var(--red); }
+.sd-policy-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; font-family: 'SF Mono', 'Fira Code', monospace; }
+.sd-policy-table th { text-align: left; padding: 0.35rem 0.5rem; background: var(--section-bg); border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; }
+.sd-policy-table td { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--sidebar-border-item); vertical-align: top; white-space: pre-wrap; word-break: break-word; }
+.sd-pol-marker { width: 1.5rem; text-align: center; font-weight: 700; }
+.sd-pol-add { background: rgba(137,180,250,0.06); }
+.sd-pol-add .sd-pol-marker { color: var(--blue); }
+.sd-pol-rem { background: rgba(224,108,117,0.06); }
+.sd-pol-rem .sd-pol-marker { color: var(--red); }
+.sd-resource { margin-bottom: 0.25rem; border: 1px solid var(--sidebar-border-item); border-radius: 4px; overflow: hidden; }
+.sd-will-replace { border-color: var(--red); border-width: 2px; }
+.sd-destructive { border-color: var(--red); border-width: 2px; }
+.sd-replace-warning { color: var(--red); font-size: 0.72rem; font-weight: 600; margin-left: auto; }
+.sd-replace-banner { background: rgba(224,108,117,0.15); border-left: 4px solid var(--red); color: var(--red); padding: 0.6rem 0.75rem; margin-bottom: 0.5rem; border-radius: 3px; font-size: 0.8rem; }
+.sd-resource-header { padding: 0.5rem 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; }
+.sd-expandable { cursor: pointer; }
+.sd-expandable:hover { background: var(--hover-bg); }
+.sd-chevron { font-size: 0.65rem; color: var(--muted); width: 1em; flex-shrink: 0; }
+.sd-type { font-weight: 600; }
+.sd-logicalid { font-weight: 600; font-size: 0.82rem; }
+.sd-prop-count { color: var(--muted); font-size: 0.72rem; }
+.sd-resource-body { border-top: 1px solid var(--sidebar-border-item); padding: 0.5rem 0.75rem; }
+.sd-resource-raw { margin-top: 0.5rem; border-top: 1px solid var(--sidebar-border-item); padding-top: 0.35rem; }
+.sd-resource-raw summary { font-size: 0.72rem; color: var(--muted); cursor: pointer; user-select: none; }
+.sd-resource-raw summary:hover { color: var(--text); }
+.sd-prop { margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--sidebar-border-item); }
+.sd-prop:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.sd-prop-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
+.sd-prop-name { font-weight: 600; font-size: 0.82rem; }
+.sd-prop-diff { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 0.78rem; line-height: 1.6; }
+/* Diff lines — colorblind-safe: left border + prefix symbol + distinct hue (blue vs red, not green vs red) */
+.vd-removed { color: var(--red); border-left: 3px solid var(--red); padding-left: 0.5rem; }
+.vd-added { color: var(--blue); border-left: 3px solid var(--blue); padding-left: 0.5rem; }
+.vd-context { color: var(--muted); font-style: italic; margin-top: 0.25rem; }
+.vd-unchanged { color: var(--muted); }
+.sd-prop-raw { margin-top: 0.35rem; }
+.sd-prop-raw summary { font-size: 0.72rem; color: var(--muted); cursor: pointer; user-select: none; }
+.sd-prop-raw summary:hover { color: var(--text); }
+.json-diff { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 0.75rem; line-height: 1.5; white-space: pre-wrap; word-break: break-all; background: var(--bg); padding: 0.4rem; border-radius: 3px; border: 1px solid var(--sidebar-border-item); max-height: 30rem; overflow: auto; margin-top: 0.35rem; }
+.jd-add { color: var(--blue); background: rgba(137,180,250,0.08); border-left: 3px solid var(--blue); padding-left: 0.4rem; }
+.jd-rem { color: var(--red); background: rgba(224,108,117,0.08); border-left: 3px solid var(--red); padding-left: 0.4rem; }
+.jd-ctx { color: var(--muted); padding-left: calc(0.4rem + 3px); }
+.jd-toolbar { display: flex; gap: 0.35rem; justify-content: flex-end; margin-top: 0.35rem; margin-bottom: 0.25rem; }
+.jd-copy { background: var(--surface); color: var(--muted); border: 1px solid var(--border); padding: 0.25rem 0.4rem; border-radius: 3px; cursor: pointer; font-size: 0.72rem; line-height: 1; }
+.jd-copy:hover { border-color: var(--blue); color: var(--text); }
+.jd-hidden { position: absolute; left: -9999px; }
+
+/* ========================================================================
+ * Critical Networking Changes section (priority surfacing)
+ * ====================================================================== */
+
+/* MAY_REPLACE action badge — referenced by impactBadge() in viewer.js */
+.action-may-replace { background: rgba(209,154,102,0.2); color: var(--yellow); font-weight: 700; }
+
+/* Critical Networking Changes section container. Inherits default .report-section
+ * styling; row-level accents (red badges, detail indent) carry the severity signal. */
+.destructive-section { /* no rules — placeholder for future overrides */ }
+.destructive-title { color: var(--red); font-size: 1.05rem; }
+.destructive-summary-text { font-size: 0.85rem; margin-bottom: 0.75rem; line-height: 1.5; color: var(--text); }
+
+/* Compact stat cards — slimmer than the top-level ones */
+.destructive-stats { gap: 0.5rem; margin-bottom: 0.75rem; }
+.destructive-stats .report-stat {
+  padding: 0.4rem 0.75rem; min-width: 80px; flex-direction: row; align-items: baseline; gap: 0.4rem;
+  border-color: var(--red);
+}
+.destructive-stats .report-stat .stat-value { font-size: 1.15rem; }
+.destructive-stats .report-stat .stat-label { margin-top: 0; font-size: 0.7rem; }
+.destructive-stat-destroy .stat-value,
+.destructive-stat-replace .stat-value,
+.destructive-stat-stacks .stat-value { color: var(--red); }
+.destructive-stat-may-replace .stat-value,
+.destructive-stat-orphan .stat-value { color: var(--yellow); }
+
+.destructive-badge {
+  display: inline-block; font-size: 0.62rem; font-weight: 700;
+  padding: 0.15rem 0.4rem; border-radius: 3px; text-transform: uppercase;
+  letter-spacing: 0.02em; white-space: nowrap; line-height: 1.2;
+  background: var(--red); color: #fff;
+}
+
+/* Critical Changes — compact expandable rows */
+.destructive-table { table-layout: auto; }
+.destructive-table td { vertical-align: top; padding: 0.5rem 0.6rem; }
+.destructive-table th { padding: 0.4rem 0.6rem; }
+
+/* Col 1: stack + chevron */
+.crit-stack-cell { display: flex; align-items: baseline; gap: 0.4rem; }
+.crit-stack-cell .stack-link { font-size: 0.82rem; font-weight: 500; word-break: break-all; }
+.crit-expand-btn {
+  flex: 0 0 1.2rem; width: 1.2rem; height: 1.2rem;
+  background: transparent; border: none; color: var(--muted);
+  cursor: pointer; font-size: 0.75rem; padding: 0; line-height: 1;
+  border-radius: 3px; transition: color 0.1s, background 0.1s;
+}
+.crit-expand-btn:hover { color: var(--text); background: var(--hover-bg); }
+
+/* Detail row — hidden by default via CSS, shown when .crit-open is added */
+.crit-detail-row { display: none; }
+.crit-detail-row.crit-open { display: table-row; }
+.crit-detail-row > td { padding: 0 0.6rem 0.6rem 2.6rem; background: rgba(0,0,0,0.08); }
+[data-theme="light"] .crit-detail-row > td { background: rgba(0,0,0,0.03); }
+.crit-detail-list { display: flex; flex-direction: column; gap: 0.3rem; padding-top: 0.35rem; border-top: 1px dashed var(--sidebar-border-item); }
+.crit-item {
+  display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap;
+  font-size: 0.76rem; line-height: 1.5;
+}
+.crit-item .destructive-badge { flex: 0 0 auto; }
+.crit-item .change-type { font-weight: 600; color: var(--text); }
+.crit-item .change-id { color: var(--text); word-break: break-all; }
+.change-trigger {
+  font-size: 0.7rem; color: var(--yellow); padding: 0.05rem 0.35rem;
+  background: rgba(209,154,102,0.1); border-radius: 3px; white-space: nowrap;
+}
+.change-trigger code { font-size: 0.7rem; color: var(--yellow); }
+
+/* Reviewed state — dim the row without fighting the expand */
+.destructive-table .report-reviewed { opacity: 0.55; }
+
+/* Impact report header with export/share buttons */
+.report-header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.report-header-row .report-title { margin-bottom: 0; }
+.report-header-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.export-btn {
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  padding: 0.35rem 0.65rem; border-radius: 4px; cursor: pointer;
+  font-size: 0.78rem; font-weight: 500; transition: border-color 0.15s, background 0.15s;
+}
+.export-btn:hover { border-color: var(--blue); background: var(--hover-bg); }
+.export-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }

@@ -27,6 +27,7 @@ import {
   printStackDiff,
   CachingCredentialProvider,
   getCurrentAccountId,
+  getStructuredDiff,
 } from '@aws-accelerator/utils';
 
 import { AcceleratorStackNames } from './accelerator';
@@ -712,7 +713,13 @@ export class AcceleratorToolkit {
         stream,
       );
       await stream.close();
-      logger.debug(`Diff written for ${eachStack}`);
+
+      // Write structured JSON diff alongside text diff
+      const structuredDiff = getStructuredDiff(
+        path.join(savePath, `${eachStack}.json`),
+        path.join(savePath, `${eachStack}.template.json`),
+      );
+      fs.writeFileSync(path.join(savePath, `${eachStack}.diff.json`), JSON.stringify(structuredDiff), 'utf-8');
     }
     // Customizations stack will evaluate on a per stack basis, so no need to check the diff files on this stage.
     if (options.stage !== AcceleratorStage.CUSTOMIZATIONS) {
