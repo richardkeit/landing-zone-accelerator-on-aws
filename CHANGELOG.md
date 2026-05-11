@@ -25,13 +25,8 @@ chore(logging): add sourceOrgId condition to central s3 bucket policy
 ### Fixed
 
 - fix(networking): cross account NLB targets
-- fix(networking): add availability zone for ip target group registration
 
 ### Changed
-
-### Upgrade Notes
-
-- Existing deployments with IP-type target groups using static IP targets will see a CloudFormation diff on the next pipeline run. This triggers a target deregistration/re-registration cycle that may briefly reduce capacity while health checks converge (~2.5 minutes per target). For in-VPC targets, the behavior is functionally unchanged. We recommend scheduling the first pipeline run after this upgrade during a maintenance window if your IP target groups serve production traffic.
 
 ## [1.15.1] - 
 

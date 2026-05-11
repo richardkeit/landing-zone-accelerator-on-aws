@@ -40,7 +40,7 @@ export async function handler(event: CloudFormationCustomResourceEvent) {
         targets
           .filter(target => typeof target === 'string')
           .map(filteredTarget => {
-            return { Id: filteredTarget, AvailabilityZone: 'all' };
+            return { Id: filteredTarget };
           }) ?? [];
       const ipAddressList = [...nlbIpAddressList, ...staticIpAddresses];
       if (!ipAddressList) {
