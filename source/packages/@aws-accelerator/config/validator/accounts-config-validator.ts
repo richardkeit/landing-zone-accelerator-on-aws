@@ -121,6 +121,17 @@ export class AccountsConfigValidator {
       if (!emailValidator.validate(item)) {
         errors.push(`Invalid email ${item}.`);
       }
+      // AWS Organizations CreateAccount API-specific email validation
+      if (item.length < 6 || item.length > 64) {
+        errors.push(
+          `Email "${item}" must be between 6 and 64 characters (found ${item.length}). This is an AWS Organizations API constraint.`,
+        );
+      }
+      const emailPrefix = item.split('@')[0] ?? '';
+      const forbiddenEmailChars = /[\s"'()<>[\]:;,\\|%&]/;
+      if (forbiddenEmailChars.test(emailPrefix)) {
+        errors.push(`Email "${item}" contains characters in the local name not allowed by AWS Organizations.`);
+      }
     });
 
     //
@@ -176,7 +187,7 @@ export class AccountsConfigValidator {
   }
 
   /**
-   * Function to verify account names are unique and name without space
+   * Function to verify account names are unique, without spaces, and within AWS length constraints
    * @returns Array of validation errors
    */
   private validateAccountNames(): string[] {
@@ -191,6 +202,19 @@ export class AccountsConfigValidator {
     for (const account of [...this.accountsConfig.mandatoryAccounts, ...this.accountsConfig.workloadAccounts]) {
       if (account.name.indexOf(' ') > 0) {
         errors.push(`Account name (${account.name}) found with spaces. Please remove spaces and retry the pipeline.`);
+      }
+      // AWS Organizations CreateAccount API constraint: AccountName is 1-50 characters
+      if (account.name.length > 50) {
+        errors.push(
+          `Account name "${account.name}" exceeds the maximum length of 50 characters (found ${account.name.length}). This is an AWS Organizations API constraint.`,
+        );
+      }
+      // Pattern [ -~] matches printable ASCII range (space 0x20 through tilde 0x7E)
+      const printableAsciiPattern = /^[ -~]+$/;
+      if (!printableAsciiPattern.test(account.name)) {
+        errors.push(
+          `Account name "${account.name}" contains invalid characters. Only printable ASCII characters are allowed.`,
+        );
       }
     }
 
