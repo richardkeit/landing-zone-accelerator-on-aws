@@ -172,6 +172,7 @@ accelerator:daily-vulnerability-scan:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_PIPELINE_SCHEDULE_DESCRIPTION == "Daily Vulnerability Scan" && $CI_COMMIT_BRANCH == "integ"
       when: always
     - when: never
+
 accelerator:cve-remediation:
   stage: security
   needs: []
@@ -200,6 +201,29 @@ accelerator:cve-remediation:
       - cve-remediation-report.json
     expire_in: 30 days
     when: always
+
+accelerator:nightly-github-sync:
+  stage: security
+  tags:
+    - arch:amd64
+    - size:small
+  allow_failure: true
+  script:
+    - chmod +x .gitlab/scripts/github-issue-sync.sh
+    - ./.gitlab/scripts/github-issue-sync.sh
+  artifacts:
+    name: github-sync-results
+    when: always
+    paths:
+      - github-sync-summary.json
+      - failed-items.json
+    expire_in: 30 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_PIPELINE_SCHEDULE_DESCRIPTION == "Nightly GitHub Sync" && $CI_COMMIT_BRANCH == "integ"
+      when: always
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == "integ" && $GITHUB_SYNC_ALLOW_MANUAL == "true"
+      when: manual
+    - when: never
 
 accelerator:build:
   stage: pipeline
