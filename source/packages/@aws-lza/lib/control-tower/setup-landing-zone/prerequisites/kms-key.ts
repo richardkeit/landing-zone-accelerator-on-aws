@@ -179,7 +179,7 @@ export abstract class KmsKey {
           Principal: {
             Service: 'cloudtrail.amazonaws.com',
           },
-          Action: ['kms:GenerateDataKey*', 'kms:Decrypt'],
+          Action: ['kms:GenerateDataKey*', 'kms:Decrypt', 'kms:DescribeKey'],
           Resource: `${keyArn}`,
           Condition: {
             StringEquals: {
@@ -196,7 +196,7 @@ export abstract class KmsKey {
           Principal: {
             Service: 'config.amazonaws.com',
           },
-          Action: ['kms:GenerateDataKey', 'kms:Decrypt'],
+          Action: ['kms:GenerateDataKey', 'kms:Decrypt', 'kms:DescribeKey'],
           Resource: `${keyArn}`,
         },
       ],

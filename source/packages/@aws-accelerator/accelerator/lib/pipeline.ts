@@ -333,7 +333,7 @@ export class AcceleratorPipeline extends Construct {
     if (this.props.sourceBucketKmsKeyArn) {
       this.pipelineRole.addToPolicy(
         new cdk.aws_iam.PolicyStatement({
-          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+          actions: ['kms:Decrypt', 'kms:GenerateDataKey', 'kms:DescribeKey'],
           resources: [this.props.sourceBucketKmsKeyArn],
         }),
       );

@@ -168,6 +168,7 @@ exports[`CloudWatchDestination > Construct(CloudWatchDestination):  Snapshot Tes
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
                     "kms:ReEncryptTo",
@@ -426,6 +427,7 @@ exports[`CloudWatchDestination > Construct(CloudWatchDestination):  Snapshot Tes
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
                     "kms:ReEncryptTo",

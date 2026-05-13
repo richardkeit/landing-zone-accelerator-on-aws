@@ -165,6 +165,7 @@ export class CloudWatchToS3Firehose extends Construct {
       new cdk.aws_iam.PolicyStatement({
         actions: [
           'kms:Decrypt',
+          'kms:DescribeKey',
           'kms:Encrypt',
           'kms:GenerateDataKey',
           'kms:ReEncryptTo',
@@ -340,7 +341,7 @@ export class CloudWatchToS3Firehose extends Construct {
     // Ref: https://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3
     const policyStatements: cdk.aws_iam.PolicyStatement[] = [
       new cdk.aws_iam.PolicyStatement({
-        actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+        actions: ['kms:Decrypt', 'kms:DescribeKey', 'kms:GenerateDataKey'],
         resources: [firehoseKmsKeyArn],
         conditions: {
           StringEquals: {
@@ -416,6 +417,7 @@ export class CloudWatchToS3Firehose extends Construct {
         new cdk.aws_iam.PolicyStatement({
           actions: [
             'kms:Decrypt',
+            'kms:DescribeKey',
             'kms:Encrypt',
             'kms:GenerateDataKey',
             'kms:ReEncryptTo',

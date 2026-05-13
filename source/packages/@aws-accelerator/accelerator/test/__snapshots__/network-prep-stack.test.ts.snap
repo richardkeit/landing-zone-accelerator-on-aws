@@ -910,6 +910,7 @@ drop http $HOME_NET any -> $EXTERNAL_NET any (http.host; content:"example.com"; 
                 "kms:Encrypt",
                 "kms:Decrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -1141,6 +1142,7 @@ drop http $HOME_NET any -> $EXTERNAL_NET any (http.host; content:"example.com"; 
               "Action": [
                 "secretsmanager:GetSecretValue",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "*",
@@ -1505,6 +1507,7 @@ drop http $HOME_NET any -> $EXTERNAL_NET any (http.host; content:"example.com"; 
                   "Action": [
                     "secretsmanager:GetSecretValue",
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                   ],
                   "Effect": "Allow",
                   "Resource": "*",
@@ -3760,6 +3763,7 @@ drop http $HOME_NET any -> $EXTERNAL_NET any (http.host; content:"example.com"; 
               "Action": [
                 "secretsmanager:GetSecretValue",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "*",

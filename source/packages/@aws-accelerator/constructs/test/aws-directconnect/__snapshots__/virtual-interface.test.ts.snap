@@ -223,6 +223,7 @@ exports[`VirtualInterface > Construct(VirtualInterface):  Snapshot Test 1`] = `
                   "Action": [
                     "secretsmanager:GetSecretValue",
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                   ],
                   "Effect": "Allow",
                   "Resource": "*",

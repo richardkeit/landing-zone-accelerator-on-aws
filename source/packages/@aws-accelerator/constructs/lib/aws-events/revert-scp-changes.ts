@@ -86,7 +86,7 @@ export class RevertScpChanges extends Construct {
     const kmsEncryptMessage = new cdk.aws_iam.PolicyStatement({
       sid: 'kmsEncryptMessage',
       effect: cdk.aws_iam.Effect.ALLOW,
-      actions: ['kms:Encrypt', 'kms:GenerateDataKey'],
+      actions: ['kms:Encrypt', 'kms:GenerateDataKey', 'kms:DescribeKey'],
       resources: ['*'],
     });
 

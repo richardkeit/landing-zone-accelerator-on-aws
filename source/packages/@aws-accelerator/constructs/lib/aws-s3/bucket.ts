@@ -224,12 +224,15 @@ export class Bucket extends Construct {
       switch (input.accessType) {
         case BucketAccessType.READONLY:
           this.bucket.grantRead(new iam.ServicePrincipal(input.principal));
+          this.addDescribeKeyToCmk(input.principal);
           break;
         case BucketAccessType.WRITEONLY:
           this.bucket.grantWrite(new iam.ServicePrincipal(input.principal));
+          this.addDescribeKeyToCmk(input.principal);
           break;
         case BucketAccessType.READWRITE:
           this.bucket.grantReadWrite(new iam.ServicePrincipal(input.principal));
+          this.addDescribeKeyToCmk(input.principal);
           break;
         default:
           throw new Error(`Invalid Access Type ${input.accessType} for ${input.principal} principal.`);
@@ -380,6 +383,26 @@ export class Bucket extends Construct {
         }),
       );
     }
+  }
+
+  /**
+   * Supplement CDK's grantRead/grantWrite/grantReadWrite with kms:DescribeKey on the
+   * bucket CMK. CDK's grant methods include crypto operations but not DescribeKey,
+   * which some AWS services now require to validate key metadata before performing
+   * cryptographic operations.
+   */
+  private addDescribeKeyToCmk(principal: string) {
+    if (!this.cmk) {
+      return;
+    }
+    this.cmk.addToResourcePolicy(
+      new iam.PolicyStatement({
+        sid: `Allow ${principal.split('.')[0]} to describe the encryption key`,
+        actions: ['kms:DescribeKey'],
+        principals: [new iam.ServicePrincipal(principal)],
+        resources: ['*'],
+      }),
+    );
   }
 
   private setLifeCycleRules() {

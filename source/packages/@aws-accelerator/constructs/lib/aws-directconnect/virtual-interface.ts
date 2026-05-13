@@ -166,7 +166,7 @@ export class VirtualInterface extends cdk.Resource implements IVirtualInterface 
         {
           Sid: 'GetSecret',
           Effect: 'Allow',
-          Action: ['secretsmanager:GetSecretValue', 'kms:Decrypt'],
+          Action: ['secretsmanager:GetSecretValue', 'kms:Decrypt', 'kms:DescribeKey'],
           Resource: '*',
         },
       ];

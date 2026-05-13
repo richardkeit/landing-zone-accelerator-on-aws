@@ -1374,7 +1374,7 @@ export abstract class NetworkStack extends AcceleratorStack {
         new cdk.aws_iam.PolicyStatement({
           sid: 'SecretsManagerReadOnly',
           effect: cdk.aws_iam.Effect.ALLOW,
-          actions: ['secretsmanager:GetSecretValue', 'kms:Decrypt'],
+          actions: ['secretsmanager:GetSecretValue', 'kms:Decrypt', 'kms:DescribeKey'],
           resources: ['*'],
         }),
       ],

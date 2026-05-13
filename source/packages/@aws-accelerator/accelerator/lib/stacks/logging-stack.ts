@@ -589,7 +589,7 @@ export class LoggingStack extends AcceleratorStack {
         new cdk.aws_iam.PolicyStatement({
           sid: `Allow EventBridge to send to encrypted CloudWatch log groups`,
           principals: [new cdk.aws_iam.ServicePrincipal('events.amazonaws.com')],
-          actions: ['kms:GenerateDataKey', 'kms:Decrypt'],
+          actions: ['kms:GenerateDataKey', 'kms:Decrypt', 'kms:DescribeKey'],
           resources: ['*'],
           conditions: {
             StringEqualsIfExists: {
@@ -863,7 +863,7 @@ export class LoggingStack extends AcceleratorStack {
       new cdk.aws_iam.PolicyStatement({
         sid: 'Allow services to confirm encryption',
         principals: [new cdk.aws_iam.AnyPrincipal()],
-        actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+        actions: ['kms:Decrypt', 'kms:GenerateDataKey', 'kms:DescribeKey'],
         resources: ['*'],
         conditions: {
           StringEquals: {
@@ -1437,7 +1437,7 @@ export class LoggingStack extends AcceleratorStack {
           new cdk.aws_iam.PolicyStatement({
             sid: `Allow MAD instance role to access the key`,
             principals: [new cdk.aws_iam.AccountPrincipal(madAccountId)],
-            actions: ['kms:Decrypt'],
+            actions: ['kms:Decrypt', 'kms:DescribeKey'],
             resources: ['*'],
             conditions: {
               StringEquals: {
@@ -2371,7 +2371,7 @@ export class LoggingStack extends AcceleratorStack {
       new cdk.aws_iam.PolicyStatement({
         sid: 'kms',
         effect: cdk.aws_iam.Effect.ALLOW,
-        actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+        actions: ['kms:Decrypt', 'kms:GenerateDataKey', 'kms:DescribeKey'],
         resources: [centralSnsKeyArn],
       }),
     );
@@ -2436,7 +2436,7 @@ export class LoggingStack extends AcceleratorStack {
       new cdk.aws_iam.PolicyStatement({
         sid: 'sns',
         principals: [new cdk.aws_iam.ServicePrincipal('sns.amazonaws.com')],
-        actions: ['kms:GenerateDataKey', 'kms:Decrypt'],
+        actions: ['kms:GenerateDataKey', 'kms:Decrypt', 'kms:DescribeKey'],
         resources: ['*'],
         conditions: {
           StringEquals: {
@@ -2450,7 +2450,7 @@ export class LoggingStack extends AcceleratorStack {
       new cdk.aws_iam.PolicyStatement({
         sid: 'cloudwatch',
         principals: [new cdk.aws_iam.ServicePrincipal('cloudwatch.amazonaws.com')],
-        actions: ['kms:GenerateDataKey', 'kms:Decrypt'],
+        actions: ['kms:GenerateDataKey', 'kms:Decrypt', 'kms:DescribeKey'],
         resources: ['*'],
         conditions: {
           StringEquals: {
@@ -2464,7 +2464,7 @@ export class LoggingStack extends AcceleratorStack {
       new cdk.aws_iam.PolicyStatement({
         sid: 'events',
         principals: [new cdk.aws_iam.ServicePrincipal('events.amazonaws.com')],
-        actions: ['kms:GenerateDataKey', 'kms:Decrypt'],
+        actions: ['kms:GenerateDataKey', 'kms:Decrypt', 'kms:DescribeKey'],
         resources: ['*'],
         conditions: {
           StringEqualsIfExists: {
@@ -2478,7 +2478,7 @@ export class LoggingStack extends AcceleratorStack {
       new cdk.aws_iam.PolicyStatement({
         sid: 'crossaccount',
         principals: [new cdk.aws_iam.AnyPrincipal()],
-        actions: ['kms:GenerateDataKey', 'kms:Decrypt'],
+        actions: ['kms:GenerateDataKey', 'kms:Decrypt', 'kms:DescribeKey'],
         resources: ['*'],
         conditions: {
           StringEquals: {
@@ -2564,7 +2564,7 @@ export class LoggingStack extends AcceleratorStack {
       new cdk.aws_iam.PolicyStatement({
         sid: 'sns',
         principals: [new cdk.aws_iam.ServicePrincipal('sns.amazonaws.com')],
-        actions: ['kms:GenerateDataKey', 'kms:Decrypt'],
+        actions: ['kms:GenerateDataKey', 'kms:Decrypt', 'kms:DescribeKey'],
         resources: ['*'],
         conditions: {
           StringEquals: {
@@ -2604,7 +2604,7 @@ export class LoggingStack extends AcceleratorStack {
           new cdk.aws_iam.ServicePrincipal('cloudwatch.amazonaws.com'),
           new cdk.aws_iam.ServicePrincipal('events.amazonaws.com'),
         ],
-        actions: ['kms:GenerateDataKey', 'kms:Decrypt'],
+        actions: ['kms:GenerateDataKey', 'kms:Decrypt', 'kms:DescribeKey'],
         resources: ['*'],
         conditions: {
           StringEqualsIfExists: {
@@ -2618,7 +2618,7 @@ export class LoggingStack extends AcceleratorStack {
       new cdk.aws_iam.PolicyStatement({
         sid: 'accelerator-role',
         principals: [new cdk.aws_iam.AnyPrincipal()],
-        actions: ['kms:GenerateDataKey', 'kms:Decrypt'],
+        actions: ['kms:GenerateDataKey', 'kms:Decrypt', 'kms:DescribeKey'],
         resources: ['*'],
         conditions: {
           ArnLike: {
@@ -3072,7 +3072,20 @@ export class LoggingStack extends AcceleratorStack {
         }
 
         const key = metadataBucket.getKey();
-        key.grantEncryptDecrypt(new cdk.aws_iam.AccountPrincipal(this.props.accountsConfig.getManagementAccountId()));
+        const mgmtAccountPrincipal = new cdk.aws_iam.AccountPrincipal(
+          this.props.accountsConfig.getManagementAccountId(),
+        );
+        key.grantEncryptDecrypt(mgmtAccountPrincipal);
+        // Supplement CDK's grantEncryptDecrypt with kms:DescribeKey to avoid AccessDeniedException
+        // when AWS services validate key metadata before performing cryptographic operations.
+        key.addToResourcePolicy(
+          new iam.PolicyStatement({
+            sid: 'Allow management account to describe key',
+            actions: ['kms:DescribeKey'],
+            resources: ['*'],
+            principals: [mgmtAccountPrincipal],
+          }),
+        );
         bucket.addToResourcePolicy(
           new iam.PolicyStatement({
             actions: ['s3:Get*', 's3:List*'],

@@ -153,7 +153,7 @@ export class CloudWatchLogsSubscriptionFilter extends Construct {
     if (props.logsKmsKey) {
       policyStatements.push({
         Effect: 'Allow',
-        Action: ['kms:Decrypt', 'kms:Encrypt', 'kms:GenerateDataKey'],
+        Action: ['kms:Decrypt', 'kms:Encrypt', 'kms:GenerateDataKey', 'kms:DescribeKey'],
         Resource: [props.logsKmsKey.keyArn],
       });
     }

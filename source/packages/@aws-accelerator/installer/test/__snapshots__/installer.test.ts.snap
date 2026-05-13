@@ -3405,7 +3405,10 @@ async function updatePipelineDetailsForBothPipelines(secretValue) {
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": "*",
             },
@@ -7361,7 +7364,10 @@ async function updatePipelineDetailsForBothPipelines(secretValue) {
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": "*",
             },
@@ -11375,7 +11381,10 @@ async function updatePipelineDetailsForBothPipelines(secretValue) {
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": "*",
             },
@@ -15370,7 +15379,10 @@ async function updatePipelineDetailsForBothPipelines(secretValue) {
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": "*",
             },
@@ -19370,7 +19382,10 @@ async function updatePipelineDetailsForBothPipelines(secretValue) {
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": "*",
             },
@@ -23336,7 +23351,10 @@ async function updatePipelineDetailsForBothPipelines(secretValue) {
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": "*",
             },
@@ -26527,6 +26545,7 @@ phases:
               "Action": [
                 "kms:Decrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "arn:aws:kms:us-east-1:000000000000:key/aaaaaaaa-1111-bbbb-2222-cccccc333333",
@@ -27702,7 +27721,10 @@ async function updatePipelineDetailsForBothPipelines(secretValue) {
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": "*",
             },
@@ -30915,6 +30937,7 @@ phases:
               "Action": [
                 "kms:Decrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "arn:aws:kms:us-east-1:000000000000:key/aaaaaaaa-1111-bbbb-2222-cccccc333333",
@@ -32090,7 +32113,10 @@ async function updatePipelineDetailsForBothPipelines(secretValue) {
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": "*",
             },
@@ -35342,6 +35368,7 @@ phases:
               "Action": [
                 "kms:Decrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "arn:aws:kms:us-east-1:000000000000:key/aaaaaaaa-1111-bbbb-2222-cccccc333333",
@@ -36539,7 +36566,10 @@ async function updatePipelineDetailsForBothPipelines(secretValue) {
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": "*",
             },

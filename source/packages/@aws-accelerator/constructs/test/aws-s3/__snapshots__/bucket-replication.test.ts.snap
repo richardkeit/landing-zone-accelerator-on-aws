@@ -107,7 +107,10 @@ exports[`BucketReplication > Construct(BucketReplication):  Snapshot Test 1`] = 
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Fn::Join": [

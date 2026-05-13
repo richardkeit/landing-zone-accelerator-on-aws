@@ -2803,7 +2803,10 @@ exports[`MultiOuOrganizationsStack > Construct(OrganizationsStack):  Snapshot Te
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "AcceleratorCentralLogBucketKeyLookup26F8C418",
@@ -6268,7 +6271,10 @@ exports[`OrganizationsStack > Construct(OrganizationsStack):  Snapshot Test 1`] 
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "AcceleratorImportedCentralLogBucketKeyLookupCDD7B719",
@@ -9939,7 +9945,10 @@ exports[`OrganizationsStack with SkipMacie > Construct(OrganizationsStack with S
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "AcceleratorImportedCentralLogBucketKeyLookupCDD7B719",
@@ -13174,7 +13183,10 @@ exports[`delegatedAdminStack > Construct(OrganizationsStack):  Snapshot Test 1`]
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "AcceleratorCentralLogBucketKeyLookup26F8C418",

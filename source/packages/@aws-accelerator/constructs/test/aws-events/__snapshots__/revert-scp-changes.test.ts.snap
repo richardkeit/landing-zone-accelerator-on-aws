@@ -350,6 +350,7 @@ exports[`RevertScpChanges > Construct(RevertScpChanges):  Snapshot Test 1`] = `
               "Action": [
                 "kms:Encrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "*",
@@ -609,6 +610,7 @@ exports[`RevertScpChanges > Construct(RevertScpChanges):  Snapshot Test 1`] = `
               "Action": [
                 "kms:Encrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "*",

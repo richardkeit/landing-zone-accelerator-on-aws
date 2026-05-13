@@ -214,7 +214,7 @@ export class BucketReplication extends Construct {
       replicationRolePolicies.push(
         new cdk.aws_iam.PolicyStatement({
           resources: [this.sourceBucket.encryptionKey.keyArn],
-          actions: ['kms:Decrypt'],
+          actions: ['kms:Decrypt', 'kms:DescribeKey'],
         }),
       );
     }
@@ -223,7 +223,7 @@ export class BucketReplication extends Construct {
       replicationRolePolicies.push(
         new cdk.aws_iam.PolicyStatement({
           resources: [destinationKeyArn],
-          actions: ['kms:Encrypt'],
+          actions: ['kms:Encrypt', 'kms:DescribeKey'],
         }),
       );
     }

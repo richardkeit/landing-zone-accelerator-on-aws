@@ -1137,7 +1137,7 @@ export class OperationsStack extends AcceleratorStack {
       assetsAccessRole.addToPolicy(
         new cdk.aws_iam.PolicyStatement({
           resources: [key.keyArn],
-          actions: ['kms:Decrypt'],
+          actions: ['kms:Decrypt', 'kms:DescribeKey'],
         }),
       );
     } else if (
@@ -1156,14 +1156,14 @@ export class OperationsStack extends AcceleratorStack {
       assetsAccessRole.addToPolicy(
         new cdk.aws_iam.PolicyStatement({
           resources: [key.keyArn],
-          actions: ['kms:Decrypt'],
+          actions: ['kms:Decrypt', 'kms:DescribeKey'],
         }),
       );
     } else {
       assetsAccessRole.addToPolicy(
         new cdk.aws_iam.PolicyStatement({
           resources: [assetBucketKmsKey.keyArn],
-          actions: ['kms:Decrypt'],
+          actions: ['kms:Decrypt', 'kms:DescribeKey'],
         }),
       );
     }
@@ -1360,7 +1360,7 @@ export class OperationsStack extends AcceleratorStack {
         }),
         new cdk.aws_iam.PolicyStatement({
           effect: cdk.aws_iam.Effect.ALLOW,
-          actions: ['kms:Decrypt'],
+          actions: ['kms:Decrypt', 'kms:DescribeKey'],
           resources: [assetBucketKmsKey.keyArn],
         }),
         new cdk.aws_iam.PolicyStatement({
@@ -1382,7 +1382,7 @@ export class OperationsStack extends AcceleratorStack {
         }),
         new cdk.aws_iam.PolicyStatement({
           effect: cdk.aws_iam.Effect.ALLOW,
-          actions: ['kms:Decrypt'],
+          actions: ['kms:Decrypt', 'kms:DescribeKey'],
           resources: [`arn:${this.partition}:kms:*:${this.props.accountsConfig.getManagementAccountId()}:key/*`],
         }),
       ],

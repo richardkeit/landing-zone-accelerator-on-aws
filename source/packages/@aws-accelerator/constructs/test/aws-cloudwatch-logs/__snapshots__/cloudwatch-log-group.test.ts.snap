@@ -123,6 +123,7 @@ exports[`CloudWatchLogGroups > Construct(CloudWatchLogGroups):  Snapshot Test 1`
                     "kms:Encrypt",
                     "kms:Decrypt",
                     "kms:GenerateDataKey",
+                    "kms:DescribeKey",
                   ],
                   "Effect": "Allow",
                   "Resource": "REPLACED-UUID",

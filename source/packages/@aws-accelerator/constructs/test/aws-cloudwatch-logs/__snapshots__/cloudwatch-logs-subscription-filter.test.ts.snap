@@ -374,6 +374,7 @@ exports[`CloudWatchLogsSubscriptionFilter > Construct(CloudWatchLogsSubscription
                     "kms:Decrypt",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
+                    "kms:DescribeKey",
                   ],
                   "Effect": "Allow",
                   "Resource": [

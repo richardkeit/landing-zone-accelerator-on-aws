@@ -131,6 +131,7 @@ export class CloudWatchDestination extends Construct {
         new cdk.aws_iam.PolicyStatement({
           actions: [
             'kms:Decrypt',
+            'kms:DescribeKey',
             'kms:Encrypt',
             'kms:GenerateDataKey',
             'kms:ReEncryptTo',

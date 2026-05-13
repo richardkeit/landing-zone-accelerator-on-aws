@@ -107,7 +107,7 @@ export class SsmSessionManagerPolicy extends Construct {
           new cdk.aws_iam.PolicyStatement({
             sid: 'S3CentralLogsEncryption',
             effect: cdk.aws_iam.Effect.ALLOW,
-            actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+            actions: ['kms:Decrypt', 'kms:GenerateDataKey', 'kms:DescribeKey'],
             resources: [props.s3BucketKeyArn],
           }),
         );
@@ -119,7 +119,7 @@ export class SsmSessionManagerPolicy extends Construct {
       new cdk.aws_iam.PolicyStatement({
         sid: 'SessionManagerSessionKey',
         effect: cdk.aws_iam.Effect.ALLOW,
-        actions: ['kms:Decrypt'],
+        actions: ['kms:Decrypt', 'kms:DescribeKey'],
         resources: props.enabledRegions.map(
           region => `arn:${cdk.Stack.of(this).partition}:kms:${region}:${cdk.Stack.of(this).account}:key/*`,
         ),

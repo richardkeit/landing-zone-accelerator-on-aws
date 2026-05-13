@@ -791,6 +791,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEqualsIfExists": {
@@ -1264,6 +1265,26 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
               "Resource": "*",
             },
             {
+              "Action": "kms:DescribeKey",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":iam::111111111111:root",
+                    ],
+                  ],
+                },
+              },
+              "Resource": "*",
+              "Sid": "Allow management account to describe key",
+            },
+            {
               "Action": [
                 "kms:Encrypt",
                 "kms:Decrypt",
@@ -1557,6 +1578,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -1574,6 +1596,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -1591,6 +1614,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEqualsIfExists": {
@@ -1608,6 +1632,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -1897,7 +1922,10 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Fn::GetAtt": [
@@ -1907,7 +1935,10 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "AcceleratorImportedCentralLogBucketKeyLookupCDD7B719",
@@ -2962,6 +2993,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
                     "kms:Decrypt",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
+                    "kms:DescribeKey",
                   ],
                   "Effect": "Allow",
                   "Resource": [
@@ -3078,6 +3110,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
                     "kms:ReEncryptTo",
@@ -3208,6 +3241,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
             {
               "Action": [
                 "kms:Decrypt",
+                "kms:DescribeKey",
                 "kms:Encrypt",
                 "kms:GenerateDataKey",
                 "kms:ReEncryptTo",
@@ -3268,6 +3302,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:GenerateDataKey",
                   ],
                   "Condition": {
@@ -4233,6 +4268,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
                     "kms:ReEncryptTo",
@@ -6207,6 +6243,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 2`] = `
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -6224,6 +6261,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 2`] = `
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -6241,6 +6279,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 2`] = `
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEqualsIfExists": {
@@ -6258,6 +6297,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 2`] = `
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -6550,7 +6590,10 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 2`] = `
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Fn::GetAtt": [
@@ -7451,6 +7494,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 2`] = `
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
                     "kms:ReEncryptTo",
@@ -7575,6 +7619,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 2`] = `
             {
               "Action": [
                 "kms:Decrypt",
+                "kms:DescribeKey",
                 "kms:Encrypt",
                 "kms:GenerateDataKey",
                 "kms:ReEncryptTo",
@@ -7635,6 +7680,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 2`] = `
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:GenerateDataKey",
                   ],
                   "Condition": {
@@ -9719,6 +9765,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 2`] = `
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
                     "kms:ReEncryptTo",
@@ -11889,6 +11936,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEqualsIfExists": {
@@ -12108,6 +12156,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -12125,6 +12174,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -12142,6 +12192,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEqualsIfExists": {
@@ -12159,6 +12210,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -14096,6 +14148,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
                     "kms:Decrypt",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
+                    "kms:DescribeKey",
                   ],
                   "Effect": "Allow",
                   "Resource": [
@@ -14302,7 +14355,10 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Fn::GetAtt": [
@@ -14705,6 +14761,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
                     "kms:ReEncryptTo",
@@ -14881,6 +14938,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
             {
               "Action": [
                 "kms:Decrypt",
+                "kms:DescribeKey",
                 "kms:Encrypt",
                 "kms:GenerateDataKey",
                 "kms:ReEncryptTo",
@@ -14957,6 +15015,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:GenerateDataKey",
                   ],
                   "Condition": {
@@ -15297,6 +15356,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
                     "kms:ReEncryptTo",
@@ -16613,6 +16673,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEqualsIfExists": {
@@ -16966,6 +17027,26 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
               "Resource": "*",
             },
             {
+              "Action": "kms:DescribeKey",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":iam::111111111111:root",
+                    ],
+                  ],
+                },
+              },
+              "Resource": "*",
+              "Sid": "Allow management account to describe key",
+            },
+            {
               "Action": [
                 "kms:Encrypt",
                 "kms:Decrypt",
@@ -17259,6 +17340,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -17276,6 +17358,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -17293,6 +17376,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEqualsIfExists": {
@@ -17310,6 +17394,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
               "Action": [
                 "kms:GenerateDataKey",
                 "kms:Decrypt",
+                "kms:DescribeKey",
               ],
               "Condition": {
                 "StringEquals": {
@@ -18466,6 +18551,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
                     "kms:Decrypt",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
+                    "kms:DescribeKey",
                   ],
                   "Effect": "Allow",
                   "Resource": [
@@ -18624,7 +18710,10 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "AcceleratorCentralLogBucketKeyLookup26F8C418",
@@ -18943,6 +19032,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
                     "kms:ReEncryptTo",
@@ -19073,6 +19163,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
             {
               "Action": [
                 "kms:Decrypt",
+                "kms:DescribeKey",
                 "kms:Encrypt",
                 "kms:GenerateDataKey",
                 "kms:ReEncryptTo",
@@ -19133,6 +19224,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:GenerateDataKey",
                   ],
                   "Condition": {
@@ -19451,6 +19543,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
                 {
                   "Action": [
                     "kms:Decrypt",
+                    "kms:DescribeKey",
                     "kms:Encrypt",
                     "kms:GenerateDataKey",
                     "kms:ReEncryptTo",

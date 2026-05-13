@@ -272,6 +272,20 @@ export class BootstrapStack extends AcceleratorStack {
     assetBucket.grantReadWrite(new cdk.aws_iam.ServicePrincipal('cloudformation.amazonaws.com'));
     assetBucket.grantReadWrite(new cdk.aws_iam.ServicePrincipal('lambda.amazonaws.com'));
 
+    // Supplement CDK's grantReadWrite with kms:DescribeKey on the staging bucket CMK to avoid
+    // AccessDeniedException when AWS services validate key metadata before crypto operations.
+    props.kmsKey.addToResourcePolicy(
+      new cdk.aws_iam.PolicyStatement({
+        sid: 'Allow CFN and Lambda service principals to describe the key',
+        actions: ['kms:DescribeKey'],
+        resources: ['*'],
+        principals: [
+          new cdk.aws_iam.ServicePrincipal('cloudformation.amazonaws.com'),
+          new cdk.aws_iam.ServicePrincipal('lambda.amazonaws.com'),
+        ],
+      }),
+    );
+
     assetBucket.addToResourcePolicy(
       new cdk.aws_iam.PolicyStatement({
         sid: 'cdk-read-write-access',

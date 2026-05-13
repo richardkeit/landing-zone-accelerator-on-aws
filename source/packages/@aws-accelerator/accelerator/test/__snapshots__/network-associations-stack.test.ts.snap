@@ -6899,7 +6899,10 @@ catch {
         "PolicyDocument": {
           "Statement": [
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "SecretsKmsKeyLookup02185F8C",

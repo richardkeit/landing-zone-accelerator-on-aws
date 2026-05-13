@@ -1897,6 +1897,7 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 1`] = `
               "Action": [
                 "kms:Decrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "REPLACED-UUID",
@@ -4885,6 +4886,7 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 2`] = `
               "Action": [
                 "kms:Decrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "REPLACED-UUID",
@@ -7459,6 +7461,7 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 3`] = `
               "Action": [
                 "kms:Decrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "REPLACED-UUID",
@@ -10116,6 +10119,7 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 4`] = `
               "Action": [
                 "kms:Decrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "REPLACED-UUID",
@@ -12798,6 +12802,7 @@ exports[`PipelineStack customS3Path > Construct(PipelineStack):  Snapshot Test 1
               "Action": [
                 "kms:Decrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "REPLACED-UUID",

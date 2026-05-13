@@ -555,7 +555,7 @@ export class PrepareStack extends AcceleratorStack {
       new cdk.aws_iam.PolicyStatement({
         sid: 'sns',
         principals: [new cdk.aws_iam.ServicePrincipal('sns.amazonaws.com')],
-        actions: ['kms:GenerateDataKey', 'kms:Encrypt'],
+        actions: ['kms:GenerateDataKey', 'kms:Encrypt', 'kms:DescribeKey'],
         resources: ['*'],
       }),
     );

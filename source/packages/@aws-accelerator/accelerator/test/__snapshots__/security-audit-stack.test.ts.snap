@@ -577,14 +577,20 @@ def script_handler(events, context):
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "SsmParameterValueacceleratorkmss3keyarnC96584B6F00A464EAD1953AFF4B05118Parameter",
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "AcceleratorImportedCentralLogBucketKeyLookupCDD7B719",
@@ -3223,14 +3229,20 @@ def script_handler(events, context):
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "SsmParameterValueacceleratorkmss3keyarnC96584B6F00A464EAD1953AFF4B05118Parameter",
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "AcceleratorImportedCentralLogBucketKeyLookupCDD7B719",
@@ -5825,14 +5837,20 @@ def script_handler(events, context):
               },
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "SsmParameterValueacceleratorkmss3keyarnC96584B6F00A464EAD1953AFF4B05118Parameter",
               },
             },
             {
-              "Action": "kms:Encrypt",
+              "Action": [
+                "kms:Encrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "AcceleratorCentralLogBucketKeyLookup26F8C418",

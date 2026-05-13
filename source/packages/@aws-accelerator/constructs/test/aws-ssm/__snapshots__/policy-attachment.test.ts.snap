@@ -79,13 +79,17 @@ exports[`SsmSessionManagerPolicy > Construct(SsmSessionManagerPolicy):  Snapshot
               "Action": [
                 "kms:Decrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": "arn",
               "Sid": "S3CentralLogsEncryption",
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Condition": {
                 "ForAllValues:StringLike": {
                   "kms:ResourceAliases": [

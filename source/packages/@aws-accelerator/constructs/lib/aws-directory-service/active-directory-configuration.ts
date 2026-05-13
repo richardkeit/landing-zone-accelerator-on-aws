@@ -157,7 +157,7 @@ export class ActiveDirectoryConfiguration extends Construct {
       new cdk.aws_iam.Policy(this, pascalCase(`${props.managedActiveDirectoryName}KmsPolicy`), {
         statements: [
           new cdk.aws_iam.PolicyStatement({
-            actions: ['kms:Decrypt'],
+            actions: ['kms:Decrypt', 'kms:DescribeKey'],
             resources: [props.secretKeyArn],
           }),
         ],

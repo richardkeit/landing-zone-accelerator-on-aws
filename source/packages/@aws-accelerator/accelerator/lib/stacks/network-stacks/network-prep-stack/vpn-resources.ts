@@ -253,7 +253,7 @@ export class VpnResources {
         new cdk.aws_iam.PolicyStatement({
           sid: 'KMS',
           effect: cdk.aws_iam.Effect.ALLOW,
-          actions: ['kms:Encrypt', 'kms:Decrypt', 'kms:GenerateDataKey'],
+          actions: ['kms:Encrypt', 'kms:Decrypt', 'kms:GenerateDataKey', 'kms:DescribeKey'],
           resources: [`arn:${this.stack.partition}:kms:*:${this.stack.account}:key:/*`],
           conditions: {
             StringEquals: {
@@ -336,7 +336,7 @@ export class VpnResources {
         new cdk.aws_iam.PolicyStatement({
           sid: 'SecretsManagerReadOnly',
           effect: cdk.aws_iam.Effect.ALLOW,
-          actions: ['secretsmanager:GetSecretValue', 'kms:Decrypt'],
+          actions: ['secretsmanager:GetSecretValue', 'kms:Decrypt', 'kms:DescribeKey'],
           resources: ['*'],
         }),
       ],

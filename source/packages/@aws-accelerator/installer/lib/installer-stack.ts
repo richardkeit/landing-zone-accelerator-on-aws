@@ -1319,7 +1319,7 @@ export class InstallerStack extends cdk.Stack {
           resources: [`${secretIdPrefix}*`],
         }),
         new cdk.aws_iam.PolicyStatement({
-          actions: ['kms:Decrypt'],
+          actions: ['kms:Decrypt', 'kms:DescribeKey'],
           resources: ['*'],
         }),
         new cdk.aws_iam.PolicyStatement({
@@ -1439,7 +1439,7 @@ export class InstallerStack extends cdk.Stack {
       if (props.s3SourceKmsKeyArn) {
         s3PipelineRole.addToPolicy(
           new cdk.aws_iam.PolicyStatement({
-            actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+            actions: ['kms:Decrypt', 'kms:GenerateDataKey', 'kms:DescribeKey'],
             resources: [props.s3SourceKmsKeyArn],
           }),
         );

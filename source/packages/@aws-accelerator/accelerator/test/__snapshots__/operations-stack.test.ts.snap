@@ -195,7 +195,10 @@ exports[`OperationsStack > Construct(OperationsStack):  Snapshot Test 1`] = `
               "Resource": "arn:aws:ssm:*:111111111111:parameter/*",
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Effect": "Allow",
               "Resource": {
                 "Ref": "SsmParameterValueacceleratorassetskmskeyC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -1462,6 +1465,7 @@ exports[`OperationsStack > Construct(OperationsStack):  Snapshot Test 1`] = `
               "Action": [
                 "kms:Decrypt",
                 "kms:GenerateDataKey",
+                "kms:DescribeKey",
               ],
               "Effect": "Allow",
               "Resource": {
@@ -1470,7 +1474,10 @@ exports[`OperationsStack > Construct(OperationsStack):  Snapshot Test 1`] = `
               "Sid": "S3CentralLogsEncryption",
             },
             {
-              "Action": "kms:Decrypt",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+              ],
               "Condition": {
                 "ForAllValues:StringLike": {
                   "kms:ResourceAliases": [
