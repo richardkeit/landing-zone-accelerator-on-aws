@@ -5017,8 +5017,10 @@
       "enum": [
         "aws:drop_strict",
         "aws:drop_established",
+        "aws:drop_established_app_layer",
         "aws:alert_strict",
-        "aws:alert_established"
+        "aws:alert_established",
+        "aws:alert_established_app_layer"
       ],
       "type": "string"
     },
