@@ -19,8 +19,9 @@ feat(networking): add routeTableAssociations and routeTablePropagations to trans
 - fix(networking): adjust logic to support direct connect vif to support private long ASNs
 
 ### Changed
-chore(logging): update elb access logs bucket for service principal 
-chore(logging): add sourceOrgId condition to central s3 bucket policy
+- chore(logging): update elb access logs bucket for service principal
+- chore(logging): add sourceOrgId condition to central s3 bucket policy
+- chore(scp): align default SCP attachment limits with new AWS quota of 10
 
 ### Added
 - feat(networking): added support for VPN route propagation on route table
