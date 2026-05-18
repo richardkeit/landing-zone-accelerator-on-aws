@@ -491,9 +491,10 @@ abstract class LandingZoneOperation {
       {
         centralizedLoggingKeyArn: landingZoneDetails.centralizedLoggingConfig?.kmsKeyArn,
         configLoggingKeyArn:
-          (landingZoneDetails.configHubConfig?.kmsKeyArn ?? landingZoneDetails.version?.startsWith('3'))
+          landingZoneDetails.configHubConfig?.kmsKeyArn ??
+          (landingZoneDetails.version?.startsWith('3')
             ? landingZoneDetails.centralizedLoggingConfig?.kmsKeyArn
-            : undefined,
+            : undefined),
       },
       landingZoneDetails.manifest,
     );
