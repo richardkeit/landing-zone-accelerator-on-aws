@@ -16,6 +16,7 @@ feat(networking): add routeTableAssociations and routeTablePropagations to trans
 - fix(securityhub): normalize control id prefix matching for controlsToDisable
 - fix(validator): validate account name and email length constraints before DynamoDB state persistence
 - fix(controltower): update logic for kms key on update landing zone operations.
+- fix(networking): adjust logic to support direct connect vif to support private long ASNs
 
 ### Changed
 chore(logging): update elb access logs bucket for service principal 

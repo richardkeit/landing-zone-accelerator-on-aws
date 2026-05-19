@@ -66,9 +66,9 @@ export class DirectConnectGatewaysValidator {
         errors.push(`[Direct Connect Gateway ${dxgw.name}]: Amazon ASN and customer ASN match for ${vif.name}`);
       }
       // Catch error if ASN is not in the correct range
-      if (vif.customerAsn < 1 || vif.customerAsn > 2147483647) {
+      if (vif.customerAsn < 1 || vif.customerAsn > 4294967294) {
         errors.push(
-          `[Direct Connect Gateway ${dxgw.name}]: ASN ${vif.customerAsn} out of range 1-2147483647 for virtual interface ${vif.name}`,
+          `[Direct Connect Gateway ${dxgw.name}]: ASN ${vif.customerAsn} out of range 1-4294967294 for virtual interface ${vif.name}`,
         );
       }
       // Catch error if VIF VLAN is not in range
