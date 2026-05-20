@@ -172,6 +172,35 @@ accelerator:daily-vulnerability-scan:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_PIPELINE_SCHEDULE_DESCRIPTION == "Daily Vulnerability Scan" && $CI_COMMIT_BRANCH == "integ"
       when: always
     - when: never
+accelerator:cve-remediation:
+  stage: security
+  needs: []
+  variables:
+    VULN_ASSIGNEE: "erwaxler"
+  tags:
+    - arch:amd64
+    - size:large
+  before_script:
+    - apt-get update && apt-get install -y jq
+    - git config user.email "lza-cve-bot@amazon.com"
+    - git config user.name "LZA CVE Remediation Bot"
+    - git remote set-url origin "https://oauth2:${VULN_SCAN_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+    - echo "Tools:" && yarn --version && jq --version && git --version
+  script:
+    - chmod +x .gitlab/scripts/cve-remediate.sh
+    - ./.gitlab/scripts/cve-remediate.sh
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_PIPELINE_SCHEDULE_DESCRIPTION == "Daily Vulnerability Scan" && $CI_COMMIT_BRANCH == "integ"
+      when: always
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - when: never
+  artifacts:
+    paths:
+      - cve-remediation-report.json
+    expire_in: 30 days
+    when: always
+
 accelerator:build:
   stage: pipeline
   tags:
