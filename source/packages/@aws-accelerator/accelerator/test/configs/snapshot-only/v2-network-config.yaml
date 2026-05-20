@@ -2239,6 +2239,28 @@ vpcs:
         - pkt-dst-aws-service
         - flow-direction
         - traffic-path
+  - name: Network-FlowLogsS3Only-V2
+    region: *HOME_REGION
+    account: Network
+    cidrs:
+      - 172.30.0.0/24
+    internetGateway: false
+    instanceTenancy: default
+    routeTables:
+      - name: Network-FlowLogsS3Only-Rt
+        routes: []
+    subnets:
+      - name: Network-FlowLogsS3Only-A
+        availabilityZone: a
+        routeTable: Network-FlowLogsS3Only-Rt
+        ipv4CidrBlock: 172.30.0.0/28
+    vpcFlowLogs:
+      trafficType: ALL
+      maxAggregationInterval: 60
+      destinations:
+        - s3
+      defaultFormat: true
+      customFields: []
   - name: Network-NonTemplate-Static-Central
     region: *HOME_REGION
     account: Network
