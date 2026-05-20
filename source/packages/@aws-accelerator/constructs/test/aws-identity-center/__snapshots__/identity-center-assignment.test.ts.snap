@@ -123,6 +123,8 @@ exports[`IdentityCenterAssignments > Construct(IdentityCenterGetInstanceId):  Sn
                     "identitystore:GetUserId",
                     "sso:CreateAccountAssignment",
                     "sso:DeleteAccountAssignment",
+                    "sso:DescribeAccountAssignmentCreationStatus",
+                    "sso:DescribeAccountAssignmentDeletionStatus",
                     "sso:ListAccountAssignments",
                   ],
                   "Effect": "Allow",

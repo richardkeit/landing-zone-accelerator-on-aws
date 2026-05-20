@@ -13,7 +13,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { IdentitystoreClient } from '@aws-sdk/client-identitystore';
-import { SSOAdminClient, CreateAccountAssignmentCommand } from '@aws-sdk/client-sso-admin';
+import {
+  SSOAdminClient,
+  CreateAccountAssignmentCommand,
+  DeleteAccountAssignmentCommand,
+  DescribeAccountAssignmentCreationStatusCommand,
+  DescribeAccountAssignmentDeletionStatusCommand,
+} from '@aws-sdk/client-sso-admin';
 
 // Mock the AWS SDK clients
 vi.mock('@aws-sdk/client-identitystore');
@@ -24,6 +30,12 @@ vi.mock('@aws-accelerator/utils/lib/throttle', () => ({
 vi.mock('@aws-accelerator/utils/lib/common-functions', () => ({
   setRetryStrategy: vi.fn(() => ({})),
 }));
+
+// Replace setTimeout with immediate resolution to avoid real delays in tests
+vi.spyOn(global, 'setTimeout').mockImplementation((fn: TimerHandler) => {
+  if (typeof fn === 'function') fn();
+  return 0 as unknown as NodeJS.Timeout;
+});
 
 describe('Build Identity Center Assignments - Principal ID Lookup', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,18 +50,43 @@ describe('Build Identity Center Assignments - Principal ID Lookup', () => {
       send: vi.fn(),
     };
 
+    // Default mock: Create returns IN_PROGRESS, then Describe returns SUCCEEDED
     mockSSOAdminClient = {
-      send: vi.fn().mockResolvedValue({
-        AccountAssignmentCreationStatus: {
-          RequestId: 'test-request-id',
-          Status: 'IN_PROGRESS',
-        },
-      }),
+      send: vi
+        .fn()
+        .mockResolvedValueOnce({
+          AccountAssignmentCreationStatus: {
+            RequestId: 'test-request-id',
+            Status: 'IN_PROGRESS',
+          },
+        })
+        .mockResolvedValueOnce({
+          AccountAssignmentCreationStatus: {
+            RequestId: 'test-request-id',
+            Status: 'SUCCEEDED',
+          },
+        })
+        // Extra calls for multi-principal tests: second Create + Describe
+        .mockResolvedValueOnce({
+          AccountAssignmentCreationStatus: {
+            RequestId: 'test-request-id-2',
+            Status: 'IN_PROGRESS',
+          },
+        })
+        .mockResolvedValueOnce({
+          AccountAssignmentCreationStatus: {
+            RequestId: 'test-request-id-2',
+            Status: 'SUCCEEDED',
+          },
+        }),
     };
 
     vi.mocked(IdentitystoreClient).mockImplementation(() => mockIdentityStoreClient);
     vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
     vi.mocked(CreateAccountAssignmentCommand).mockImplementation(input => ({ input }));
+    vi.mocked(DeleteAccountAssignmentCommand).mockImplementation(input => ({ input }));
+    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(input => ({ input }));
+    vi.mocked(DescribeAccountAssignmentDeletionStatusCommand).mockImplementation(input => ({ input }));
   });
 
   it('should use GetUserIdCommand with correct parameters for user lookup', async () => {
@@ -236,5 +273,195 @@ describe('Build Identity Center Assignments - Principal ID Lookup', () => {
 
     expect(result?.Status).toBe('FAILED');
     expect(result?.Reason).toContain("User 'invalid-user' not found in Identity Store 'd-906751796e'");
+  });
+});
+
+describe('Build Identity Center Assignments - Assignment Status Polling', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let mockIdentityStoreClient: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let mockSSOAdminClient: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockIdentityStoreClient = {
+      send: vi.fn().mockResolvedValue({ GroupId: 'group-123456789' }),
+    };
+
+    vi.mocked(IdentitystoreClient).mockImplementation(() => mockIdentityStoreClient);
+  });
+
+  const createEvent = (requestType: string, overrides = {}) =>
+    ({
+      RequestType: requestType,
+      ResponseURL: 'https://example.com',
+      StackId: 'test-stack',
+      RequestId: 'test-request',
+      LogicalResourceId: 'test-resource',
+      ResourceType: 'Custom::IdentityCenterAssignments',
+      ResourceProperties: {
+        instanceArn: 'arn:aws:sso:::instance/ssoins-123456789210',
+        identityStoreId: 'd-906751796e',
+        principals: [{ name: 'test-group', type: 'GROUP' }],
+        permissionSetArn: 'arn:aws:sso:::permissionSet/ssoins-1111111111111111/ps-1111111111111111',
+        accountIds: ['111111111111'],
+      },
+      ...overrides,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+  it('should poll DescribeAccountAssignmentCreationStatus after creating an assignment', async () => {
+    mockSSOAdminClient = {
+      send: vi
+        .fn()
+        // CreateAccountAssignmentCommand
+        .mockResolvedValueOnce({
+          AccountAssignmentCreationStatus: {
+            RequestId: 'create-req-1',
+            Status: 'IN_PROGRESS',
+          },
+        })
+        // DescribeAccountAssignmentCreationStatusCommand - SUCCEEDED
+        .mockResolvedValueOnce({
+          AccountAssignmentCreationStatus: {
+            RequestId: 'create-req-1',
+            Status: 'SUCCEEDED',
+          },
+        }),
+    };
+    vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
+    vi.mocked(CreateAccountAssignmentCommand).mockImplementation(input => ({ input }));
+    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(input => ({ input }));
+
+    const { handler } = await import('../../lib/aws-identity-center/build-identity-center-assignments/index.ts');
+    const result = await handler(createEvent('Create'));
+
+    expect(result?.Status).toBe('SUCCESS');
+    // Should have called send twice: once for Create, once for Describe
+    expect(mockSSOAdminClient.send).toHaveBeenCalledTimes(2);
+  });
+
+  it('should return FAILED when async creation fails', async () => {
+    mockSSOAdminClient = {
+      send: vi
+        .fn()
+        .mockResolvedValueOnce({
+          AccountAssignmentCreationStatus: {
+            RequestId: 'create-req-fail',
+            Status: 'IN_PROGRESS',
+          },
+        })
+        .mockResolvedValueOnce({
+          AccountAssignmentCreationStatus: {
+            RequestId: 'create-req-fail',
+            Status: 'FAILED',
+            FailureReason: 'The security token included in the request is invalid.',
+          },
+        }),
+    };
+    vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
+    vi.mocked(CreateAccountAssignmentCommand).mockImplementation(input => ({ input }));
+    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(input => ({ input }));
+
+    const { handler } = await import('../../lib/aws-identity-center/build-identity-center-assignments/index.ts');
+    const result = await handler(createEvent('Create'));
+
+    expect(result?.Status).toBe('FAILED');
+    expect(result?.Reason).toContain('The security token included in the request is invalid.');
+  });
+
+  it('should poll multiple times when status remains IN_PROGRESS', async () => {
+    mockSSOAdminClient = {
+      send: vi
+        .fn()
+        .mockResolvedValueOnce({
+          AccountAssignmentCreationStatus: {
+            RequestId: 'create-req-poll',
+            Status: 'IN_PROGRESS',
+          },
+        })
+        // First poll - still IN_PROGRESS
+        .mockResolvedValueOnce({
+          AccountAssignmentCreationStatus: {
+            RequestId: 'create-req-poll',
+            Status: 'IN_PROGRESS',
+          },
+        })
+        // Second poll - SUCCEEDED
+        .mockResolvedValueOnce({
+          AccountAssignmentCreationStatus: {
+            RequestId: 'create-req-poll',
+            Status: 'SUCCEEDED',
+          },
+        }),
+    };
+    vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
+    vi.mocked(CreateAccountAssignmentCommand).mockImplementation(input => ({ input }));
+    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(input => ({ input }));
+
+    const { handler } = await import('../../lib/aws-identity-center/build-identity-center-assignments/index.ts');
+    const result = await handler(createEvent('Create'));
+
+    expect(result?.Status).toBe('SUCCESS');
+    // 1 Create + 2 Describe polls
+    expect(mockSSOAdminClient.send).toHaveBeenCalledTimes(3);
+  });
+
+  it('should poll DescribeAccountAssignmentDeletionStatus after deleting an assignment', async () => {
+    mockSSOAdminClient = {
+      send: vi
+        .fn()
+        .mockResolvedValueOnce({
+          AccountAssignmentDeletionStatus: {
+            RequestId: 'delete-req-1',
+            Status: 'IN_PROGRESS',
+          },
+        })
+        .mockResolvedValueOnce({
+          AccountAssignmentDeletionStatus: {
+            RequestId: 'delete-req-1',
+            Status: 'SUCCEEDED',
+          },
+        }),
+    };
+    vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
+    vi.mocked(DeleteAccountAssignmentCommand).mockImplementation(input => ({ input }));
+    vi.mocked(DescribeAccountAssignmentDeletionStatusCommand).mockImplementation(input => ({ input }));
+
+    const { handler } = await import('../../lib/aws-identity-center/build-identity-center-assignments/index.ts');
+    const result = await handler(createEvent('Delete'));
+
+    expect(result?.Status).toBe('SUCCESS');
+    expect(mockSSOAdminClient.send).toHaveBeenCalledTimes(2);
+  });
+
+  it('should return FAILED when async deletion fails', async () => {
+    mockSSOAdminClient = {
+      send: vi
+        .fn()
+        .mockResolvedValueOnce({
+          AccountAssignmentDeletionStatus: {
+            RequestId: 'delete-req-fail',
+            Status: 'IN_PROGRESS',
+          },
+        })
+        .mockResolvedValueOnce({
+          AccountAssignmentDeletionStatus: {
+            RequestId: 'delete-req-fail',
+            Status: 'FAILED',
+            FailureReason: 'Assignment does not exist.',
+          },
+        }),
+    };
+    vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
+    vi.mocked(DeleteAccountAssignmentCommand).mockImplementation(input => ({ input }));
+    vi.mocked(DescribeAccountAssignmentDeletionStatusCommand).mockImplementation(input => ({ input }));
+
+    const { handler } = await import('../../lib/aws-identity-center/build-identity-center-assignments/index.ts');
+    const result = await handler(createEvent('Delete'));
+
+    expect(result?.Status).toBe('FAILED');
+    expect(result?.Reason).toContain('Assignment does not exist.');
   });
 });

@@ -20,6 +20,8 @@ import {
   DeleteAccountAssignmentRequest,
   CreateAccountAssignmentCommand,
   DeleteAccountAssignmentCommand,
+  DescribeAccountAssignmentCreationStatusCommand,
+  DescribeAccountAssignmentDeletionStatusCommand,
   PrincipalType,
   CreateAccountAssignmentCommandInput,
 } from '@aws-sdk/client-sso-admin';
@@ -340,6 +342,102 @@ async function buildDeleteAssignmentsList(
   return assignmentDeletionRequests;
 }
 
+const POLL_MAX_ATTEMPTS = 10;
+const POLL_BASE_DELAY_MS = 2000;
+const POLL_MAX_DELAY_MS = 30000;
+
+/**
+ * Returns a delay with exponential backoff and jitter.
+ * @param attempt - The current attempt number (1-based)
+ */
+function getPollingDelay(attempt: number): number {
+  const exponentialDelay = Math.min(POLL_BASE_DELAY_MS * Math.pow(2, attempt - 1), POLL_MAX_DELAY_MS);
+  const jitter = Math.floor(Math.random() * exponentialDelay * 0.3);
+  return exponentialDelay + jitter;
+}
+
+/**
+ * Polls DescribeAccountAssignmentCreationStatus until the assignment succeeds, fails, or times out.
+ */
+async function waitForCreationStatus(
+  ssoAdminClient: SSOAdminClient,
+  instanceArn: string,
+  requestId: string,
+  targetId: string,
+): Promise<void> {
+  for (let attempt = 1; attempt <= POLL_MAX_ATTEMPTS; attempt++) {
+    const response = await throttlingBackOff(() =>
+      ssoAdminClient.send(
+        new DescribeAccountAssignmentCreationStatusCommand({
+          InstanceArn: instanceArn,
+          AccountAssignmentCreationRequestId: requestId,
+        }),
+      ),
+    );
+    const status = response.AccountAssignmentCreationStatus;
+
+    if (status?.Status === 'SUCCEEDED') {
+      console.log(`Account assignment creation for account ${targetId} succeeded (RequestId: ${requestId})`);
+      return;
+    }
+    if (status?.Status === 'FAILED') {
+      throw new Error(
+        `Account assignment creation failed for account ${targetId}: ${status.FailureReason ?? 'Unknown reason'} (RequestId: ${requestId})`,
+      );
+    }
+
+    console.log(
+      `Account assignment create for account ${targetId} still in progress, polling attempt ${attempt}/${POLL_MAX_ATTEMPTS}`,
+    );
+    await new Promise(resolve => setTimeout(resolve, getPollingDelay(attempt)));
+  }
+
+  throw new Error(
+    `Account assignment creation for account ${targetId} timed out after ${POLL_MAX_ATTEMPTS} attempts (RequestId: ${requestId})`,
+  );
+}
+
+/**
+ * Polls DescribeAccountAssignmentDeletionStatus until the assignment succeeds, fails, or times out.
+ */
+async function waitForDeletionStatus(
+  ssoAdminClient: SSOAdminClient,
+  instanceArn: string,
+  requestId: string,
+  targetId: string,
+): Promise<void> {
+  for (let attempt = 1; attempt <= POLL_MAX_ATTEMPTS; attempt++) {
+    const response = await throttlingBackOff(() =>
+      ssoAdminClient.send(
+        new DescribeAccountAssignmentDeletionStatusCommand({
+          InstanceArn: instanceArn,
+          AccountAssignmentDeletionRequestId: requestId,
+        }),
+      ),
+    );
+    const status = response.AccountAssignmentDeletionStatus;
+
+    if (status?.Status === 'SUCCEEDED') {
+      console.log(`Account assignment deletion for account ${targetId} succeeded (RequestId: ${requestId})`);
+      return;
+    }
+    if (status?.Status === 'FAILED') {
+      throw new Error(
+        `Account assignment deletion failed for account ${targetId}: ${status.FailureReason ?? 'Unknown reason'} (RequestId: ${requestId})`,
+      );
+    }
+
+    console.log(
+      `Account assignment delete for account ${targetId} still in progress, polling attempt ${attempt}/${POLL_MAX_ATTEMPTS}`,
+    );
+    await new Promise(resolve => setTimeout(resolve, getPollingDelay(attempt)));
+  }
+
+  throw new Error(
+    `Account assignment deletion for account ${targetId} timed out after ${POLL_MAX_ATTEMPTS} attempts (RequestId: ${requestId})`,
+  );
+}
+
 /**
  * Method processes list of create account Assignments
  * @param assignmentCreationRequests
@@ -356,12 +454,19 @@ async function createAssignment(
     const createEvent = await throttlingBackOff(() =>
       ssoAdminClient.send(new CreateAccountAssignmentCommand(createParameter)),
     );
-    if (createEvent.AccountAssignmentCreationStatus) {
-      console.log(
-        `Request Id ${createEvent.AccountAssignmentCreationStatus.RequestId} for account ${createParameter.TargetId} in status: ${createEvent.AccountAssignmentCreationStatus.Status}`,
+
+    const requestId = createEvent.AccountAssignmentCreationStatus?.RequestId;
+    const status = createEvent.AccountAssignmentCreationStatus?.Status;
+
+    console.log(`Request Id ${requestId} for account ${createParameter.TargetId} in status: ${status}`);
+
+    if (status === 'IN_PROGRESS' && requestId) {
+      await waitForCreationStatus(ssoAdminClient, createParameter.InstanceArn!, requestId, createParameter.TargetId!);
+    } else if (status === 'FAILED') {
+      throw new Error(
+        `Account assignment creation failed for account ${createParameter.TargetId}: ${createEvent.AccountAssignmentCreationStatus?.FailureReason ?? 'Unknown reason'}`,
       );
     }
-    console.log(`Processing create event: ${JSON.stringify(createEvent, null, 4)}`);
   }
 }
 
@@ -381,9 +486,17 @@ async function deleteAssignment(
     const deleteEvent = await throttlingBackOff(() =>
       ssoAdminClient.send(new DeleteAccountAssignmentCommand(deleteParameter)),
     );
-    if (deleteEvent.AccountAssignmentDeletionStatus) {
-      console.log(
-        `Request Id ${deleteEvent.AccountAssignmentDeletionStatus.RequestId} for account ${deleteParameter.TargetId} in status: ${deleteEvent.AccountAssignmentDeletionStatus.Status}`,
+
+    const requestId = deleteEvent.AccountAssignmentDeletionStatus?.RequestId;
+    const status = deleteEvent.AccountAssignmentDeletionStatus?.Status;
+
+    console.log(`Request Id ${requestId} for account ${deleteParameter.TargetId} in status: ${status}`);
+
+    if (status === 'IN_PROGRESS' && requestId) {
+      await waitForDeletionStatus(ssoAdminClient, deleteParameter.InstanceArn!, requestId, deleteParameter.TargetId!);
+    } else if (status === 'FAILED') {
+      throw new Error(
+        `Account assignment deletion failed for account ${deleteParameter.TargetId}: ${deleteEvent.AccountAssignmentDeletionStatus?.FailureReason ?? 'Unknown reason'}`,
       );
     }
   }

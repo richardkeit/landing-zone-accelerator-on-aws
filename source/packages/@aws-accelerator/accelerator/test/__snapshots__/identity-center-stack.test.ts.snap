@@ -93,6 +93,8 @@ exports[`IdentityCenterStack > Construct(IdentityCenterStack):  Snapshot Test 1`
                     "identitystore:GetUserId",
                     "sso:CreateAccountAssignment",
                     "sso:DeleteAccountAssignment",
+                    "sso:DescribeAccountAssignmentCreationStatus",
+                    "sso:DescribeAccountAssignmentDeletionStatus",
                     "sso:ListAccountAssignments",
                   ],
                   "Effect": "Allow",

@@ -85,6 +85,8 @@ export class IdentityCenterAssignments extends Construct {
             'identitystore:GetUserId',
             'sso:CreateAccountAssignment',
             'sso:DeleteAccountAssignment',
+            'sso:DescribeAccountAssignmentCreationStatus',
+            'sso:DescribeAccountAssignmentDeletionStatus',
             'sso:ListAccountAssignments',
           ],
           Resource: '*',
