@@ -437,6 +437,65 @@ describe('SecurityConfigValidator', () => {
       ).toBeDefined();
     });
   });
+
+  describe('validateNoDuplicateEnabledRegions', () => {
+    it('should fail when enabledRegions contains duplicate regions', () => {
+      const globalConfig = {
+        ...createGlobalConfig(),
+        enabledRegions: ['eu-central-1', 'eu-central-1'],
+      } as GlobalConfig;
+
+      expect(
+        () =>
+          new GlobalConfigValidator(
+            globalConfig,
+            mockAccountsConfig,
+            mockIamConfig,
+            mockOrganizationConfig,
+            mockSecurityConfig,
+            mockConfigDir,
+          ),
+      ).toThrow(/Duplicate region\(s\) \[eu-central-1\] found in enabledRegions/);
+    });
+
+    it('should report all duplicate regions', () => {
+      const globalConfig = {
+        ...createGlobalConfig(),
+        enabledRegions: ['us-east-1', 'eu-central-1', 'us-east-1', 'eu-central-1'],
+      } as GlobalConfig;
+
+      expect(
+        () =>
+          new GlobalConfigValidator(
+            globalConfig,
+            mockAccountsConfig,
+            mockIamConfig,
+            mockOrganizationConfig,
+            mockSecurityConfig,
+            mockConfigDir,
+          ),
+      ).toThrow(/Duplicate region\(s\) \[us-east-1,eu-central-1\]/);
+    });
+
+    it('should pass when enabledRegions has no duplicates', () => {
+      const globalConfig = {
+        ...createGlobalConfig(),
+        enabledRegions: ['us-east-1', 'eu-central-1'],
+      } as GlobalConfig;
+
+      expect(
+        () =>
+          new GlobalConfigValidator(
+            globalConfig,
+            mockAccountsConfig,
+            mockIamConfig,
+            mockOrganizationConfig,
+            mockSecurityConfig,
+            mockConfigDir,
+          ),
+      ).toBeDefined();
+    });
+  });
 });
 
 function createSecurityConfig(delegatedAdminAccount = 'Audit'): Partial<SecurityConfig> {

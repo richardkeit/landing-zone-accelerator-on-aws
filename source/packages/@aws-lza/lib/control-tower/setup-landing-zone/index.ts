@@ -189,12 +189,16 @@ export class SetupLandingZoneModule implements ISetupLandingZoneModule {
     auditAccountId: string,
     landingZoneConfig: ISetupLandingZoneConfiguration,
   ): ControlTowerLandingZoneConfigType {
-    const governedRegions: string[] = landingZoneConfig.enabledRegions;
+    //
+    // De-duplicate enabledRegions to avoid spurious governed-region change detection
+    // when the source config accidentally lists the same region more than once.
+    //
+    const governedRegions: string[] = [...new Set(landingZoneConfig.enabledRegions)];
 
     //
     // By default Accelerator will add global region to be governed by AWS CT
     //
-    if (!landingZoneConfig.enabledRegions.includes(globalRegion)) {
+    if (!governedRegions.includes(globalRegion)) {
       governedRegions.push(globalRegion);
     }
 

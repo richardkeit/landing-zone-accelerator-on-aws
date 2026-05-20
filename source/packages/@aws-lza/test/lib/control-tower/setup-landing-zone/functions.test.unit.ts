@@ -351,6 +351,20 @@ describe('resources utility functions', () => {
 
       expect(governedRegionsChanged(existing, config)).toBe(false);
     });
+
+    test('should return false when config has duplicate regions matching existing set', () => {
+      const existing = ['eu-central-1'];
+      const config = ['eu-central-1', 'eu-central-1'];
+
+      expect(governedRegionsChanged(existing, config)).toBe(false);
+    });
+
+    test('should return false when existing has duplicate regions matching config set', () => {
+      const existing = ['eu-central-1', 'eu-central-1'];
+      const config = ['eu-central-1'];
+
+      expect(governedRegionsChanged(existing, config)).toBe(false);
+    });
   });
 
   describe('validateLandingZoneVersion', () => {

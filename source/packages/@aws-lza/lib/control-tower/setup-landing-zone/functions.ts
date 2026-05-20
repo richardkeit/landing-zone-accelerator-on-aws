@@ -114,11 +114,21 @@ export function makeManifestDocument(
  * @returns status boolean
  */
 export function governedRegionsChanged(existingRegions: string[], configRegions: string[]): boolean {
-  if (existingRegions.length !== configRegions.length) {
+  // Compare as sets so duplicate entries on either side do not falsely report a change.
+  const existingSet = new Set(existingRegions);
+  const configSet = new Set(configRegions);
+
+  if (existingSet.size !== configSet.size) {
     return true;
   }
 
-  return !existingRegions.every(region => configRegions.includes(region));
+  for (const region of existingSet) {
+    if (!configSet.has(region)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

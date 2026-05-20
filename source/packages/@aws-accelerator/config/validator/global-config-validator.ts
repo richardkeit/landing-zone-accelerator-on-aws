@@ -197,6 +197,11 @@ export class GlobalConfigValidator {
     this.validateRegionByRegionDeployOrderMatchesEnabledRegionsConfiguration(values, regionByRegionDeployOrder, errors);
 
     //
+    // Validate enabledRegions contains no duplicates
+    //
+    this.validateNoDuplicateEnabledRegions(values, errors);
+
+    //
     // Validate Kinesis configuration
     //
     this.validateKinesisConfiguration(values.logging.cloudwatchLogs?.kinesis, errors);
@@ -1397,6 +1402,28 @@ export class GlobalConfigValidator {
       if (!deployOrder.includes(enabledRegion)) {
         errors.push(`Region ${enabledRegion} is missing in the region by region deploy order.`);
       }
+    }
+  }
+
+  /**
+   * Function to validate that enabledRegions does not contain duplicate regions.
+   * Duplicates cause LZA to detect spurious governed-region changes and trigger
+   * unnecessary Control Tower Landing Zone updates and OU re-registration.
+   */
+  private validateNoDuplicateEnabledRegions(values: GlobalConfig, errors: string[]) {
+    const seen = new Set<string>();
+    const duplicates = new Set<string>();
+    for (const region of values.enabledRegions ?? []) {
+      if (seen.has(region)) {
+        duplicates.add(region);
+      } else {
+        seen.add(region);
+      }
+    }
+    if (duplicates.size > 0) {
+      errors.push(
+        `Duplicate region(s) [${[...duplicates].join(',')}] found in enabledRegions. Each region must be listed only once.`,
+      );
     }
   }
 
