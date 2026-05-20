@@ -1165,31 +1165,31 @@ export class NetworkFirewallValidator {
     errors: string[],
   ) {
     const managedStatefulRuleGroupNames =
-      policy.firewallPolicy.statefulRuleGroups?.map(group => group.managedStatefulRuleGroupName).filter(name => name) ||
-      [];
+      policy.firewallPolicy.statefulRuleGroups
+        ?.map(group => group.managedStatefulRuleGroupName)
+        .filter((name): name is string => Boolean(name)) ?? [];
+
     for (const name of policyNames) {
       const group = allRules.get(name);
-      if (policy.firewallPolicy.statefulRuleGroups) {
-        // Validate rule group exists (skip managed rule groups)
+
+      if (groupType === 'STATEFUL') {
+        // Skip AWS-managed stateful rule groups; they are not in allRules by design.
         if (!group && !managedStatefulRuleGroupNames.includes(name)) {
-          errors.push(`[Network Firewall policy ${policy.name}]: rule group "${name}" does not exist`);
+          errors.push(`[Network Firewall policy ${policy.name}]: stateful rule group "${name}" does not exist`);
         }
-      }
-      // Validate rule group exists on stateless rules
-      if (policy.firewallPolicy.statelessRuleGroups) {
+      } else {
         if (!group) {
-          errors.push(`[Network Firewall policy ${policy.name}]: rule group "${name}" does not exist`);
+          errors.push(`[Network Firewall policy ${policy.name}]: stateless rule group "${name}" does not exist`);
         }
       }
+
       if (group) {
-        // Validate regions match
         const regionMismatch = policy.regions.some(region => !group.regions.includes(region));
         if (regionMismatch) {
           errors.push(
             `[Network Firewall policy ${policy.name}]: rule group "${name}" is not deployed to one or more region(s) the policy is deployed to. Policy regions: ${policy.regions}; Rule group regions: ${group.regions}`,
           );
         }
-        // Validate policy is the correct type
         if (group.type !== groupType) {
           errors.push(
             `[Network Firewall policy ${policy.name}]: rule group reference "${name}" is not configured as a ${groupType} rule group type`,
