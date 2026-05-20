@@ -26,6 +26,7 @@ import {
 } from '../lib/functions';
 import { version } from '../../../../package.json';
 import {
+  AccountState,
   AWSOrganizationsNotInUseException,
   DescribeOrganizationCommand,
   OrganizationsClient,
@@ -476,6 +477,43 @@ describe('functions', () => {
       // Verify
 
       expect(result).toEqual([]);
+    });
+
+    test('should exclude accounts whose State is not ACTIVE', async () => {
+      // Setup
+      const suspendedAccount = {
+        Id: MOCK_CONSTANTS.testAccounts.suspended.id,
+        Arn: `arn:aws:organizations::111111111111:account/o-exampleorgid/${MOCK_CONSTANTS.testAccounts.suspended.id}`,
+        Email: MOCK_CONSTANTS.testAccounts.suspended.email,
+        Name: MOCK_CONSTANTS.testAccounts.suspended.name,
+        State: AccountState.SUSPENDED,
+        JoinedMethod: 'INVITED',
+        JoinedTimestamp: new Date('2024-01-01'),
+      };
+      const pendingClosureAccount = {
+        Id: '888888888888',
+        Arn: 'arn:aws:organizations::111111111111:account/o-exampleorgid/888888888888',
+        Email: 'pending-closure@example.com',
+        Name: 'PendingClosureAccount',
+        State: AccountState.PENDING_CLOSURE,
+        JoinedMethod: 'INVITED',
+        JoinedTimestamp: new Date('2024-02-01'),
+      };
+      const mockPaginator = [
+        { Accounts: [...MOCK_CONSTANTS.organizationAccounts, suspendedAccount, pendingClosureAccount] },
+      ];
+      (paginateListAccounts as vi.Mock).mockImplementation(() => mockPaginator);
+
+      // Execute
+      const result = await getOrganizationAccounts(
+        MOCK_CONSTANTS.globalRegion,
+        MOCK_CONSTANTS.runnerParameters.solutionId,
+      );
+
+      // Verify
+      expect(result).toEqual(MOCK_CONSTANTS.organizationAccounts);
+      expect(result.map(account => account.Id)).not.toContain(MOCK_CONSTANTS.testAccounts.suspended.id);
+      expect(result.map(account => account.Id)).not.toContain('888888888888');
     });
   });
 

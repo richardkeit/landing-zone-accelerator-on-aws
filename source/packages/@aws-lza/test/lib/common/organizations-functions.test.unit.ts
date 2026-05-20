@@ -44,7 +44,17 @@ vi.mock('@aws-sdk/client-organizations', () => {
     paginateListAccounts: vi.fn(),
     AWSOrganizationsNotInUseException: vi.fn(),
     AccountNotRegisteredException,
-    AccountStatus: {},
+    AccountStatus: {
+      ACTIVE: 'ACTIVE',
+      PENDING_CLOSURE: 'PENDING_CLOSURE',
+      SUSPENDED: 'SUSPENDED',
+    },
+    AccountState: {
+      ACTIVE: 'ACTIVE',
+      PENDING_CLOSURE: 'PENDING_CLOSURE',
+      SUSPENDED: 'SUSPENDED',
+      PENDING_INVITATION: 'PENDING_INVITATION',
+    },
     AccountJoinedMethod: {},
   };
 });
@@ -236,6 +246,41 @@ describe('organizations-functions', () => {
         { client: expect.any(OrganizationsClient) },
         { MaxResults: 20 },
       );
+    });
+
+    test('should exclude accounts whose Status is not ACTIVE', async () => {
+      const suspendedAccount: Account = {
+        Id: 'AAAAAAAAAAAA',
+        Name: 'SuspendedAccount',
+        Email: 'suspended@example.com',
+        Status: 'SUSPENDED' as AccountStatus,
+        JoinedMethod: 'INVITED' as AccountJoinedMethod,
+        Arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/AAAAAAAAAAAA',
+        JoinedTimestamp: new Date('2024-06-01T00:00:00Z'),
+      };
+      const pendingClosureAccount: Account = {
+        Id: 'BBBBBBBBBBBB',
+        Name: 'PendingClosureAccount',
+        Email: 'pending-closure@example.com',
+        Status: 'PENDING_CLOSURE' as AccountStatus,
+        JoinedMethod: 'INVITED' as AccountJoinedMethod,
+        Arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/BBBBBBBBBBBB',
+        JoinedTimestamp: new Date('2024-07-01T00:00:00Z'),
+      };
+      const mockPaginator = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            Accounts: [MOCK_CONSTANTS.accounts[0], suspendedAccount, MOCK_CONSTANTS.accounts[1], pendingClosureAccount],
+          };
+        },
+      };
+      mockPaginateListAccounts.mockReturnValue(mockPaginator);
+
+      const result = await getOrganizationAccounts(MOCK_CONSTANTS.logPrefix, new OrganizationsClient({}));
+
+      expect(result).toEqual(MOCK_CONSTANTS.accounts);
+      expect(result.map(a => a.Id)).not.toContain(suspendedAccount.Id);
+      expect(result.map(a => a.Id)).not.toContain(pendingClosureAccount.Id);
     });
   });
 
@@ -648,6 +693,47 @@ describe('organizations-functions', () => {
       expect(result).toHaveLength(2);
       expect(result.some(account => account.Id === 'YYYYYYYYYYYY')).toBe(true);
       expect(result.some(account => account.Id === 'ZZZZZZZZZZZZ')).toBe(true);
+    });
+
+    test('should exclude accounts whose cached status is not ACTIVE', async () => {
+      const tableDataWithSuspended = [
+        ...MOCK_CONSTANTS.tableData,
+        {
+          awsKey: 'AAAAAAAAAAAA',
+          acceleratorKey: 'suspended@example.com',
+          dataType: 'workloadAccount',
+          dataBag: JSON.stringify({
+            name: 'SuspendedAccount',
+            arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/AAAAAAAAAAAA',
+            status: 'SUSPENDED',
+            joinedMethod: 'INVITED',
+            joinedTimestamp: '2024-06-01T00:00:00Z',
+          }),
+        },
+        {
+          awsKey: 'BBBBBBBBBBBB',
+          acceleratorKey: 'pending-closure@example.com',
+          dataType: 'workloadAccount',
+          dataBag: JSON.stringify({
+            name: 'PendingClosureAccount',
+            arn: 'arn:aws:organizations::XXXXXXXXXXXX:account/o-test123456/BBBBBBBBBBBB',
+            status: 'PENDING_CLOSURE',
+            joinedMethod: 'INVITED',
+            joinedTimestamp: '2024-07-01T00:00:00Z',
+          }),
+        },
+      ];
+      mockQueryDynamoDBTable.mockResolvedValue({ items: tableDataWithSuspended });
+
+      const result = await getOrganizationAccountsFromSourceTable({
+        client: new DynamoDBClient({}),
+        organizationsDataSource: MOCK_CONSTANTS.organizationsDataSource,
+        logPrefix: MOCK_CONSTANTS.logPrefix,
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.map(a => a.Id)).not.toContain('AAAAAAAAAAAA');
+      expect(result.map(a => a.Id)).not.toContain('BBBBBBBBBBBB');
     });
   });
 

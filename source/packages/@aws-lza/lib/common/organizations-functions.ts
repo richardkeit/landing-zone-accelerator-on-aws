@@ -31,6 +31,7 @@ import {
   Account,
   AccountJoinedMethod,
   AccountNotRegisteredException,
+  AccountState,
   AccountStatus,
   AWSOrganizationsNotInUseException,
   DeregisterDelegatedAdministratorCommand,
@@ -50,11 +51,33 @@ import { executeApi, setRetryStrategy } from './utility';
 const logger = createLogger([path.parse(path.basename(__filename)).name]);
 
 /**
- * Retrieves all AWS Organizations accounts using paginated API calls
+ * Returns true when an account's Status (or State, the newer field) is ACTIVE.
+ * Suspended, pending-closure, and pending-invitation accounts cannot accept
+ * cross-account `AssumeRole`, so downstream modules must skip them.
+ */
+function isAccountActive(account: Account): boolean {
+  if (account.Status !== undefined) {
+    return account.Status === AccountStatus.ACTIVE;
+  }
+  if (account.State !== undefined) {
+    return account.State === AccountState.ACTIVE;
+  }
+  // No status field present (e.g., DynamoDB cache entry without status). Treat
+  // as active so we don't hide accounts whose state was simply not recorded.
+  return true;
+}
+
+/**
+ * Retrieves all AWS Organizations accounts using paginated API calls.
+ *
+ * Only ACTIVE accounts are returned; suspended and pending-closure accounts
+ * are filtered out so that downstream modules don't attempt cross-account
+ * `AssumeRole` calls into accounts that cannot accept them.
+ *
  * @param logPrefix - Prefix for logging messages
  * @param client - Optional AWS Organizations client instance
  * @param clientProps - Optional client configuration properties
- * @returns Promise resolving to array of organization accounts
+ * @returns Promise resolving to array of ACTIVE organization accounts
  */
 export async function getOrganizationAccounts(
   logPrefix: string,
@@ -70,7 +93,7 @@ export async function getOrganizationAccounts(
       credentials: clientProps?.credentials,
     });
 
-  const accounts: Account[] = [];
+  const allAccounts: Account[] = [];
   logger.info(`Getting all AWS Organizations accounts`, logPrefix);
 
   const command = 'paginateListAccounts';
@@ -79,12 +102,24 @@ export async function getOrganizationAccounts(
   const paginator = paginateListAccounts({ client: organizationClient }, parameter);
   for await (const page of paginator) {
     for (const account of page.Accounts ?? []) {
-      accounts.push(account);
+      allAccounts.push(account);
     }
   }
   logger.commandSuccess(command, parameter, logPrefix);
 
-  return accounts;
+  const activeAccounts = allAccounts.filter(isAccountActive);
+  const skipped = allAccounts.filter(account => !isAccountActive(account));
+  if (skipped.length > 0) {
+    const summary = skipped
+      .map(account => `${account.Id ?? 'unknown'} (${account.Status ?? account.State ?? 'unknown'})`)
+      .join(', ');
+    logger.warn(
+      `Skipping ${skipped.length} non-ACTIVE AWS Organizations account(s) from module execution: ${summary}`,
+      logPrefix,
+    );
+  }
+
+  return activeAccounts;
 }
 
 /**
@@ -272,6 +307,7 @@ export async function getOrganizationAccountsFromSourceTable(options: {
     throw new Error(message);
   }
 
+  const skipped: Account[] = [];
   for (const item of result.items) {
     if (!isValidAccountType(item['dataType'] as string)) {
       continue;
@@ -281,7 +317,21 @@ export async function getOrganizationAccountsFromSourceTable(options: {
     logger.info(`Found account ${item['acceleratorKey']} in source table`, options.logPrefix);
 
     const account = buildAccountFromItem(item);
-    accounts.push(account);
+    if (isAccountActive(account)) {
+      accounts.push(account);
+    } else {
+      skipped.push(account);
+    }
+  }
+
+  if (skipped.length > 0) {
+    const summary = skipped
+      .map(account => `${account.Id ?? 'unknown'} (${account.Status ?? account.State ?? 'unknown'})`)
+      .join(', ');
+    logger.warn(
+      `Skipping ${skipped.length} non-ACTIVE AWS Organizations account(s) from source table: ${summary}`,
+      options.logPrefix,
+    );
   }
 
   logger.info(`Retrieved ${accounts.length} accounts from source table`, options.logPrefix);

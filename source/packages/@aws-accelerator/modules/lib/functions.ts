@@ -25,6 +25,7 @@ import { getCredentials, setRetryStrategy } from '../../../@aws-lza/common/funct
 import { AwsCredentialIdentityProvider } from '@aws-sdk/types';
 import {
   Account,
+  AccountState,
   AWSOrganizationsNotInUseException,
   DescribeOrganizationCommand,
   Organization,
@@ -127,7 +128,13 @@ export function getManagementAccountCredentials(
 }
 
 /**
- * Function to retrieve AWS organizations accounts
+ * Function to retrieve AWS organizations accounts.
+ *
+ * Only accounts whose `State` is `ACTIVE` are returned. Suspended,
+ * pending-closure, and pending-invitation accounts are filtered out so that
+ * downstream modules do not attempt cross-account `AssumeRole` calls into
+ * accounts that cannot accept them.
+ *
  * @param globalRegion string
  * @param solutionId string
  * @param managementAccountCredentials {@link AwsCredentialIdentityProvider}
@@ -144,12 +151,21 @@ export async function getOrganizationAccounts(
     retryStrategy: setRetryStrategy(),
     credentials: managementAccountCredentials,
   });
-  const organizationAccounts: Account[] = [];
+  const allAccounts: Account[] = [];
   const paginator = paginateListAccounts({ client }, {});
   for await (const page of paginator) {
-    organizationAccounts.push(...(page.Accounts ?? []));
+    allAccounts.push(...(page.Accounts ?? []));
   }
-  return organizationAccounts;
+
+  const activeAccounts = allAccounts.filter(account => account.State === AccountState.ACTIVE);
+
+  const skipped = allAccounts.filter(account => account.State !== AccountState.ACTIVE);
+  if (skipped.length > 0) {
+    const summary = skipped.map(account => `${account.Id ?? 'unknown'} (${account.State ?? 'unknown'})`).join(', ');
+    logger.warn(`Skipping ${skipped.length} non-ACTIVE AWS Organizations account(s) from module execution: ${summary}`);
+  }
+
+  return activeAccounts;
 }
 
 /**
