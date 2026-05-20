@@ -220,7 +220,8 @@ export class VpcEndpoints extends AseaResource {
           stringValue: endpointCfn.physicalResourceId,
         });
         this.scope.addAseaResource(AseaResourceType.VPC_ENDPOINT, `${vpcItem.name}/${endpointItem.service}`);
-        let hostedZoneName = this.getHostedZoneNameForService(endpointItem.service, this.stackInfo.region);
+        let hostedZoneName =
+          endpointItem.hostedZoneName ?? this.getHostedZoneNameForService(endpointItem.service, this.stackInfo.region);
         if (!hostedZoneName.endsWith('.')) {
           hostedZoneName += '.';
         }

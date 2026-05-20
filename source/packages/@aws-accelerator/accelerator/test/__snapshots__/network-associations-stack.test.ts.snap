@@ -199,6 +199,10 @@ exports[`NetworkAssociationsStack > Construct(NetworkAssociationsStack):  Snapsh
       "Default": "/accelerator/network/vpc/Network-Endpoints/route53/hostedZone/logs/id",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
+    "SsmParameterValueacceleratornetworkvpcNetworkEndpointsroute53hostedZoneroute53idC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/accelerator/network/vpc/Network-Endpoints/route53/hostedZone/route53/id",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
     "SsmParameterValueacceleratornetworkvpcNetworkEndpointsroute53hostedZones3globalaccesspointidC96584B6F00A464EAD1953AFF4B05118Parameter": {
       "Default": "/accelerator/network/vpc/Network-Endpoints/route53/hostedZone/s3-global.accesspoint/id",
       "Type": "AWS::SSM::Parameter::Value<String>",
@@ -521,6 +525,9 @@ exports[`NetworkAssociationsStack > Construct(NetworkAssociationsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsroute53hostedZoneaccessanalyzeridC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+          {
+            "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsroute53hostedZoneroute53idC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
         "partition": {

@@ -1519,6 +1519,9 @@ vpcs:
           securityGroup: Network-Endpoints-CustomEndpointSg
         - service: access-analyzer
           securityGroup: Network-Endpoints-CustomEndpointSg
+        - service: route53
+          serviceName: com.amazonaws.route53
+          hostedZoneName: route53.amazonaws.com
         # - service: cloudformation
         # - service: application-autoscaling
         # - service: appmesh-envoy-management

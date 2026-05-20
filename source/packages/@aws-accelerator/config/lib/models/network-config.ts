@@ -2345,6 +2345,9 @@ export interface IGatewayEndpointConfig {
  * ```
  * - service: ec2
  *   policy: Default
+ * - service: route53
+ *   serviceName: com.amazonaws.route53
+ *   hostedZoneName: route53.amazonaws.com
  * ```
  */
 export interface IInterfaceEndpointServiceConfig {
@@ -2370,6 +2373,20 @@ export interface IInterfaceEndpointServiceConfig {
    * conform with the standard `com.amazonaws.<REGION>.<SERVICE>` syntax.
    */
   readonly serviceName?: t.NonEmptyString;
+  /**
+   * (OPTIONAL) The full private hosted zone name to create for this interface endpoint.
+   *
+   * @remarks
+   * This property can be used to override LZA's default PHZ-name derivation for
+   * interface endpoints whose hosted zone does not conform to the standard
+   * `<service>.<region>.amazonaws.com` pattern (for example, global services).
+   * Typically set together with `serviceName`.
+   *
+   * Length is capped at 1024 characters to match the Route 53 `CreateHostedZone`
+   * API limit for the `Name` field; values longer than 1024 characters are rejected
+   * by the network-config validator at parse time.
+   */
+  readonly hostedZoneName?: t.NonEmptyString;
   /**
    * (OPTIONAL) The friendly name of a policy for the interface endpoint. If left undefined, the default policy will be used.
    *

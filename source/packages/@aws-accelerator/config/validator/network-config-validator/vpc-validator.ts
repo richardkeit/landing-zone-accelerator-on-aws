@@ -18,6 +18,7 @@ import {
   Ec2FirewallInstanceConfig,
 } from '../../lib/customizations-config';
 import {
+  InterfaceEndpointServiceConfig,
   NetworkAclInboundRuleConfig,
   NetworkAclOutboundRuleConfig,
   NetworkAclSubnetSelection,
@@ -38,6 +39,7 @@ import {
   VpcTemplatesConfig,
 } from '../../lib/network-config';
 import { NetworkValidatorFunctions } from './network-validator-functions';
+import { createLogger } from '@aws-accelerator/utils';
 import * as cdk from 'aws-cdk-lib';
 
 /**
@@ -1327,6 +1329,76 @@ export class VpcValidator {
     if (helpers.hasDuplicates(azs)) {
       errors.push(
         `[VPC ${vpcItem.name}]: interfaceEndpoints target subnets reside in duplicate AZs. AZs must be unique. AZs configured: ${azs}`,
+      );
+    }
+
+    // Per-endpoint validations for the hostedZoneName / serviceName override pair
+    vpcItem.interfaceEndpoints?.endpoints.forEach(endpoint => {
+      this.validateInterfaceEndpointHostedZoneNameLength(vpcItem, endpoint, errors);
+      this.validateInterfaceEndpointOverridesSymmetry(vpcItem, endpoint);
+    });
+  }
+
+  /**
+   * Validate that hostedZoneName on an interface endpoint does not exceed the
+   * Route 53 CreateHostedZone API's Name length limit of 1024 characters.
+   *
+   * Pushes a deployment-blocking error into {@link errors} when the override is
+   * set and exceeds the limit. Omitted (undefined) values are not validated here
+   * — the schema's NonEmptyString constraint already enforces the lower bound.
+   *
+   * @param vpcItem
+   * @param endpoint
+   * @param errors
+   */
+  private validateInterfaceEndpointHostedZoneNameLength(
+    vpcItem: VpcConfig | VpcTemplatesConfig,
+    endpoint: InterfaceEndpointServiceConfig,
+    errors: string[],
+  ) {
+    if (endpoint.hostedZoneName !== undefined && endpoint.hostedZoneName.length > 1024) {
+      errors.push(
+        `[VPC ${vpcItem.name}] interface endpoint "${endpoint.service}": hostedZoneName length ` +
+          `${endpoint.hostedZoneName.length} exceeds the maximum of 1024 characters. This limit ` +
+          `matches the Name field in the Route 53 CreateHostedZone API.`,
+      );
+    }
+  }
+
+  /**
+   * Emit a warn-level advisory when exactly one of {@link InterfaceEndpointServiceConfig.serviceName}
+   * or {@link InterfaceEndpointServiceConfig.hostedZoneName} is set.
+   *
+   * The two overrides are typically set together for non-standard services (for
+   * example, `route53`) where both the endpoint service name and the PHZ name
+   * differ from LZA's default regional derivation. An asymmetric override is a
+   * legitimate escape hatch, so this check does not push into the errors
+   * accumulator — it only logs an advisory message via the network-config
+   * validator logger.
+   *
+   * @param vpcItem
+   * @param endpoint
+   */
+  private validateInterfaceEndpointOverridesSymmetry(
+    vpcItem: VpcConfig | VpcTemplatesConfig,
+    endpoint: InterfaceEndpointServiceConfig,
+  ) {
+    const logger = createLogger(['network-config-validator']);
+    const serviceNameSet = endpoint.serviceName !== undefined;
+    const hostedZoneNameSet = endpoint.hostedZoneName !== undefined;
+
+    if (serviceNameSet && !hostedZoneNameSet) {
+      logger.warn(
+        `[VPC ${vpcItem.name}] interface endpoint "${endpoint.service}": serviceName is set but hostedZoneName is not. ` +
+          `DNS resolution through this endpoint may fail for global or non-standard services. ` +
+          `Consider setting hostedZoneName to the PHZ name advertised by the service.`,
+      );
+    }
+    if (!serviceNameSet && hostedZoneNameSet) {
+      logger.warn(
+        `[VPC ${vpcItem.name}] interface endpoint "${endpoint.service}": hostedZoneName is set but serviceName is not. ` +
+          `The endpoint creation may fail if the default regional service name does not match the actual service. ` +
+          `Consider setting serviceName to the endpoint service name advertised by the service.`,
       );
     }
   }

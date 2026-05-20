@@ -151,7 +151,9 @@ export class NetworkVpcDnsStack extends NetworkStack {
       } else {
         // Create the private hosted zone
         this.logger.info(`Creating private hosted zone for VPC:${vpcItem.name} endpoint:${endpointItem.service}`);
-        const hostedZoneName = HostedZone.getHostedZoneNameForService(endpointItem.service, cdk.Stack.of(this).region);
+        const hostedZoneName =
+          endpointItem.hostedZoneName ??
+          HostedZone.getHostedZoneNameForService(endpointItem.service, cdk.Stack.of(this).region);
         const tags = vpcItem.interfaceEndpoints?.tags;
         const hostedZone = new HostedZone(
           this,

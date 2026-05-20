@@ -302,6 +302,7 @@ export class GatewayEndpointConfig implements i.IGatewayEndpointConfig {
 export class InterfaceEndpointServiceConfig implements i.IInterfaceEndpointServiceConfig {
   readonly service: string = '';
   readonly serviceName: string | undefined = undefined;
+  readonly hostedZoneName: string | undefined = undefined;
   readonly policy: string | undefined = undefined;
   readonly applyPolicy: boolean | undefined = true;
   readonly securityGroup: string | undefined = undefined;

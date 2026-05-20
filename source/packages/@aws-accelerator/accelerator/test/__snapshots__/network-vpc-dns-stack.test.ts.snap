@@ -111,6 +111,14 @@ exports[`NetworkVpcDnsStack > Construct(NetworkVpcDnsStack):  Snapshot Test 1`] 
       "Default": "/accelerator/network/vpc/Network-Endpoints/endpoints/logs/hostedZoneId",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
+    "SsmParameterValueacceleratornetworkvpcNetworkEndpointsendpointsroute53dnsC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/accelerator/network/vpc/Network-Endpoints/endpoints/route53/dns",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "SsmParameterValueacceleratornetworkvpcNetworkEndpointsendpointsroute53hostedZoneIdC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/accelerator/network/vpc/Network-Endpoints/endpoints/route53/hostedZoneId",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
     "SsmParameterValueacceleratornetworkvpcNetworkEndpointsendpointss3dnsC96584B6F00A464EAD1953AFF4B05118Parameter": {
       "Default": "/accelerator/network/vpc/Network-Endpoints/endpoints/s3/dns",
       "Type": "AWS::SSM::Parameter::Value<String>",
@@ -832,6 +840,44 @@ exports[`NetworkVpcDnsStack > Construct(NetworkVpcDnsStack):  Snapshot Test 1`] 
       },
       "Type": "AWS::Route53::RecordSet",
     },
+    "NetworkEndpointsVpcRoute53EpHostedZone7A7B468E": {
+      "Properties": {
+        "HostedZoneTags": [
+          {
+            "Key": "Environment",
+            "Value": "CentralVpc",
+          },
+        ],
+        "Name": "route53.amazonaws.com",
+        "VPCs": [
+          {
+            "VPCId": {
+              "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
+            },
+            "VPCRegion": "us-east-1",
+          },
+        ],
+      },
+      "Type": "AWS::Route53::HostedZone",
+    },
+    "NetworkEndpointsVpcRoute53EpRecordSetB5594C97": {
+      "Properties": {
+        "AliasTarget": {
+          "DNSName": {
+            "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsendpointsroute53dnsC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+          "HostedZoneId": {
+            "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsendpointsroute53hostedZoneIdC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        },
+        "HostedZoneId": {
+          "Ref": "NetworkEndpointsVpcRoute53EpHostedZone7A7B468E",
+        },
+        "Name": "route53.amazonaws.com",
+        "Type": "A",
+      },
+      "Type": "AWS::Route53::RecordSet",
+    },
     "NetworkEndpointsVpcS3AccesspointEpHostedZone075BACF0": {
       "Properties": {
         "Name": "s3-accesspoint.us-east-1.amazonaws.com",
@@ -1385,6 +1431,16 @@ exports[`NetworkVpcDnsStack > Construct(NetworkVpcDnsStack):  Snapshot Test 1`] 
       },
       "Type": "AWS::SSM::Parameter",
     },
+    "SsmParamNetworkEndpointsVpcRoute53EpHostedZone2D9600B8": {
+      "Properties": {
+        "Name": "/accelerator/network/vpc/Network-Endpoints/route53/hostedZone/route53/id",
+        "Type": "String",
+        "Value": {
+          "Ref": "NetworkEndpointsVpcRoute53EpHostedZone7A7B468E",
+        },
+      },
+      "Type": "AWS::SSM::Parameter",
+    },
     "SsmParamNetworkEndpointsVpcS3AccesspointEpHostedZone63098ADA": {
       "DependsOn": [
         "SsmParamNetworkEndpointsVpcKmsEpHostedZoneFA42C849",
@@ -1517,6 +1573,9 @@ exports[`NetworkVpcDnsStack > Construct(NetworkVpcDnsStack):  Snapshot Test 1`] 
       "Type": "AWS::SSM::Parameter",
     },
     "SsmParamexampleRuleResolverRuleE76DD02F": {
+      "DependsOn": [
+        "SsmParamNetworkEndpointsVpcRoute53EpHostedZone2D9600B8",
+      ],
       "Properties": {
         "Name": "/accelerator/network/route53Resolver/rules/example-rule/id",
         "Type": "String",
@@ -1531,7 +1590,7 @@ exports[`NetworkVpcDnsStack > Construct(NetworkVpcDnsStack):  Snapshot Test 1`] 
     },
     "SsmParaminboundTargetRuleResolverRule19318804": {
       "DependsOn": [
-        "SsmParamexampleRuleResolverRuleE76DD02F",
+        "SsmParamNetworkEndpointsVpcRoute53EpHostedZone2D9600B8",
       ],
       "Properties": {
         "Name": "/accelerator/network/route53Resolver/rules/inbound-target-rule/id",

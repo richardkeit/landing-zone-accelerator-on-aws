@@ -1192,6 +1192,10 @@
           "description": "(OPTIONAL) Specify whether or not a policy is applied to the endpoint. By default, if no policy is specified in the `policy` property, a default policy is applied. Specifying this option as `false` will ensure no policy is applied to the endpoint. This property defaults to `true` if not specified.",
           "type": "boolean"
         },
+        "hostedZoneName": {
+          "$ref": "#/definitions/NonEmptyString",
+          "description": "(OPTIONAL) The full private hosted zone name to create for this interface endpoint."
+        },
         "policy": {
           "$ref": "#/definitions/NonEmptyString",
           "description": "(OPTIONAL) The friendly name of a policy for the interface endpoint. If left undefined, the default policy will be used."
