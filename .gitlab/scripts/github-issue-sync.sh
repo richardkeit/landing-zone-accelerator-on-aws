@@ -13,7 +13,7 @@ set -euo pipefail
 readonly GITHUB_OWNER="${GITHUB_SYNC_OWNER:-awslabs}"
 readonly GITHUB_REPO="${GITHUB_SYNC_REPO:-landing-zone-accelerator-on-aws}"
 readonly GITHUB_API="https://api.github.com"
-readonly GITLAB_API="${CI_API_V4_URL:-https://gitlab.aws.dev/api/v4}/projects/${CI_PROJECT_ID:-11925}"
+readonly GITLAB_API="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}"
 readonly MIRROR_LABEL="GitHub Issue"
 readonly MAX_ISSUES_DEFAULT=200
 readonly MAX_ISSUES_CEILING=2000
