@@ -13,7 +13,11 @@
 
 import { throttlingBackOff } from '@aws-accelerator/utils/lib/throttle';
 import { CloudFormationCustomResourceEvent } from '@aws-accelerator/utils/lib/common-types';
-import { PutPublicAccessBlockCommand, S3ControlClient } from '@aws-sdk/client-s3-control';
+import {
+  DeletePublicAccessBlockCommand,
+  PutPublicAccessBlockCommand,
+  S3ControlClient,
+} from '@aws-sdk/client-s3-control';
 import { setRetryStrategy } from '@aws-accelerator/utils/lib/common-functions';
 
 /**
@@ -63,7 +67,19 @@ export async function handler(event: CloudFormationCustomResourceEvent): Promise
       };
 
     case 'Delete':
-      // Do Nothing
+      // Revert the account-level Public Access Block that LZA previously
+      // applied so that disabling `s3PublicAccessBlock` (or moving an account
+      // into `excludeAccounts`) does not leave the account drifted.
+      try {
+        await throttlingBackOff(() =>
+          s3ControlClient.send(new DeletePublicAccessBlockCommand({ AccountId: accountId })),
+        );
+      } catch (error) {
+        const name = (error as { name?: string }).name;
+        if (name !== 'NoSuchPublicAccessBlockConfiguration') {
+          throw error;
+        }
+      }
       return {
         PhysicalResourceId: event.PhysicalResourceId,
         Status: 'SUCCESS',
