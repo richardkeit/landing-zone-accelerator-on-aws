@@ -254,7 +254,7 @@ fetch_recent_github_issues() {
   log_info "fetch: URL=${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues"
 
   while [ "$(echo "$collected" | jq 'length')" -lt "$MAX_ISSUES" ]; do
-    if ! batch=$(github_api "${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues?state=all&sort=created&direction=desc&per_page=${PAGE_SIZE}&page=${page}"); then
+    if ! batch=$(github_api "${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues?state=open&sort=created&direction=desc&per_page=${PAGE_SIZE}&page=${page}"); then
       log_warn "github page ${page}: API call failed"
       break
     fi
