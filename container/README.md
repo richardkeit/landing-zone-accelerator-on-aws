@@ -255,6 +255,20 @@ Monitor deployment progress in real-time via [CloudWatch Logs](https://docs.aws.
 
 Replace `{AcceleratorQualifier}` with the value you provided during stack deployment.
 
+### Security
+
+#### Container Image Vulnerabilities (CVEs)
+
+The LZA container image is scanned using [Amazon Inspector](https://docs.aws.amazon.com/inspector/latest/user/scanning-ecr.html) during the release process to identify common vulnerabilities and exposures (CVEs) in the published image.
+
+If you find a CVE in the container image that you would like to address, report it through one of the following channels:
+
+- [GitHub issues](https://github.com/awslabs/landing-zone-accelerator-on-aws/issues) on the Landing Zone Accelerator on AWS repository
+- An [AWS support ticket](https://support.console.aws.amazon.com/support/home)
+
+If the issue is urgent and cannot wait until the next LZA release, follow the [Container Image Customization](#container-image) steps to build and host your own patched image, and deploy it by providing your image URI in the `ImageUri` parameter of the CloudFormation template.
+
+
 ### FAQs
 
 #### What are the minimum accounts required to deploy this solution?
