@@ -351,7 +351,10 @@ export class VpcSubnetsBaseStack extends AcceleratorStack {
 
     for (const ipam of ipamConfig ?? []) {
       const pool = ipam.pools?.find(item => item.name === subnetItem.ipamAllocation!.ipamPoolName);
-      basePool = pool?.provisionedCidrs;
+      if (pool?.provisionedCidrs) {
+        basePool = pool.provisionedCidrs;
+        break;
+      }
     }
 
     if (!basePool) {

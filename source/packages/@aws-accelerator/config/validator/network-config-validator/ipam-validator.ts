@@ -12,6 +12,7 @@
  */
 
 import { IPv4CidrRange } from 'ip-num';
+import { createLogger } from '@aws-accelerator/utils';
 import { NetworkConfig, IpamConfig, IpamPoolConfig } from '../../lib/network-config';
 import { NetworkValidatorFunctions } from './network-validator-functions';
 
@@ -39,6 +40,10 @@ export class IpamValidator {
     // Validate IPAM pools
     //
     this.validateIpamPoolConfigurations(values, helpers, errors);
+    //
+    // Warn if multiple IPAMs are defined
+    //
+    this.warnMultipleIpams(values);
   }
 
   /**
@@ -293,6 +298,24 @@ export class IpamValidator {
           `[IPAM ${ipam.name} pool ${nestedPool.name}] nested pool contains provisioned CIDRs that are not within source pool ${basePool.name}. Source pool: ${basePool.provisionedCidrs} Nested pool: ${nestedPool.provisionedCidrs}`,
         );
       }
+    }
+  }
+
+  /**
+   * Warn if multiple IPAM definitions are detected.
+   * Multiple IPAMs is a valid configuration but AWS recommends using a single
+   * IPAM with multiple operatingRegions for centralized IP address management.
+   * @param values
+   */
+  private warnMultipleIpams(values: NetworkConfig) {
+    const ipams = values.centralNetworkServices?.ipams;
+    if (ipams && ipams.length > 1) {
+      const logger = createLogger(['network-config-validator']);
+      logger.warn(
+        `Multiple IPAM definitions detected in centralNetworkServices.ipams. ` +
+          `While this is a valid configuration, AWS recommends using a single IPAM with multiple operatingRegions ` +
+          `for centralized IP address management.`,
+      );
     }
   }
 }
