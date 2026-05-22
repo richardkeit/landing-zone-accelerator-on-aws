@@ -138,8 +138,8 @@ cdk synth \
   - Network Mode: `awsvpc`
   - Compatibility: EC2, FARGATE
 - **IAM Roles**:
-  - `EcsTaskRole`: AmazonECSTaskExecutionRolePolicy
-  - `EcsExecutionRole`: AdministratorAccess (for orchestration)
+  - `EcsTaskRole`: AdministratorAccess (for orchestration)
+  - `EcsExecutionRole`: AmazonECSTaskExecutionRolePolicy
 - **CloudWatch Log Group**: `/ecs/{prefix}-lza-deployment` (365-day retention)
 
 ### Automation

@@ -1036,13 +1036,16 @@ export class InstallerContainerStack extends cdk.Stack {
           },
         ],
       },
-      managedPolicyArns: [`arn:${cdk.Stack.of(this).partition}:iam::aws:policy/AdministratorAccess`],
+      managedPolicyArns: [
+        `arn:${cdk.Stack.of(this).partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy`,
+      ],
     });
     // AwsSolutions-IAM4: The IAM user, role, or group uses AWS managed policies.
     NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/EcsExecutionRole`, [
       {
         id: 'AwsSolutions-IAM4',
-        reason: 'The ECS task needs admin access to orchestrate the engine.',
+        reason:
+          'The ECS execution role uses the AWS-managed AmazonECSTaskExecutionRolePolicy, which scopes the ECS/Fargate agent to ECR image pulls and CloudWatch Logs writes only.',
       },
     ]);
 

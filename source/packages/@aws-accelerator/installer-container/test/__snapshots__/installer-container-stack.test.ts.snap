@@ -776,7 +776,7 @@ def handler(event, context):
           "rules_to_suppress": [
             {
               "id": "AwsSolutions-IAM4",
-              "reason": "The ECS task needs admin access to orchestrate the engine.",
+              "reason": "The ECS execution role uses the AWS-managed AmazonECSTaskExecutionRolePolicy, which scopes the ECS/Fargate agent to ECR image pulls and CloudWatch Logs writes only.",
             },
           ],
         },
@@ -803,7 +803,7 @@ def handler(event, context):
                 {
                   "Ref": "AWS::Partition",
                 },
-                ":iam::aws:policy/AdministratorAccess",
+                ":iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
               ],
             ],
           },
@@ -3559,7 +3559,7 @@ def handler(event, context):
           "rules_to_suppress": [
             {
               "id": "AwsSolutions-IAM4",
-              "reason": "The ECS task needs admin access to orchestrate the engine.",
+              "reason": "The ECS execution role uses the AWS-managed AmazonECSTaskExecutionRolePolicy, which scopes the ECS/Fargate agent to ECR image pulls and CloudWatch Logs writes only.",
             },
           ],
         },
@@ -3586,7 +3586,7 @@ def handler(event, context):
                 {
                   "Ref": "AWS::Partition",
                 },
-                ":iam::aws:policy/AdministratorAccess",
+                ":iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
               ],
             ],
           },
@@ -6393,7 +6393,7 @@ def handler(event, context):
           "rules_to_suppress": [
             {
               "id": "AwsSolutions-IAM4",
-              "reason": "The ECS task needs admin access to orchestrate the engine.",
+              "reason": "The ECS execution role uses the AWS-managed AmazonECSTaskExecutionRolePolicy, which scopes the ECS/Fargate agent to ECR image pulls and CloudWatch Logs writes only.",
             },
           ],
         },
@@ -6420,7 +6420,7 @@ def handler(event, context):
                 {
                   "Ref": "AWS::Partition",
                 },
-                ":iam::aws:policy/AdministratorAccess",
+                ":iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
               ],
             ],
           },
@@ -9169,7 +9169,7 @@ def handler(event, context):
           "rules_to_suppress": [
             {
               "id": "AwsSolutions-IAM4",
-              "reason": "The ECS task needs admin access to orchestrate the engine.",
+              "reason": "The ECS execution role uses the AWS-managed AmazonECSTaskExecutionRolePolicy, which scopes the ECS/Fargate agent to ECR image pulls and CloudWatch Logs writes only.",
             },
           ],
         },
@@ -9196,7 +9196,7 @@ def handler(event, context):
                 {
                   "Ref": "AWS::Partition",
                 },
-                ":iam::aws:policy/AdministratorAccess",
+                ":iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
               ],
             ],
           },
@@ -12012,7 +12012,7 @@ def handler(event, context):
           "rules_to_suppress": [
             {
               "id": "AwsSolutions-IAM4",
-              "reason": "The ECS task needs admin access to orchestrate the engine.",
+              "reason": "The ECS execution role uses the AWS-managed AmazonECSTaskExecutionRolePolicy, which scopes the ECS/Fargate agent to ECR image pulls and CloudWatch Logs writes only.",
             },
           ],
         },
@@ -12039,7 +12039,7 @@ def handler(event, context):
                 {
                   "Ref": "AWS::Partition",
                 },
-                ":iam::aws:policy/AdministratorAccess",
+                ":iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
               ],
             ],
           },
@@ -14764,7 +14764,7 @@ def handler(event, context):
           "rules_to_suppress": [
             {
               "id": "AwsSolutions-IAM4",
-              "reason": "The ECS task needs admin access to orchestrate the engine.",
+              "reason": "The ECS execution role uses the AWS-managed AmazonECSTaskExecutionRolePolicy, which scopes the ECS/Fargate agent to ECR image pulls and CloudWatch Logs writes only.",
             },
           ],
         },
@@ -14791,7 +14791,7 @@ def handler(event, context):
                 {
                   "Ref": "AWS::Partition",
                 },
-                ":iam::aws:policy/AdministratorAccess",
+                ":iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
               ],
             ],
           },
