@@ -22,6 +22,19 @@ Please refer to [Adding an existing account](https://docs.aws.amazon.com/solutio
 
 The account removal process requires several important steps to ensure a clean transition, please see [closing-an-account](https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/performing-administrator-tasks.html#closing-an-account) in the solution implementation guide for guidance on closing an account from your Landing Zone Accelerator environment
 
+## How do I migrate my configuration repository from CodeCommit to S3?
+
+Updating the `AWSAccelerator-InstallerStack` with `ConfigurationRepositoryLocation` changed from `codecommit` to `s3` fails with `ConfigRepositoryLocation parameter set to s3, but existing deployment using CodeCommit was detected`. The installer's validation lambda inspects the `Configuration` Source action of the existing `AWSAccelerator-Pipeline` and blocks the change while its provider is `CodeCommit`. Switching that action's provider away from `CodeCommit` before the installer update lets the validation pass.
+
+1. Back up the contents of the `aws-accelerator-config` CodeCommit repository (for example, by cloning it locally).
+2. Create a temporary S3 bucket, e.g. `aws-accelerator-tmp-<ACCOUNT_ID>-<HOME_REGION>`. The bucket can be empty; it only needs to exist long enough to satisfy the Source action edit.
+3. Edit the `Configuration` action in the `Source` stage of `AWSAccelerator-Pipeline` to use the temporary bucket as an S3 source. The action provider is now `S3` instead of `CodeCommit`.
+4. Update the `AWSAccelerator-InstallerStack` with `ConfigurationRepositoryLocation` set to `s3`. The installer pipeline runs and CDK redeploys `AWSAccelerator-PipelineStack`, which creates the `aws-accelerator-config-<ACCOUNT_ID>-<HOME_REGION>` bucket (`<accelerator-prefix>-config-...` for non-default prefixes) and re-points the `Configuration` action at it. The build seeds the new bucket with a default skeleton configuration at `zipped/aws-accelerator-config.zip`.
+5. As soon as `AWSAccelerator-Pipeline` starts automatically, stop the execution. This prevents the skeleton configuration from being applied.
+6. Zip your backed-up configuration files with the YAML files at the root of the archive, and upload it to `s3://aws-accelerator-config-<ACCOUNT_ID>-<HOME_REGION>/zipped/aws-accelerator-config.zip`, overwriting the skeleton.
+7. Release a change on `AWSAccelerator-Pipeline` to deploy the migrated configuration.
+8. Delete the temporary bucket from step 2.
+
 ## How do I manage my SCPs when using CT and Landing Zone Accelerator?
 
 You can use Landing Zone Accelerator to deploy custom SCPs into your environment in addition to the SCPs that are deployed and managed by CT. Landing Zone Accelerator will only manage SCPs that are part of the accelerator configuration, and will not manage any SCPs that are deployed by CT. Note, Organizations sets a limit of 5 SCPs per OU and CT will consume up to 3 SCPs which will leave 2 additional SCPs that you can add. For finer grained SCPs, Landing Zone Accelerator also allows you to deploy custom SCPs to specific accounts.
