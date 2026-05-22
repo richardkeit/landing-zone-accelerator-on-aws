@@ -1,9 +1,14 @@
 #!/bin/bash
 set -e
 
+DRY_RUN="${DRY_RUN:-false}"
 FINDINGS_FILE="filtered-findings.json"
 GITLAB_API="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}"
 SCAN_DATE=$(date -u +"%Y-%m-%d")
+
+if [ "$DRY_RUN" = "true" ]; then
+  echo "=== DRY RUN MODE — no issues created or modified ==="
+fi
 
 gitlab_api() {
   local response http_code
@@ -27,20 +32,33 @@ add_scan_comment() {
 - Fixed Version: \`${fixed_ver}\`
 - Severity: **${severity}**"
 
+  if [ "$DRY_RUN" = "true" ]; then
+    echo "  [DRY RUN] Would add comment to #${issue_iid}"
+    return 0
+  fi
+
   gitlab_api --request POST \
     --header "Content-Type: application/json" \
     --data "$(jq -n --arg body "$body" '{body: $body}')" \
     "${GITLAB_API}/issues/${issue_iid}/notes" > /dev/null
 }
 
-VULN_ASSIGNEE="${VULN_ASSIGNEE:?VULN_ASSIGNEE CI variable must be set}"
-ASSIGNEE_ID=$(gitlab_api \
-  "${GITLAB_API}/members/all?query=${VULN_ASSIGNEE}" | jq -r --arg u "$VULN_ASSIGNEE" '.[] | select(.username == $u) | .id // empty' | head -1)
-
-if [ -n "$ASSIGNEE_ID" ]; then
-  echo "Resolved assignee: ${VULN_ASSIGNEE} -> user ID ${ASSIGNEE_ID}"
+VULN_ASSIGNEE="${VULN_ASSIGNEE:-}"
+ASSIGNEE_ID=""
+if [ "$DRY_RUN" = "true" ] && [ -z "$VULN_ASSIGNEE" ]; then
+  echo "DRY RUN: skipping assignee resolution"
+elif [ -z "$VULN_ASSIGNEE" ]; then
+  echo "ERROR: VULN_ASSIGNEE CI variable must be set" >&2
+  exit 1
 else
-  echo "WARNING: Could not resolve user ${VULN_ASSIGNEE}, issues will be unassigned"
+  ASSIGNEE_ID=$(gitlab_api \
+    "${GITLAB_API}/members/all?query=${VULN_ASSIGNEE}" | jq -r --arg u "$VULN_ASSIGNEE" '.[] | select(.username == $u) | .id // empty' | head -1)
+
+  if [ -n "$ASSIGNEE_ID" ]; then
+    echo "Resolved assignee: ${VULN_ASSIGNEE} -> user ID ${ASSIGNEE_ID}"
+  else
+    echo "WARNING: Could not resolve user ${VULN_ASSIGNEE}, issues will be unassigned"
+  fi
 fi
 
 if [ ! -f "$FINDINGS_FILE" ]; then
@@ -86,7 +104,7 @@ jq -c '.[]' "$FINDINGS_FILE" | while read -r vuln; do
     echo "  Updated issue #$EXISTING_ISSUE"
   else
     echo "  Creating new issue..."
-    CLEAN_TITLE=$(echo "$TITLE" | sed "s/^${PKG_NAME}: //g; s/^${PKG_NAME}: //g")
+    CLEAN_TITLE=$(echo "$TITLE" | sed "s|^${PKG_NAME}: ||g; s|^${PKG_NAME}: ||g")
     ISSUE_TITLE="[${SEVERITY}] ${CVE_ID} - ${PKG_NAME}: ${CLEAN_TITLE}"
     ISSUE_DESC="| Field | Value |
 |-------|-------|
@@ -105,6 +123,9 @@ Update \`${PKG_NAME}\` to version \`${FIXED_VER}\` or later.
 ---
 _Detected by daily vulnerability scan on ${SCAN_DATE} · [Pipeline](${CI_PIPELINE_URL:-})_"
 
+    if [ "$DRY_RUN" = "true" ]; then
+      echo "  [DRY RUN] Would create issue: $ISSUE_TITLE"
+    else
     CREATE_RESPONSE=$(gitlab_api --request POST \
       --header "Content-Type: application/json" \
       --data "$(jq -n \
@@ -118,6 +139,7 @@ _Detected by daily vulnerability scan on ${SCAN_DATE} · [Pipeline](${CI_PIPELIN
       echo "  Created issue #$(echo "$CREATE_RESPONSE" | jq -r '.iid')"
     else
       echo "  ERROR creating issue: $(echo "$CREATE_RESPONSE" | head -c 300)"
+    fi
     fi
   fi
 done
@@ -154,7 +176,7 @@ if [ -f "$MASKED_FILE" ] && [ "$(jq 'length' "$MASKED_FILE")" -gt 0 ]; then
       echo "  Updated issue #$EXISTING_ISSUE"
     else
       echo "  Creating masked vulnerability issue..."
-      CLEAN_TITLE=$(echo "$TITLE" | sed "s/^${PKG_NAME}: //g; s/^${PKG_NAME}: //g")
+      CLEAN_TITLE=$(echo "$TITLE" | sed "s|^${PKG_NAME}: ||g; s|^${PKG_NAME}: ||g")
       ISSUE_TITLE="[${SEVERITY}] ${CVE_ID} - ${PKG_NAME}: ${CLEAN_TITLE}"
       ISSUE_DESC="| Field | Value |
 |-------|-------|
@@ -175,6 +197,9 @@ Ensure the upstream dependency updates \`${PKG_NAME}\` to version \`${FIXED_VER}
 ---
 _Detected by daily vulnerability scan (no-resolutions delta) on ${SCAN_DATE} · [Pipeline](${CI_PIPELINE_URL:-})_"
 
+      if [ "$DRY_RUN" = "true" ]; then
+        echo "  [DRY RUN] Would create masked issue: $ISSUE_TITLE"
+      else
       CREATE_RESPONSE=$(gitlab_api --request POST \
         --header "Content-Type: application/json" \
         --data "$(jq -n \
@@ -188,6 +213,7 @@ _Detected by daily vulnerability scan (no-resolutions delta) on ${SCAN_DATE} · 
         echo "  Created issue #$(echo "$CREATE_RESPONSE" | jq -r '.iid')"
       else
         echo "  ERROR creating issue: $(echo "$CREATE_RESPONSE" | head -c 300)"
+      fi
       fi
     fi
   done

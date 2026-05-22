@@ -171,6 +171,8 @@ accelerator:daily-vulnerability-scan:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_PIPELINE_SCHEDULE_DESCRIPTION == "Daily Vulnerability Scan" && $CI_COMMIT_BRANCH == "integ"
       when: always
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
     - when: never
 
 accelerator:cve-remediation:
