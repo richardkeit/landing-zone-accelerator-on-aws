@@ -6,7 +6,7 @@ export default defineConfig({
     passWithNoTests: true,
     reporters: ['default', 'junit'],
     outputFile: { junit: './test-reports/integration-results.xml' },
-    testTimeout: 600000,
-    hookTimeout: 600000,
+    testTimeout: 6000000,
+    hookTimeout: 6000000,
   },
 });

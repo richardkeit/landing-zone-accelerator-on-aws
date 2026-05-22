@@ -111,6 +111,18 @@ export class DirectConnectGatewaysValidator {
           );
         }
       }
+
+      // Validate route table names exist on the TGW
+      for (const routeTable of new Set([
+        ...(tgwAssociation.routeTableAssociations ?? []),
+        ...(tgwAssociation.routeTablePropagations ?? []),
+      ])) {
+        if (!tgw.routeTables.find(item => item.name === routeTable)) {
+          errors.push(
+            `[Direct Connect Gateway ${dxgw.name}]: route table "${routeTable}" does not exist on Transit Gateway ${tgw.name}`,
+          );
+        }
+      }
     }
   }
 

@@ -88,7 +88,7 @@
  * propagation throughout the AWS organization.
  */
 
-import path from 'node:path';
+import path from 'path';
 import yargs from 'yargs';
 
 import { version } from '../package.json';

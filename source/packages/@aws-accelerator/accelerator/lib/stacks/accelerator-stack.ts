@@ -263,6 +263,14 @@ export abstract class AcceleratorStack extends cdk.Stack {
   protected skipResourcesRetentionModule: boolean;
 
   /**
+   * Flag indicating whether CDK should create TGW association/propagation custom resources.
+   *
+   * When false (default): The TGW module handles associations/propagations, CDK skips them.
+   * When true: CDK creates associations/propagations (fallback when module is skipped).
+   */
+  protected createTgwAssociationsCustomResources: boolean;
+
+  /**
    * Accelerator SSM parameters
    * This array is used to store SSM parameters that are created per-stack.
    */
@@ -444,6 +452,15 @@ export abstract class AcceleratorStack extends cdk.Stack {
     this.createMacieCustomResource = false;
     if (this.skipResourcesRetentionModule || process.env['SKIP_MACIE_MODULE']?.toLowerCase() === 'true') {
       this.createMacieCustomResource = true;
+    }
+
+    // TGW association/propagation custom resources
+    this.createTgwAssociationsCustomResources = false;
+    if (
+      this.skipResourcesRetentionModule ||
+      process.env['SKIP_TGW_ASSOCIATIONS_AND_PROPAGATIONS_MODULE']?.toLowerCase() === 'true'
+    ) {
+      this.createTgwAssociationsCustomResources = true;
     }
   }
 

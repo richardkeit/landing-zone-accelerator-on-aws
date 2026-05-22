@@ -21,8 +21,8 @@
     "test:unit": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:clean": "rm -f ./test-reports/*.xml",
-    "lint": "eslint --fix  --max-warnings 0 -c ../../eslint.config.mjs lib/ bin/ test/",
-    "precommit": "eslint --max-warnings 0 -c ../../eslint.config.mjs lib/ bin/",
+    "lint": "eslint --fix  --max-warnings 0 -c ../../eslint.config.mjs 'lib/**/*.{ts,tsx}' 'bin/**/*.{ts,tsx}' 'test/**/*.{ts,tsx}'",
+    "precommit": "eslint --max-warnings 0 -c ../../eslint.config.mjs 'lib/**/*.{ts,tsx}' 'bin/**/*.{ts,tsx}'",
     "prepare": "npm run build",
     "aws-lza": "bin/aws-lza"
   },

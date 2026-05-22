@@ -197,6 +197,30 @@ export const RESOURCE_RETENTION_REGISTRY: Record<string, IServiceRetentionConfig
     },
   ],
 
+  /**
+   * NetworkAssociationsStack resources (TGW owner accounts, TGW regions).
+   *
+   * @description
+   * Contains native CFN resources for TGW route table associations and propagations.
+   * When the TGW module handles these operations, the CDK guard removes these resources
+   * from the template. Without retention, CloudFormation would delete the actual AWS
+   * resources during stack update.
+   *
+   * **Module Control:**
+   * - Skip TGW module: `SKIP_TGW_ASSOCIATIONS_AND_PROPAGATIONS_MODULE=true`
+   * - Skip all retention: `SKIP_STACK_RESOURCES_RETENTION_MODULE=true`
+   */
+  [AcceleratorStackNames[AcceleratorStage.NETWORK_ASSOCIATIONS]]: [
+    {
+      serviceName: AcceleratorModules.TGW_ASSOCIATIONS_AND_PROPAGATIONS,
+      resourceTypes: [
+        'AWS::EC2::TransitGatewayRouteTableAssociation',
+        'AWS::EC2::TransitGatewayRouteTablePropagation',
+        'AWS::EC2::TransitGatewayConnect',
+      ],
+    },
+  ],
+
   // Add more stack types and resources as services are migrated
   // Examples:
   //

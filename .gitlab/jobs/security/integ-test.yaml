@@ -125,3 +125,59 @@ integ:macie:aws:us-east-1:
       when: manual
       allow_failure: true
     - when: never
+
+# ============================================================
+# Transit Gateway module integration test
+# ============================================================
+integ:tgw:aws:us-east-1:
+  stage: pipeline
+  needs:
+    - job: accelerator:build
+      artifacts: true
+    - job: integ:prereq:aws:us-east-1
+      artifacts: true
+  variables:
+    ENV_NAME: sampleConfig
+    ACCOUNT_ID: "${SAMPLE_CONFIG_ENV_MANAGEMENT_ACCOUNT_ID}"
+    PARTITION: aws
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_CREDS_TARGET_ROLE: "arn:${PARTITION}:iam::${ACCOUNT_ID}:role/${INTEGRATION_TEST_ROLE_NAME}"
+    MANAGEMENT_ACCOUNT_ACCESS_ROLE: "${INTEGRATION_TEST_ROLE_NAME}"
+    # Enable CloudWatch verbose logging — log group created by prereq infrastructure
+    VERBOSE_LOG_GROUP_NAME: "${ACCELERATOR_PREFIX}-Module-Verbose-Logs"
+    PIPELINE_ACCOUNT_ID: "${SAMPLE_CONFIG_ENV_MANAGEMENT_ACCOUNT_ID}"
+    ACCELERATOR_STAGE: "integ-tgw"
+    # LOGGING_BUCKET_NAME and LOGGING_BUCKET_KEY_ARN are injected from
+    # the prereq job's dotenv artifact (actual KMS key ARN, not alias).
+    # TGW_INTEG_SSM_PREFIX, TGW_INTEG_NETWORK_ACCOUNT_ID,
+    # TGW_INTEG_SHARED_SERVICES_ACCOUNT_ID, TGW_INTEG_HOME_REGION
+    # are injected from the prereq job's dotenv (set by tgw-prereqs.sh).
+  tags:
+    - arch:amd64
+    - size:large
+  script:
+    - "cd source/packages/@aws-accelerator/accelerator"
+    - "yarn test:integration test/integration/modules/tgw/index.test.integration.ts"
+  artifacts:
+    when: always
+    reports:
+      junit: "source/packages/@aws-accelerator/accelerator/test-reports/integration-results.xml"
+    expire_in: 7 days
+  timeout: 30m
+  rules:
+    - if: $EXECUTE_INTEGRATION_TEST == "No"
+      when: never
+    # Remote repo: only integ branch
+    - if: $CI_PROJECT_ID == "11925" && $CI_COMMIT_BRANCH != "integ"
+      when: never
+    - if: $EXECUTE_INTEGRATION_TEST == "Yes"
+      changes:
+        - source/packages/@aws-lza/lib/transit-gateway/**/*
+        - source/packages/@aws-accelerator/accelerator/lib/actions/network/tgw-associations-and-propagations*
+        - source/packages/@aws-accelerator/accelerator/test/integration/modules/tgw/**/*
+      when: always
+    # Manual trigger when EXECUTE_INTEGRATION_TEST=Yes but no file changes matched
+    - if: $EXECUTE_INTEGRATION_TEST == "Yes"
+      when: manual
+      allow_failure: true
+    - when: never

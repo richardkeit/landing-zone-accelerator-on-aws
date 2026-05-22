@@ -93,6 +93,7 @@
  */
 
 import { AcceleratorStage } from './accelerator-stage';
+import { TgwAssociationsAndPropagations } from './actions/network/tgw-associations-and-propagations';
 import { StackResources } from './actions/resource-retention/stack-resources';
 import { AmazonMacie } from './actions/security/amazon-macie';
 import {
@@ -616,7 +617,17 @@ export const AcceleratorModuleStageDetails: AcceleratorModuleStageDetailsType[] 
       name: MODULE_SUPPORTED_STAGES.NETWORK_ASSOCIATIONS,
       runOrder: AcceleratorModuleStageOrders[MODULE_SUPPORTED_STAGES.NETWORK_ASSOCIATIONS].runOrder,
     },
-    modules: [],
+    modules: [
+      {
+        name: AcceleratorModules.TGW_ASSOCIATIONS_AND_PROPAGATIONS,
+        description: 'Configure Transit Gateway route table associations and propagations',
+        runOrder: 1,
+        handler: async (params: ModuleParams) => {
+          return await TgwAssociationsAndPropagations.configure(params);
+        },
+        executionPhase: ModuleExecutionPhase.DEPLOY,
+      },
+    ],
   },
   {
     stage: {

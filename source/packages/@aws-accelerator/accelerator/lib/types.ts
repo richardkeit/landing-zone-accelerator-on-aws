@@ -191,6 +191,11 @@ export enum AcceleratorModules {
   ENROLL_ACCOUNTS = 'enroll-accounts',
 
   /**
+   * Transit Gateway route table associations and propagations module.
+   */
+  TGW_ASSOCIATIONS_AND_PROPAGATIONS = 'tgw-associations-and-propagations',
+
+  /**
    * An Example module which is executed in `PREPARE` stage.
    */
   EXAMPLE_MODULE = 'example-module',

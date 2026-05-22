@@ -180,3 +180,23 @@ export { ISecurityHubManageOrganizationAdminParameter } from './interfaces/secur
 
 export { manageSecurityHubAutomationRules } from './executors/accelerator-security-hub';
 export { ISecurityHubManageAutomationRulesParameter } from './interfaces/security-hub/manage-automation-rules';
+
+export {
+  ITgwModuleRequest,
+  ITgwModuleResponse,
+  ITgwModuleConfiguration,
+  ITgwModuleDataSources,
+  ITgwConfig,
+  ITgwRouteTableConfig,
+  ITgwAttachmentConfig,
+  IDxGatewayConfig,
+  IDxTgwAssociationConfig,
+  ITgwConnectConfig,
+  ITgwConnectResponse,
+  TgwAttachmentType,
+  ITgwResolvedContext,
+  ITgwAssociationResponse,
+  ITgwPropagationResponse,
+  TgwOperationResult,
+} from './lib/transit-gateway/interfaces';
+export { configureTgw } from './lib/transit-gateway/tgw';

@@ -183,4 +183,59 @@ describe('DirectConnectGatewaysValidator', () => {
     expect(errors[0]).toContain('Fake-TGW-1');
     expect(errors[1]).toContain('Fake-TGW-2');
   });
+
+  test('should catch invalid route table name in DX gateway TGW association', () => {
+    const errors: string[] = [];
+
+    new DirectConnectGatewaysValidator(
+      {
+        transitGateways: [baseTransitGateway],
+        directConnectGateways: [
+          {
+            ...baseDxGateway,
+            transitGatewayAssociations: [
+              {
+                name: 'Network-Main',
+                account: 'Network',
+                allowedPrefixes: ['10.0.0.0/8'],
+                routeTableAssociations: ['Typo-RT'],
+                routeTablePropagations: ['Network-Main-Core'],
+              },
+            ],
+          },
+        ],
+      } as unknown as NetworkConfig,
+      errors,
+    );
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('route table "Typo-RT" does not exist on Transit Gateway Network-Main');
+  });
+
+  test('should pass when DX gateway references valid route table names', () => {
+    const errors: string[] = [];
+
+    new DirectConnectGatewaysValidator(
+      {
+        transitGateways: [baseTransitGateway],
+        directConnectGateways: [
+          {
+            ...baseDxGateway,
+            transitGatewayAssociations: [
+              {
+                name: 'Network-Main',
+                account: 'Network',
+                allowedPrefixes: ['10.0.0.0/8'],
+                routeTableAssociations: ['Network-Main-Core'],
+                routeTablePropagations: ['Network-Main-Core'],
+              },
+            ],
+          },
+        ],
+      } as unknown as NetworkConfig,
+      errors,
+    );
+
+    expect(errors).toHaveLength(0);
+  });
 });

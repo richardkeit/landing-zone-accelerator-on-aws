@@ -487,7 +487,7 @@ describe('MacieCommand', () => {
       ).toBe(true);
     });
 
-    test('should return true for valid operationTimeoutMs only', () => {
+    test('should return true for valid concurrency config', () => {
       expect(
         MacieCommand.validConfig({
           ...validConfig,

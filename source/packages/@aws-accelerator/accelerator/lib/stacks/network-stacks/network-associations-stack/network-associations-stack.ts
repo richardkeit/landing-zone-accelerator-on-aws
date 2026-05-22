@@ -151,8 +151,8 @@ export class NetworkAssociationsStack extends NetworkStack {
       crossAcctCrossRegionRouteTables.forEach((value, key) => this.routeTableMap.set(key, value));
 
       //
-      // Create transit gateway route table associations, propagations,
-      // for VPC and VPN attachments
+      // Create Transit Gateway route table associations
+      // and propagations for VPC and VPN attachments
       //
       this.createTransitGatewayResources(props);
 
@@ -178,6 +178,8 @@ export class NetworkAssociationsStack extends NetworkStack {
 
       //
       // Create Direct Connect resources
+      // DX associations always run (needed for static route attachment IDs).
+      // DX RT associations/propagations are guarded — the TGW module handles them.
       //
       this.createDirectConnectResources(props);
 
@@ -235,7 +237,9 @@ export class NetworkAssociationsStack extends NetworkStack {
       //
       // Create Transit Gateway Connect resources for Vpc Attachments
       //
-      this.createTransitGatewayConnect(props);
+      if (this.createTgwAssociationsCustomResources) {
+        this.createTransitGatewayConnect(props);
+      }
 
       //
       // Create NagSuppressions
@@ -952,8 +956,7 @@ export class NetworkAssociationsStack extends NetworkStack {
     }
 
     //
-    // Create Transit Gateway route table associations and propagations
-    // for VPC attachments
+    // Resolve attachment IDs (always needed for static routes)
     //
     const tgwAttachmentIdLookupMap: Record<string, TransitGatewayAttachmentLookupOption> = {};
 
@@ -976,6 +979,11 @@ export class NetworkAssociationsStack extends NetworkStack {
 
     // Perform single batch lookup for all attachments
     this.setBatchLookupTgwAttachmentId(tgwAttachmentIdLookupMap);
+
+    // Skip associations/propagations when TGW module handles them
+    if (!this.createTgwAssociationsCustomResources) {
+      return;
+    }
 
     // Create associations and propagations
     for (const vpcItem of this.vpcResources) {
@@ -2392,8 +2400,11 @@ export class NetworkAssociationsStack extends NetworkStack {
         //
         // Create transit gateway route table associations
         // and propagations for DX Gateway attachments
+        // Skip when TGW module handles them
         //
-        this.createDxTgwRouteTableAssociationsAndPropagations(associationItem, tgw, tgwAccountId, dxgwItem);
+        if (this.createTgwAssociationsCustomResources) {
+          this.createDxTgwRouteTableAssociationsAndPropagations(associationItem, tgw, tgwAccountId, dxgwItem);
+        }
       }
     }
   }

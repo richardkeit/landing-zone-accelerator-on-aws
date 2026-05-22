@@ -1069,5 +1069,169 @@ describe('StackResources', () => {
       // Should fail and handle non-Error rejection with "Unknown error"
       expect(result.status).toBe(MODULE_STATE_CODE.FAILED);
     });
+
+    it('should handle NetworkAssociationsStack targeting all accounts and regions', async () => {
+      vi.mocked(registry).RESOURCE_RETENTION_REGISTRY = {
+        'AWSAccelerator-NetworkAssociationsStack': [
+          {
+            serviceName: AcceleratorModules.TGW_ASSOCIATIONS_AND_PROPAGATIONS,
+            resourceTypes: [
+              'AWS::EC2::TransitGatewayRouteTableAssociation',
+              'AWS::EC2::TransitGatewayRouteTablePropagation',
+            ],
+          },
+        ],
+      };
+
+      const allStates = new Map();
+      vi.mocked(retentionState.getAllRetentionStates).mockResolvedValue(allStates);
+      vi.mocked(retentionState.getRetentionState).mockResolvedValue(undefined);
+      vi.mocked(retentionState.saveRetentionState).mockResolvedValue(undefined);
+      vi.mocked(retentionState.updateRetentionStatus).mockResolvedValue(undefined);
+      vi.mocked(cfnRetention.retainResources).mockResolvedValue({
+        message: 'Resources retained successfully',
+        requestedResourceTypes: [
+          'AWS::EC2::TransitGatewayRouteTableAssociation',
+          'AWS::EC2::TransitGatewayRouteTablePropagation',
+        ],
+        resourceRetentionStatus: {
+          stackName: 'test-stack',
+          stackModificationStatus: 'SUCCEEDED',
+          modifiedResources: [],
+          notFoundResources: [],
+          totalModifiedResources: 2,
+        },
+      });
+
+      const result = await StackResources.retain(mockParams);
+
+      expect(result.status).toBe(MODULE_STATE_CODE.COMPLETED);
+      // NetworkAssociationsStack falls through to default: all accounts × all regions
+      // 3 accounts × 2 regions = 6 stacks
+      expect(cfnRetention.retainResources).toHaveBeenCalledTimes(6);
+
+      // Verify both resource types are passed in each call
+      for (const call of vi.mocked(cfnRetention.retainResources).mock.calls) {
+        const request = call[0] as unknown as { configuration: { resourceTypes: string[] } };
+        expect(request.configuration.resourceTypes).toContain('AWS::EC2::TransitGatewayRouteTableAssociation');
+        expect(request.configuration.resourceTypes).toContain('AWS::EC2::TransitGatewayRouteTablePropagation');
+      }
+    });
+
+    it('should skip TGW retention when SKIP_TGW_ASSOCIATIONS_AND_PROPAGATIONS_MODULE is set', async () => {
+      const originalSkip = process.env['SKIP_TGW_ASSOCIATIONS_AND_PROPAGATIONS_MODULE'];
+      process.env['SKIP_TGW_ASSOCIATIONS_AND_PROPAGATIONS_MODULE'] = 'true';
+
+      vi.mocked(registry).RESOURCE_RETENTION_REGISTRY = {
+        'AWSAccelerator-NetworkAssociationsStack': [
+          {
+            serviceName: AcceleratorModules.TGW_ASSOCIATIONS_AND_PROPAGATIONS,
+            resourceTypes: [
+              'AWS::EC2::TransitGatewayRouteTableAssociation',
+              'AWS::EC2::TransitGatewayRouteTablePropagation',
+            ],
+          },
+        ],
+      };
+
+      const result = await StackResources.retain(mockParams);
+
+      expect(result.status).toBe(MODULE_STATE_CODE.COMPLETED);
+      expect(result.summary).toContain('all services filtered out');
+      expect(cfnRetention.retainResources).not.toHaveBeenCalled();
+
+      if (originalSkip === undefined) {
+        delete process.env['SKIP_TGW_ASSOCIATIONS_AND_PROPAGATIONS_MODULE'];
+      } else {
+        process.env['SKIP_TGW_ASSOCIATIONS_AND_PROPAGATIONS_MODULE'] = originalSkip;
+      }
+    });
+
+    it('should handle NetworkAssociationsStack with NOT_FOUND stacks gracefully', async () => {
+      vi.mocked(registry).RESOURCE_RETENTION_REGISTRY = {
+        'AWSAccelerator-NetworkAssociationsStack': [
+          {
+            serviceName: AcceleratorModules.TGW_ASSOCIATIONS_AND_PROPAGATIONS,
+            resourceTypes: [
+              'AWS::EC2::TransitGatewayRouteTableAssociation',
+              'AWS::EC2::TransitGatewayRouteTablePropagation',
+            ],
+          },
+        ],
+      };
+
+      const allStates = new Map();
+      vi.mocked(retentionState.getAllRetentionStates).mockResolvedValue(allStates);
+      vi.mocked(retentionState.getRetentionState).mockResolvedValue(undefined);
+      vi.mocked(retentionState.saveRetentionState).mockResolvedValue(undefined);
+      vi.mocked(retentionState.updateRetentionStatus).mockResolvedValue(undefined);
+      // All stacks return NOT_FOUND (accounts without TGWs won't have this stack)
+      vi.mocked(cfnRetention.retainResources).mockResolvedValue({
+        message: 'Stack not found',
+        errorCode: cfnRetention.RetentionErrorCode.STACK_NOT_FOUND,
+        requestedResourceTypes: [
+          'AWS::EC2::TransitGatewayRouteTableAssociation',
+          'AWS::EC2::TransitGatewayRouteTablePropagation',
+        ],
+        resourceRetentionStatus: {
+          stackName: 'test-stack',
+          stackModificationStatus: 'FAILED',
+          modifiedResources: [],
+          notFoundResources: [],
+          totalModifiedResources: 0,
+        },
+      });
+
+      const result = await StackResources.retain(mockParams);
+
+      // Should complete successfully even when all stacks are NOT_FOUND
+      expect(result.status).toBe(MODULE_STATE_CODE.COMPLETED);
+      expect(result.summary).toContain('not found');
+    });
+
+    it('should handle mixed Macie and TGW registry entries across different stacks', async () => {
+      vi.mocked(registry).RESOURCE_RETENTION_REGISTRY = {
+        'AWSAccelerator-OrganizationsStack': [
+          {
+            serviceName: AcceleratorModules.MACIE,
+            resourceTypes: ['Custom::MacieEnableOrganizationAdminAccount'],
+          },
+        ],
+        'AWSAccelerator-NetworkAssociationsStack': [
+          {
+            serviceName: AcceleratorModules.TGW_ASSOCIATIONS_AND_PROPAGATIONS,
+            resourceTypes: [
+              'AWS::EC2::TransitGatewayRouteTableAssociation',
+              'AWS::EC2::TransitGatewayRouteTablePropagation',
+            ],
+          },
+        ],
+      };
+
+      const allStates = new Map();
+      vi.mocked(retentionState.getAllRetentionStates).mockResolvedValue(allStates);
+      vi.mocked(retentionState.getRetentionState).mockResolvedValue(undefined);
+      vi.mocked(retentionState.saveRetentionState).mockResolvedValue(undefined);
+      vi.mocked(retentionState.updateRetentionStatus).mockResolvedValue(undefined);
+      vi.mocked(cfnRetention.retainResources).mockResolvedValue({
+        message: 'Resources retained successfully',
+        requestedResourceTypes: [],
+        resourceRetentionStatus: {
+          stackName: 'test-stack',
+          stackModificationStatus: 'SUCCEEDED',
+          modifiedResources: [],
+          notFoundResources: [],
+          totalModifiedResources: 1,
+        },
+      });
+
+      const result = await StackResources.retain(mockParams);
+
+      expect(result.status).toBe(MODULE_STATE_CODE.COMPLETED);
+      // OrganizationsStack: 1 account (mgmt) × 2 regions = 2
+      // NetworkAssociationsStack: 3 accounts × 2 regions = 6
+      // Total: 8 stacks
+      expect(cfnRetention.retainResources).toHaveBeenCalledTimes(8);
+    });
   });
 });
