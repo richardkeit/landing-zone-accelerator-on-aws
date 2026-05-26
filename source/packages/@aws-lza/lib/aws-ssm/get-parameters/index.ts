@@ -291,6 +291,7 @@ export class GetSsmParametersValueModule implements IGetSsmParametersValueModule
         region,
         solutionId,
         assumeRoleArn,
+        credentials,
       });
     }
 

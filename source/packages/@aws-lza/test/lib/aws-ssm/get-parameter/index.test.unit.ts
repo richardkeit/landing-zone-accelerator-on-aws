@@ -218,12 +218,49 @@ describe('SsmGetParameterModule', () => {
         },
       ]);
 
-      // Verify getCredentials was called for cross-account access
+      // Verify getCredentials was called for cross-account access with credentials forwarded
       expect(functions.getCredentials).toHaveBeenCalledWith({
         accountId: '222222222222',
         region: expect.any(String),
         solutionId: expect.any(String),
         assumeRoleArn: 'arn:aws:iam::222222222222:role/CrossAccountRole',
+        credentials: undefined,
+      });
+    });
+
+    test('should forward caller credentials to getCredentials for role chaining', async () => {
+      const callerCredentials = {
+        accessKeyId: 'mgmt-access-key',
+        secretAccessKey: 'mgmt-secret-key',
+        sessionToken: 'mgmt-session-token',
+      };
+
+      mockSend.mockResolvedValue({
+        Parameter: { Name: '/test/param1', Value: 'chained-value' },
+      });
+
+      const input: IGetSsmParametersValueHandlerParameter = {
+        ...MOCK_CONSTANTS.runnerParameters,
+        credentials: callerCredentials,
+        configuration: [
+          {
+            name: '/test/param1',
+            assumeRoleArn: 'arn:aws:iam::333333333333:role/AWSControlTowerExecution',
+          },
+        ],
+      };
+
+      const result = await new GetSsmParametersValueModule().handler(input);
+
+      expect(result).toEqual([{ name: '/test/param1', value: 'chained-value', exists: true }]);
+
+      // Verify credentials are forwarded for role chaining (pipeline → mgmt → target)
+      expect(functions.getCredentials).toHaveBeenCalledWith({
+        accountId: '333333333333',
+        region: expect.any(String),
+        solutionId: expect.any(String),
+        assumeRoleArn: 'arn:aws:iam::333333333333:role/AWSControlTowerExecution',
+        credentials: callerCredentials,
       });
     });
 
