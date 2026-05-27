@@ -52,6 +52,8 @@ export async function getEc2Client(
       solutionId: props.solutionId,
       assumeRoleName: props.configuration.accountAccessRoleName,
       credentials: props.credentials,
+      sessionPolicy: props.sessionPolicy,
+      requireSessionPolicy: !!props.sessionPolicy,
     });
     if (assumed) {
       credentials = assumed;

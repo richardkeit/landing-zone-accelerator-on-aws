@@ -278,6 +278,113 @@ describe('sts-functions', () => {
         }),
       ).rejects.toThrow('ServiceException: AssumeRoleCommand did not return SessionToken');
     });
+
+    test('should pass Policy parameter to AssumeRoleCommand when sessionPolicy is provided', async () => {
+      const mockPolicy =
+        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"*"}]}';
+      mockExecuteApi
+        .mockResolvedValueOnce({ Arn: 'arn:aws:iam::111111111111:role/CurrentRole' })
+        .mockResolvedValueOnce({
+          Credentials: {
+            AccessKeyId: MOCK_CONSTANTS.credentials.accessKeyId,
+            SecretAccessKey: MOCK_CONSTANTS.credentials.secretAccessKey,
+            SessionToken: MOCK_CONSTANTS.credentials.sessionToken,
+            Expiration: MOCK_CONSTANTS.credentials.expiration,
+          },
+        });
+
+      await getCredentials({
+        accountId: MOCK_CONSTANTS.accountId,
+        region: MOCK_CONSTANTS.region,
+        logPrefix: MOCK_CONSTANTS.logPrefix,
+        partition: MOCK_CONSTANTS.partition,
+        assumeRoleName: MOCK_CONSTANTS.assumeRoleName,
+        sessionPolicy: mockPolicy,
+      });
+
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'AssumeRoleCommand',
+        expect.objectContaining({ Policy: mockPolicy }),
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+      );
+    });
+
+    test('should not include Policy in AssumeRoleCommand when sessionPolicy is undefined', async () => {
+      mockExecuteApi
+        .mockResolvedValueOnce({ Arn: 'arn:aws:iam::111111111111:role/CurrentRole' })
+        .mockResolvedValueOnce({
+          Credentials: {
+            AccessKeyId: MOCK_CONSTANTS.credentials.accessKeyId,
+            SecretAccessKey: MOCK_CONSTANTS.credentials.secretAccessKey,
+            SessionToken: MOCK_CONSTANTS.credentials.sessionToken,
+            Expiration: MOCK_CONSTANTS.credentials.expiration,
+          },
+        });
+
+      await getCredentials({
+        accountId: MOCK_CONSTANTS.accountId,
+        region: MOCK_CONSTANTS.region,
+        logPrefix: MOCK_CONSTANTS.logPrefix,
+        partition: MOCK_CONSTANTS.partition,
+        assumeRoleName: MOCK_CONSTANTS.assumeRoleName,
+      });
+
+      expect(mockExecuteApi).toHaveBeenCalledWith(
+        'AssumeRoleCommand',
+        expect.objectContaining({ Policy: undefined }),
+        expect.any(Function),
+        expect.anything(),
+        MOCK_CONSTANTS.logPrefix,
+      );
+    });
+
+    test('should throw when requireSessionPolicy is true and no sessionPolicy provided', async () => {
+      mockExecuteApi.mockResolvedValueOnce({ Arn: 'arn:aws:iam::111111111111:role/CurrentRole' });
+
+      await expect(
+        getCredentials({
+          accountId: MOCK_CONSTANTS.accountId,
+          region: MOCK_CONSTANTS.region,
+          logPrefix: MOCK_CONSTANTS.logPrefix,
+          partition: MOCK_CONSTANTS.partition,
+          assumeRoleName: MOCK_CONSTANTS.assumeRoleName,
+          requireSessionPolicy: true,
+        }),
+      ).rejects.toThrow('blocked: no session policy provided');
+    });
+
+    test('should throw when sessionPolicy is invalid JSON', async () => {
+      mockExecuteApi.mockResolvedValueOnce({ Arn: 'arn:aws:iam::111111111111:role/CurrentRole' });
+
+      await expect(
+        getCredentials({
+          accountId: MOCK_CONSTANTS.accountId,
+          region: MOCK_CONSTANTS.region,
+          logPrefix: MOCK_CONSTANTS.logPrefix,
+          partition: MOCK_CONSTANTS.partition,
+          assumeRoleName: MOCK_CONSTANTS.assumeRoleName,
+          sessionPolicy: 'not-valid-json',
+        }),
+      ).rejects.toThrow('Invalid session policy JSON');
+    });
+
+    test('should throw when sessionPolicy is empty string', async () => {
+      mockExecuteApi.mockResolvedValueOnce({ Arn: 'arn:aws:iam::111111111111:role/CurrentRole' });
+
+      await expect(
+        getCredentials({
+          accountId: MOCK_CONSTANTS.accountId,
+          region: MOCK_CONSTANTS.region,
+          logPrefix: MOCK_CONSTANTS.logPrefix,
+          partition: MOCK_CONSTANTS.partition,
+          assumeRoleName: MOCK_CONSTANTS.assumeRoleName,
+          sessionPolicy: '',
+          requireSessionPolicy: true,
+        }),
+      ).rejects.toThrow('blocked: no session policy provided');
+    });
   });
 
   describe('getGlobalRegion', () => {

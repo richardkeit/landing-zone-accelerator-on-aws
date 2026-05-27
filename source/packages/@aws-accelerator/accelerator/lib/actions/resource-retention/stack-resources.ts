@@ -288,6 +288,7 @@ async function retainStackResources(
       solutionId: params.runnerParameters.solutionId,
       credentials: params.moduleRunnerParameters.managementAccountCredentials,
       dryRun: params.runnerParameters.dryRun,
+      sessionPolicy: params.moduleRunnerParameters.sessionPolicy,
       configuration: {
         directory: params.runnerParameters.configDirPath,
         accountId,

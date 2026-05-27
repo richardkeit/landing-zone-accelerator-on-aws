@@ -884,6 +884,8 @@ export abstract class DirectConnectGatewayAssociation {
         solutionId: props.solutionId,
         assumeRoleName: props.configuration.accountAccessRoleName,
         credentials: props.credentials,
+        sessionPolicy: props.sessionPolicy,
+        requireSessionPolicy: !!props.sessionPolicy,
       });
       if (assumed) return assumed;
     }

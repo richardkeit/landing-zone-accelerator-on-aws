@@ -97,6 +97,7 @@ export class GetCloudFormationTemplatesModule implements IGetCloudFormationTempl
     solutionId?: string;
     partition?: string;
     batchSize: number;
+    sessionPolicy?: string;
   }): Promise<{ environment: AcceleratorEnvironment; credentials: AssumeRoleCredentialType | undefined }[]> {
     const credentialPromises: Promise<{
       environment: AcceleratorEnvironment;
@@ -112,6 +113,8 @@ export class GetCloudFormationTemplatesModule implements IGetCloudFormationTempl
         partition: props.partition,
         crossAccountRoleName: props.roleNameToAssume,
         managementCredentials: props.assumeRoleCredentials,
+        sessionPolicy: props.sessionPolicy,
+        requireSessionPolicy: !!props.sessionPolicy,
       }).then(envCredsResponse => {
         credentials.push(envCredsResponse);
         credentialPromises.splice(credentialPromises.indexOf(envCreds), 1);
@@ -152,6 +155,8 @@ export class GetCloudFormationTemplatesModule implements IGetCloudFormationTempl
     partition?: string;
     crossAccountRoleName: string;
     managementCredentials?: AssumeRoleCredentialType;
+    sessionPolicy?: string;
+    requireSessionPolicy?: boolean;
   }): Promise<{ environment: AcceleratorEnvironment; credentials: AssumeRoleCredentialType | undefined }> {
     if (props.centralAccountId === props.accountId) {
       return {
@@ -170,6 +175,8 @@ export class GetCloudFormationTemplatesModule implements IGetCloudFormationTempl
       assumeRoleName: props.crossAccountRoleName,
       sessionName: 'AcceleratorGetCloudFormationTemplate',
       credentials: props.managementCredentials,
+      sessionPolicy: props.sessionPolicy,
+      requireSessionPolicy: !!props.sessionPolicy,
     });
 
     if (!credentials) {

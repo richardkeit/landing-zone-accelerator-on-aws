@@ -157,6 +157,9 @@ export interface IModuleRequest extends ISessionContext {
   credentials?: AssumeRoleCredentialType;
   /** Whether to perform dry run */
   dryRun?: boolean;
+  /** IAM session policy JSON for least-privilege cross-account role assumption */
+  sessionPolicy?: string;
+  /** Session tags for CloudTrail attribution */
 }
 
 /**

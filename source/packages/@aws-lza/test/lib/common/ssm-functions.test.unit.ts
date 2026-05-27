@@ -131,15 +131,17 @@ describe('ssm-functions', () => {
       );
 
       expect(result).toEqual(MOCK_CONSTANTS.mockParameters);
-      expect(mockGetCredentials).toHaveBeenCalledWith({
-        accountId: MOCK_CONSTANTS.targetAccount.accountId,
-        region: MOCK_CONSTANTS.targetAccount.region,
-        logPrefix: MOCK_CONSTANTS.logPrefix,
-        solutionId: MOCK_CONSTANTS.solutionId,
-        partition: MOCK_CONSTANTS.targetAccount.partition,
-        assumeRoleName: MOCK_CONSTANTS.targetAccount.assumeRoleName,
-        credentials: undefined,
-      });
+      expect(mockGetCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accountId: MOCK_CONSTANTS.targetAccount.accountId,
+          region: MOCK_CONSTANTS.targetAccount.region,
+          logPrefix: MOCK_CONSTANTS.logPrefix,
+          solutionId: MOCK_CONSTANTS.solutionId,
+          partition: MOCK_CONSTANTS.targetAccount.partition,
+          assumeRoleName: MOCK_CONSTANTS.targetAccount.assumeRoleName,
+          credentials: undefined,
+        }),
+      );
     });
 
     test('should use provided credentials for target account', async () => {
@@ -158,15 +160,17 @@ describe('ssm-functions', () => {
         MOCK_CONSTANTS.credentials,
       );
 
-      expect(mockGetCredentials).toHaveBeenCalledWith({
-        accountId: MOCK_CONSTANTS.targetAccount.accountId,
-        region: MOCK_CONSTANTS.targetAccount.region,
-        logPrefix: MOCK_CONSTANTS.logPrefix,
-        solutionId: MOCK_CONSTANTS.solutionId,
-        partition: MOCK_CONSTANTS.targetAccount.partition,
-        assumeRoleName: MOCK_CONSTANTS.targetAccount.assumeRoleName,
-        credentials: MOCK_CONSTANTS.credentials,
-      });
+      expect(mockGetCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accountId: MOCK_CONSTANTS.targetAccount.accountId,
+          region: MOCK_CONSTANTS.targetAccount.region,
+          logPrefix: MOCK_CONSTANTS.logPrefix,
+          solutionId: MOCK_CONSTANTS.solutionId,
+          partition: MOCK_CONSTANTS.targetAccount.partition,
+          assumeRoleName: MOCK_CONSTANTS.targetAccount.assumeRoleName,
+          credentials: MOCK_CONSTANTS.credentials,
+        }),
+      );
     });
 
     test('should use provided credentials for current account', async () => {
@@ -321,15 +325,17 @@ describe('ssm-functions', () => {
         MOCK_CONSTANTS.solutionId,
       );
 
-      expect(mockGetCredentials).toHaveBeenCalledWith({
-        accountId: MOCK_CONSTANTS.targetAccount.accountId,
-        region: MOCK_CONSTANTS.targetAccount.region,
-        logPrefix: MOCK_CONSTANTS.logPrefix,
-        solutionId: MOCK_CONSTANTS.solutionId,
-        partition: MOCK_CONSTANTS.targetAccount.partition,
-        assumeRoleName: MOCK_CONSTANTS.targetAccount.assumeRoleName,
-        credentials: undefined,
-      });
+      expect(mockGetCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accountId: MOCK_CONSTANTS.targetAccount.accountId,
+          region: MOCK_CONSTANTS.targetAccount.region,
+          logPrefix: MOCK_CONSTANTS.logPrefix,
+          solutionId: MOCK_CONSTANTS.solutionId,
+          partition: MOCK_CONSTANTS.targetAccount.partition,
+          assumeRoleName: MOCK_CONSTANTS.targetAccount.assumeRoleName,
+          credentials: undefined,
+        }),
+      );
       expect(mockExecuteApi).toHaveBeenCalledTimes(2);
     });
 
@@ -346,15 +352,17 @@ describe('ssm-functions', () => {
         MOCK_CONSTANTS.credentials,
       );
 
-      expect(mockGetCredentials).toHaveBeenCalledWith({
-        accountId: MOCK_CONSTANTS.targetAccount.accountId,
-        region: MOCK_CONSTANTS.targetAccount.region,
-        logPrefix: MOCK_CONSTANTS.logPrefix,
-        solutionId: MOCK_CONSTANTS.solutionId,
-        partition: MOCK_CONSTANTS.targetAccount.partition,
-        assumeRoleName: MOCK_CONSTANTS.targetAccount.assumeRoleName,
-        credentials: MOCK_CONSTANTS.credentials,
-      });
+      expect(mockGetCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accountId: MOCK_CONSTANTS.targetAccount.accountId,
+          region: MOCK_CONSTANTS.targetAccount.region,
+          logPrefix: MOCK_CONSTANTS.logPrefix,
+          solutionId: MOCK_CONSTANTS.solutionId,
+          partition: MOCK_CONSTANTS.targetAccount.partition,
+          assumeRoleName: MOCK_CONSTANTS.targetAccount.assumeRoleName,
+          credentials: MOCK_CONSTANTS.credentials,
+        }),
+      );
     });
 
     test('should use provided credentials for current account', async () => {

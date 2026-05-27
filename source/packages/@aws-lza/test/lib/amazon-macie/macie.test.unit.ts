@@ -868,15 +868,17 @@ describe('macieAccountSetup', () => {
 
     const result = await macieAccountSetup(targetAccount, '123456789012', baseMacieRequest);
 
-    expect(getCredentials).toHaveBeenCalledWith({
-      partition: 'aws',
-      accountId: '111111111111',
-      region: 'us-east-1',
-      logPrefix: 'Invoker:us-east-1',
-      solutionId: 'test-solution',
-      assumeRoleName: 'TestRole',
-      credentials: mockCredentials,
-    });
+    expect(getCredentials).toHaveBeenCalledWith(
+      expect.objectContaining({
+        partition: 'aws',
+        accountId: '111111111111',
+        region: 'us-east-1',
+        logPrefix: 'Invoker:us-east-1',
+        solutionId: 'test-solution',
+        assumeRoleName: 'TestRole',
+        credentials: mockCredentials,
+      }),
+    );
 
     expect(result.credentials).toEqual({
       accessKeyId: 'assumed-key',

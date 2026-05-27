@@ -246,6 +246,8 @@ export class InviteAccountsBatchToOrganizationModule implements IInviteAccountsB
       assumeRoleName: account.accountAccessRoleName,
       sessionName: 'AcceleratorAcceptInviteAssumeRole',
       credentials: props.credentials,
+      sessionPolicy: props.sessionPolicy,
+      requireSessionPolicy: !!props.sessionPolicy,
     });
 
     const accepterClient = new OrganizationsClient({

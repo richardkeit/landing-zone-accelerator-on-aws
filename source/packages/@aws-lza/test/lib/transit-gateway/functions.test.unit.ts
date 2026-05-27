@@ -48,6 +48,7 @@ function makeProps(overrides: Partial<ITgwModuleRequest> = {}): ITgwModuleReques
     moduleName: 'transit-gateway',
     solutionId: 'AwsSolution/SO0199',
     dryRun: false,
+    sessionPolicy: '{"mock":"policy"}',
     credentials: { accessKeyId: 'original', secretAccessKey: 'original', sessionToken: 'original' },
     configuration: {
       enable: true,
@@ -95,6 +96,8 @@ describe('transit-gateway functions', () => {
         solutionId: 'AwsSolution/SO0199',
         assumeRoleName: 'AWSControlTowerExecution',
         credentials: props.credentials,
+        sessionPolicy: '{"mock":"policy"}',
+        requireSessionPolicy: true,
       });
       expect(mockLogger.info).toHaveBeenCalledWith('Assuming role in account 222222222222 region us-east-1', 'test');
     });

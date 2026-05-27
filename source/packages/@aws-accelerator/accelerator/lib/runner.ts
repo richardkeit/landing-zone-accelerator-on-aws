@@ -119,6 +119,7 @@ import {
   flushLoggers,
   getCredentials,
   getCurrentSessionDetails,
+  getModuleSessionPolicy,
   getOrganizationAccounts,
   getOrganizationAccountsFromSourceTable,
   getOrganizationDetails,
@@ -714,13 +715,28 @@ export abstract class ModuleRunner {
       );
 
       if (!ModuleRunner.isModuleExecutionSkippedByEnvironment(sortedModuleItem.name, logPrefix)) {
+        // Look up session policy for least-privilege enforcement
+        const moduleSessionPolicy = getModuleSessionPolicy(sortedModuleItem.name);
+        if (!moduleSessionPolicy) {
+          logger.warn(
+            `Module "${sortedModuleItem.name}" has no session policy declared in module-session-policies.ts. ` +
+              `Cross-account credentials will not be scoped. Add a policy to enforce least privilege.`,
+            logPrefix,
+          );
+        }
+
         promiseItems.push({
           runOrder: sortedModuleItem.runOrder,
           promise: () =>
             sortedModuleItem.handler({
               moduleItem: sortedModuleItem,
               runnerParameters,
-              moduleRunnerParameters: acceleratorModuleRunnerParameters,
+              moduleRunnerParameters: {
+                ...acceleratorModuleRunnerParameters,
+                ...(moduleSessionPolicy && {
+                  sessionPolicy: moduleSessionPolicy.policy,
+                }),
+              },
             }),
         });
       }
@@ -1019,13 +1035,27 @@ export abstract class ModuleRunner {
           logPrefix,
         );
 
+        // Look up session policy for least-privilege enforcement
+        const moduleSessionPolicy = getModuleSessionPolicy(sortedModuleItem.name);
+        if (!moduleSessionPolicy) {
+          logger.warn(
+            `Module "${sortedModuleItem.name}" has no session policy declared. Cross-account credentials will not be scoped.`,
+            logPrefix,
+          );
+        }
+
         promiseItems.push({
           runOrder: synthPhase ? 1 : sortedModuleItem.runOrder,
           promise: () =>
             sortedModuleItem.handler({
               moduleItem: sortedModuleItem,
               runnerParameters: params,
-              moduleRunnerParameters: acceleratorModuleRunnerParameters,
+              moduleRunnerParameters: {
+                ...acceleratorModuleRunnerParameters,
+                ...(moduleSessionPolicy && {
+                  sessionPolicy: moduleSessionPolicy.policy,
+                }),
+              },
             }),
         });
       }

@@ -349,6 +349,8 @@ export abstract class TransitGatewayAttachmentLookup {
       solutionId: props.solutionId,
       assumeRoleName: props.configuration.accountAccessRoleName,
       credentials: props.credentials,
+      sessionPolicy: props.sessionPolicy,
+      requireSessionPolicy: !!props.sessionPolicy,
     });
     return assumed ?? props.credentials;
   }

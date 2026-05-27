@@ -573,6 +573,16 @@ export type AcceleratorModuleRunnerParametersType = {
    * and needs to assume roles in the management account for operations.
    */
   readonly managementAccountCredentials?: IAssumeRoleCredential;
+
+  /**
+   * IAM session policy JSON string for least-privilege cross-account role assumption.
+   *
+   * @description
+   * When provided, this policy is passed to STS AssumeRole as a session policy,
+   * restricting the assumed credentials to only the declared actions. The effective
+   * permissions are the intersection of the target role's policy and this session policy.
+   */
+  readonly sessionPolicy?: string;
 };
 
 /**

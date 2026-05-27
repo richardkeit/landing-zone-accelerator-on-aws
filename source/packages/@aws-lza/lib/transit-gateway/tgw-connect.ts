@@ -543,6 +543,8 @@ export abstract class TransitGatewayConnect {
       solutionId: props.solutionId,
       assumeRoleName: props.configuration.accountAccessRoleName,
       credentials: props.credentials,
+      sessionPolicy: props.sessionPolicy,
+      requireSessionPolicy: !!props.sessionPolicy,
     });
 
     return new EC2Client({

@@ -146,6 +146,19 @@ const logger = createLogger([path.parse(path.basename(__filename)).name]);
  * // Returns undefined if already in target role context
  * ```
  */
+/**
+ * Simple string hash for cache key differentiation.
+ * Not cryptographic — just needs to produce distinct values for distinct policies.
+ */
+function hashCode(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash + char) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
 export async function getCredentials(options: {
   accountId: string;
   region: string;
@@ -156,6 +169,14 @@ export async function getCredentials(options: {
   assumeRoleArn?: string;
   sessionName?: string;
   credentials?: AssumeRoleCredentialType;
+  /** Inline JSON session policy to restrict assumed role permissions (max 2048 chars) */
+  sessionPolicy?: string;
+  /** When true, throws if sessionPolicy is not provided (enforces least-privilege for module calls) */
+  requireSessionPolicy?: boolean;
+  // NOTE: Session tags (sts:TagSession) intentionally NOT supported here.
+  // AWSControlTowerExecution trust policy only allows sts:AssumeRole, not sts:TagSession.
+  // Since CT owns that role, we cannot modify its trust policy. Session policies (Policy param)
+  // work without any trust policy changes — they restrict via intersection, not expansion.
 }): Promise<IAssumeRoleCredential | undefined> {
   if (options.assumeRoleName && options.assumeRoleArn) {
     throw new Error(`Either assumeRoleName or assumeRoleArn can be provided not both`);
@@ -173,7 +194,11 @@ export async function getCredentials(options: {
     options.assumeRoleArn ?? `arn:${options.partition}:iam::${options.accountId}:role/${options.assumeRoleName}`;
 
   // Create cache key for credential caching
-  const cacheKey = `${options.accountId}-${options.region}-${roleArn}`;
+  // When session policy is provided, include a policy hash to prevent cross-module credential reuse
+  // (different modules assume the same role but with different session policies)
+  const cacheKey = options.sessionPolicy
+    ? `${options.accountId}-${options.region}-${roleArn}-${hashCode(options.sessionPolicy)}`
+    : `${options.accountId}-${options.region}-${roleArn}`;
 
   // Use credential cache with atomic in-flight request tracking
   return await credentialCache.getOrFetch(
@@ -200,7 +225,28 @@ export async function getCredentials(options: {
       }
 
       const commandName = 'AssumeRoleCommand';
-      const parameters = { RoleArn: roleArn, RoleSessionName: options.sessionName ?? 'AcceleratorAssumeRole' };
+
+      if (options.sessionPolicy) {
+        // Validate policy is well-formed JSON before sending to STS
+        try {
+          JSON.parse(options.sessionPolicy);
+        } catch {
+          throw new Error(`Invalid session policy JSON: ${options.sessionPolicy.substring(0, 100)}...`);
+        }
+        logger.info(`Session policy applied (${options.sessionPolicy.length} chars)`, options.logPrefix);
+      } else if (options.requireSessionPolicy) {
+        throw new Error(
+          `Cross-account AssumeRole to ${roleArn} blocked: no session policy provided. ` +
+            `Module must have a policy declared in module-session-policies.ts to enforce least privilege.`,
+        );
+      }
+
+      const parameters = {
+        RoleArn: roleArn,
+        RoleSessionName: options.sessionName ?? 'AcceleratorAssumeRole',
+        Policy: options.sessionPolicy,
+      };
+
       const response = await executeApi(
         commandName,
         parameters,

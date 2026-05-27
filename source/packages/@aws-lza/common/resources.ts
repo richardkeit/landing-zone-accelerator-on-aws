@@ -141,6 +141,14 @@ export interface IModuleCommonParameter {
    */
   dryRun?: boolean;
   /**
+   * IAM session policy JSON for least-privilege cross-account role assumption.
+   * Passed to STS AssumeRole to restrict assumed credentials.
+   */
+  sessionPolicy?: string;
+  /**
+   * Session tags for CloudTrail attribution (e.g., LzaModule=ModuleName).
+   */
+  /**
    * Maximum concurrent execution
    *
    */

@@ -109,7 +109,7 @@ describe('StackPolicy', () => {
 
     it('handler returns enabled on success with empty stacks', async () => {
       const props: IStackPolicyHandlerParameter = {
-        accountIds: ['123456789012', '234567890123'], // Add a second account to test cross-account credentials
+        accountIds: ['123456789012', '222222222222'], // Add a second account to test cross-account credentials
         regions: ['us-east-1'],
         managementAccountAccessRole: 'MockRole',
         enabled: true,
@@ -135,7 +135,7 @@ describe('StackPolicy', () => {
 
     it('handler returns enabled on success', async () => {
       const props: IStackPolicyHandlerParameter = {
-        accountIds: ['123456789012', '234567890123'], // Add a second account to test cross-account credentials
+        accountIds: ['123456789012', '222222222222'], // Add a second account to test cross-account credentials
         regions: ['us-east-1'],
         managementAccountAccessRole: 'MockRole',
         enabled: true,
@@ -399,18 +399,20 @@ describe('StackPolicy', () => {
       const mockCredentials = { accessKeyId: 'new', secretAccessKey: 'new', sessionToken: 'new' };
       vi.spyOn(commonFunctions, 'getCredentials').mockResolvedValue(mockCredentials);
 
-      const result = await stackPolicy['getAccountCredentials']('234567890123', '123456789012', 'us-east-1', props);
+      const result = await stackPolicy['getAccountCredentials']('222222222222', '123456789012', 'us-east-1', props);
       expect(result).toBe(mockCredentials);
 
       // Verify getCredentials was called with correct parameters
-      expect(commonFunctions.getCredentials).toHaveBeenCalledWith({
-        accountId: '234567890123',
-        region: 'us-east-1',
-        solutionId: 'SO0199',
-        partition: 'aws',
-        assumeRoleName: 'TestRole',
-        sessionName: 'AcceleratorCreateStackPolicy',
-      });
+      expect(commonFunctions.getCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accountId: '222222222222',
+          region: 'us-east-1',
+          solutionId: 'SO0199',
+          partition: 'aws',
+          assumeRoleName: 'TestRole',
+          sessionName: 'AcceleratorCreateStackPolicy',
+        }),
+      );
     });
   });
 });

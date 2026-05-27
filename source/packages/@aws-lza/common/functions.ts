@@ -256,6 +256,8 @@ export async function getCredentials(options: {
   assumeRoleArn?: string;
   sessionName?: string;
   credentials?: AssumeRoleCredentialType;
+  sessionPolicy?: string;
+  requireSessionPolicy?: boolean;
 }): Promise<IAssumeRoleCredential | undefined> {
   if (options.assumeRoleName && options.assumeRoleArn) {
     throw new Error(`Either assumeRoleName or assumeRoleArn can be provided not both`);
@@ -288,7 +290,11 @@ export async function getCredentials(options: {
 
   const response = await throttlingBackOff(() =>
     client.send(
-      new AssumeRoleCommand({ RoleArn: roleArn, RoleSessionName: options.sessionName ?? 'AcceleratorAssumeRole' }),
+      new AssumeRoleCommand({
+        RoleArn: roleArn,
+        RoleSessionName: options.sessionName ?? 'AcceleratorAssumeRole',
+        Policy: options.sessionPolicy,
+      }),
     ),
   );
 

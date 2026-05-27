@@ -201,6 +201,7 @@ export class GetSsmParametersValueModule implements IGetSsmParametersValueModule
         batch.assumeRoleArn,
         props.solutionId,
         props.credentials,
+        props.sessionPolicy,
       );
 
       if (!client) continue;
@@ -276,6 +277,7 @@ export class GetSsmParametersValueModule implements IGetSsmParametersValueModule
     assumeRoleArn?: string,
     solutionId?: string,
     credentials?: AssumeRoleCredentialType,
+    sessionPolicy?: string,
   ): Promise<SSMClient | undefined> {
     let assumedCredentials;
 
@@ -292,6 +294,7 @@ export class GetSsmParametersValueModule implements IGetSsmParametersValueModule
         solutionId,
         assumeRoleArn,
         credentials,
+        sessionPolicy,
       });
     }
 

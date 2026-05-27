@@ -143,6 +143,11 @@ vi.mock('aws-lza', () => ({
   flushLoggers: vi.fn().mockResolvedValue(undefined),
   getCredentials: vi.fn(),
   getCurrentSessionDetails: vi.fn(),
+  getModuleSessionPolicy: vi.fn().mockReturnValue({
+    moduleName: 'test-module',
+    policy:
+      '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["sts:GetCallerIdentity"],"Resource":"*"}]}',
+  }),
   setRetryStrategy: vi.fn(),
   throttlingBackOff: vi.fn().mockImplementation(fn => fn()),
   getOrganizationAccounts: vi.fn(),

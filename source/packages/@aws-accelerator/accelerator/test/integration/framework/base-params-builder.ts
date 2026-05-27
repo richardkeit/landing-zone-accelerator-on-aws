@@ -31,6 +31,7 @@ import {
 } from '@aws-accelerator/config';
 import { AcceleratorResourceNames } from '../../../lib/accelerator-resource-names';
 import { ModuleExecutionPhase, ModuleParams } from '../../../lib/types';
+import { getModuleSessionPolicy } from 'aws-lza';
 import { ResolvedEnvironment, TestManifest } from './types';
 
 /**
@@ -188,6 +189,7 @@ export function buildBaseModuleParams(options: BaseParamsOptions): ModuleParams 
       },
       organizationAccounts: buildOrganizationAccounts(environment),
       managementAccountCredentials: environment.managementAccountCredentials,
+      sessionPolicy: getModuleSessionPolicy(moduleName)?.policy,
     },
   };
 }

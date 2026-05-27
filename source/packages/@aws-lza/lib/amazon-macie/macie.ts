@@ -381,6 +381,8 @@ export const macieAccountSetup: AccountSetupHandler<IMacieModuleRequest> = async
     solutionId: props.solutionId,
     assumeRoleName: props.configuration.accountAccessRoleName,
     credentials: props.credentials,
+    sessionPolicy: props.sessionPolicy,
+    requireSessionPolicy: !!props.sessionPolicy,
   });
 
   return { ...props, credentials }; // Return props with target account credentials

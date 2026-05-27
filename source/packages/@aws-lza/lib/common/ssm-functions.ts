@@ -77,6 +77,7 @@ export async function getParametersValue(
   solutionId?: string,
   credentials?: AssumeRoleCredentialType,
   defaultValues?: Record<string, string>,
+  sessionPolicy?: string,
 ): Promise<Parameter[]> {
   let targetCredentials: AssumeRoleCredentialType | undefined;
   let targetRegion = region;
@@ -97,6 +98,8 @@ export async function getParametersValue(
       partition: targetAccount.partition,
       assumeRoleName: targetAccount.assumeRoleName,
       credentials,
+      sessionPolicy,
+      requireSessionPolicy: !!sessionPolicy,
     });
   } else {
     logger.info(`Getting SSM parameters from current account in region ${region}`, logPrefix);
@@ -177,6 +180,7 @@ export async function putParametersValue(
   solutionId?: string,
   credentials?: AssumeRoleCredentialType,
   overwrite: boolean = true,
+  sessionPolicy?: string,
 ): Promise<void> {
   let targetCredentials: AssumeRoleCredentialType | undefined;
   let targetRegion = region;
@@ -197,6 +201,8 @@ export async function putParametersValue(
       partition: targetAccount.partition,
       assumeRoleName: targetAccount.assumeRoleName,
       credentials,
+      sessionPolicy,
+      requireSessionPolicy: !!sessionPolicy,
     });
   } else {
     logger.info(`Putting SSM parameters to current account in region ${region}`, logPrefix);

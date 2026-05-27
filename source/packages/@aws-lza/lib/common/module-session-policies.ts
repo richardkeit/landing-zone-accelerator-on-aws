@@ -1,0 +1,207 @@
+/**
+ *  Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance
+ *  with the License. A copy of the License is located at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES
+ *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions
+ *  and limitations under the License.
+ */
+
+/**
+ * @fileoverview Per-module IAM session policies for least-privilege enforcement.
+ *
+ * Each module declares the IAM actions it requires. These are passed as session policies
+ * to STS AssumeRole, restricting assumed credentials to ONLY the declared actions —
+ * regardless of the target role's permissions.
+ *
+ * The effective permissions are the INTERSECTION of:
+ *   - The target role's identity-based policy (e.g., AdministratorAccess)
+ *   - The session policy declared here
+ *
+ * This restores the least-privilege model that existed with Lambda-backed custom resources,
+ * without requiring separate Lambda functions or IAM roles per module.
+ *
+ * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#policies_session
+ */
+
+/**
+ * Session policy configuration for a module.
+ */
+export interface IModuleSessionPolicy {
+  /** Module name matching AcceleratorModules enum value */
+  readonly moduleName: string;
+  /** JSON session policy string (max 2048 chars) */
+  readonly policy: string;
+  // NOTE: Session tags intentionally omitted. AWSControlTowerExecution (the cross-account
+  // role used by LZA) only allows sts:AssumeRole in its trust policy, not sts:TagSession.
+  // Control Tower owns this role and we cannot modify its trust policy. Session tags would
+  // require sts:TagSession permission on every target role across all member accounts.
+  // Session policies work without trust policy changes (they restrict, not expand).
+}
+
+/**
+ * Base IAM statements included in every module's session policy.
+ * Resource-scoped to LZA naming patterns to prevent access to arbitrary
+ * DynamoDB tables or SSM parameters in the account.
+ */
+const BASE_MODULE_STATEMENTS = [
+  {
+    Sid: 'LzaModuleStateTable',
+    Effect: 'Allow',
+    Action: ['dynamodb:PutItem', 'dynamodb:GetItem', 'dynamodb:Query', 'dynamodb:UpdateItem', 'dynamodb:DescribeTable'],
+    Resource: ['arn:*:dynamodb:*:*:table/*-Module-State-*'],
+  },
+  {
+    Sid: 'LzaModuleSsmParameters',
+    Effect: 'Allow',
+    Action: ['ssm:GetParameter', 'ssm:PutParameter', 'ssm:GetParametersByPath'],
+    Resource: ['arn:*:ssm:*:*:parameter/*accelerator*'],
+  },
+];
+
+/**
+ * Builds a complete session policy JSON string from module-specific actions
+ * and the base state management statements.
+ *
+ * @param moduleActions - Service-specific IAM actions the module requires
+ * @returns JSON policy string
+ * @throws Error if policy exceeds 2048 character STS limit
+ */
+function buildSessionPolicy(moduleActions: string[]): string {
+  const policy = JSON.stringify({
+    Version: '2012-10-17',
+    Statement: [
+      {
+        Sid: 'ModuleSpecificActions',
+        Effect: 'Allow',
+        Action: moduleActions,
+        Resource: '*',
+      },
+      ...BASE_MODULE_STATEMENTS,
+    ],
+  });
+
+  if (policy.length > 2048) {
+    throw new Error(
+      `Session policy exceeds STS 2048 character limit (${policy.length} chars). ` +
+        `Reduce actions or use managed session policy ARNs.`,
+    );
+  }
+  return policy;
+}
+
+/**
+ * Creates a ModuleSessionPolicy with standard session tags for CloudTrail attribution.
+ */
+function createModulePolicy(moduleName: string, actions: string[]): IModuleSessionPolicy {
+  return {
+    moduleName,
+    policy: buildSessionPolicy(actions),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Module Session Policies
+//
+// Action lists validated via static analysis (grep SDK Command instantiations)
+// on 2026-05-20. Cross-referenced with CloudTrail where available.
+// Remaining TODO: integration test with policies applied (Approach C).
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STACK_RESOURCES_RETENTION = createModulePolicy('stack-resources-retention', [
+  // Validated: source/packages/@aws-accelerator/accelerator/lib/actions/resource-retention/
+  'cloudformation:DescribeStacks',
+  'cloudformation:DescribeStackResources',
+  'cloudformation:UpdateStack',
+  'cloudformation:GetTemplate',
+  'cloudformation:ListStacks',
+  'cloudformation:UpdateTerminationProtection',
+]);
+
+const INVITE_ACCOUNTS_TO_ORGANIZATIONS = createModulePolicy('invite-accounts-to-organizations', [
+  // Validated: invite-account + invite-accounts-batch
+  'organizations:InviteAccountToOrganization',
+  'organizations:ListHandshakesForAccount',
+  'organizations:AcceptHandshake',
+  'organizations:CancelHandshake',
+]);
+
+const CREATE_STACK_POLICY = createModulePolicy('create-stack-policy', [
+  // Validated: source/packages/@aws-lza/lib/aws-cloudformation/create-stack-policy/
+  'cloudformation:SetStackPolicy',
+]);
+
+const MACIE = createModulePolicy('macie', [
+  // Validated: source/packages/@aws-lza/lib/amazon-macie/ (all files)
+  // Wildcards used to stay within STS packed policy size limit (2048 bytes packed)
+  'macie2:*Macie*',
+  'macie2:*OrganizationAdmin*',
+  'macie2:*Member*',
+  'macie2:*OrganizationConfiguration',
+  'macie2:*ClassificationExportConfiguration',
+  'macie2:PutFindingsPublicationConfiguration',
+  'macie2:*ClassificationScope*',
+  'macie2:UpdateAutomatedDiscoveryConfiguration',
+]);
+
+const GET_CLOUDFORMATION_TEMPLATES = createModulePolicy('get-cloudformation-templates', [
+  // Validated: source/packages/@aws-lza/lib/aws-cloudformation/get-cloudformation-templates/
+  'cloudformation:GetTemplate',
+  'cloudformation:ListStacks',
+  's3:PutObject',
+]);
+
+const TGW_ASSOCIATIONS_AND_PROPAGATIONS = createModulePolicy('tgw-associations-and-propagations', [
+  // Validated via static analysis + CloudTrail mining 2026-05-20
+  'ec2:DescribeTransitGateways',
+  'ec2:DescribeTransitGatewayRouteTables',
+  'ec2:DescribeTransitGatewayAttachments',
+  'ec2:DescribeTransitGatewayVpcAttachments',
+  'ec2:DescribeTransitGatewayConnects',
+  'ec2:DescribeVpnConnections',
+  'ec2:GetTransitGatewayRouteTableAssociations',
+  'ec2:GetTransitGatewayRouteTablePropagations',
+  'ec2:AssociateTransitGatewayRouteTable',
+  'ec2:DisassociateTransitGatewayRouteTable',
+  'ec2:EnableTransitGatewayRouteTablePropagation',
+  'ec2:DisableTransitGatewayRouteTablePropagation',
+  'ec2:CreateTransitGatewayConnect',
+  'ec2:DeleteTransitGatewayConnect',
+  'ec2:CreateTags',
+  'directconnect:DescribeDirectConnectGateways',
+  'directconnect:DescribeDirectConnectGatewayAssociations',
+  'directconnect:CreateDirectConnectGatewayAssociation',
+  'directconnect:CreateDirectConnectGatewayAssociationProposal',
+  'directconnect:UpdateDirectConnectGatewayAssociation',
+  'directconnect:DeleteDirectConnectGatewayAssociation',
+]);
+
+/**
+ * Registry of session policies for modules that make cross-account AssumeRole calls.
+ *
+ * Only modules that assume roles into member accounts need entries here.
+ * Management-account-only modules (create-ou, move-accounts, etc.) are excluded
+ * because they never trigger AssumeRole — the session policy would never be sent to STS.
+ *
+ * The module runner logs a warning for modules without a declared policy.
+ */
+export const MODULE_SESSION_POLICIES: Record<string, IModuleSessionPolicy> = {
+  'stack-resources-retention': STACK_RESOURCES_RETENTION,
+  'invite-accounts-to-organizations': INVITE_ACCOUNTS_TO_ORGANIZATIONS,
+  'create-stack-policy': CREATE_STACK_POLICY,
+  macie: MACIE,
+  'get-cloudformation-templates': GET_CLOUDFORMATION_TEMPLATES,
+  'tgw-associations-and-propagations': TGW_ASSOCIATIONS_AND_PROPAGATIONS,
+};
+
+/**
+ * Retrieves the session policy for a module by name.
+ * Returns undefined if the module has no declared policy (legacy/unregistered module).
+ */
+export function getModuleSessionPolicy(moduleName: string): IModuleSessionPolicy | undefined {
+  return MODULE_SESSION_POLICIES[moduleName];
+}

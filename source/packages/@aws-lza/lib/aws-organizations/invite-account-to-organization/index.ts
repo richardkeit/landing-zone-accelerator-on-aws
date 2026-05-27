@@ -188,6 +188,8 @@ export class InviteAccountToOrganizationModule implements IInviteAccountToOrgani
       assumeRoleName: props.configuration.accountAccessRoleName,
       sessionName: 'AcceleratorAcceptInviteAssumeRole',
       credentials: props.credentials,
+      sessionPolicy: props.sessionPolicy,
+      requireSessionPolicy: !!props.sessionPolicy,
     });
 
     const accepterClient = new OrganizationsClient({
