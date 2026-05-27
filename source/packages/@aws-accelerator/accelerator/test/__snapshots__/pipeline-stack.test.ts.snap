@@ -2488,24 +2488,7 @@ phases:
                 {
                   "Ref": "AWS::Partition",
                 },
-                ";
-                          fi
-                          if [ $FULL_SYNTH = "true" ]; then
-                            set -e && if command -v pigz &>/dev/null; then tar cf - -C cdk.out . | pigz > cf_$ARCHIVE_NAME; else tar -czf cf_$ARCHIVE_NAME -C cdk.out .; fi;
-                          else
-                            touch full-synth-false.txt;
-                          fi
-                          if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
-                            find cdk.out -type f -name "*.diff" -print0 | { if command -v pigz &>/dev/null; then tar --transform='s|.*/||' -cf - --null -T - | pigz > diff_$ARCHIVE_NAME; else tar --transform='s|.*/||' -czf diff_$ARCHIVE_NAME --null -T -; fi; }
-                            aws s3 cp diff_$ARCHIVE_NAME $DIFFS_DIR/$CODEPIPELINE_EXECUTION_ID/
-                          fi
-                       else
-                        eval ARTIFACTS='$'CODEBUILD_SRC_DIR_$STAGE_ARTIFACT
-                        if [ -f "\${ARTIFACTS}/cf_\${ARCHIVE_NAME}" ]; then
-                             mkdir -p cdk.out
-                             if command -v pigz &>/dev/null; then pigz -dc $ARTIFACTS/cf_$ARCHIVE_NAME | tar xf - -C cdk.out; else tar -xzf $ARTIFACTS/cf_$ARCHIVE_NAME -C cdk.out; fi;
-                         else
-                            set -e && yarn run ts-node --transpile-only cdk.ts synth --stage $ACCELERATOR_STAGE --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
+                "REPLACED-JSON-PATH.json",
                 {
                   "Ref": "AWS::Partition",
                 },
@@ -5497,24 +5480,7 @@ phases:
                 {
                   "Ref": "AWS::Partition",
                 },
-                ";
-                          fi
-                          if [ $FULL_SYNTH = "true" ]; then
-                            set -e && if command -v pigz &>/dev/null; then tar cf - -C cdk.out . | pigz > cf_$ARCHIVE_NAME; else tar -czf cf_$ARCHIVE_NAME -C cdk.out .; fi;
-                          else
-                            touch full-synth-false.txt;
-                          fi
-                          if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
-                            find cdk.out -type f -name "*.diff" -print0 | { if command -v pigz &>/dev/null; then tar --transform='s|.*/||' -cf - --null -T - | pigz > diff_$ARCHIVE_NAME; else tar --transform='s|.*/||' -czf diff_$ARCHIVE_NAME --null -T -; fi; }
-                            aws s3 cp diff_$ARCHIVE_NAME $DIFFS_DIR/$CODEPIPELINE_EXECUTION_ID/
-                          fi
-                       else
-                        eval ARTIFACTS='$'CODEBUILD_SRC_DIR_$STAGE_ARTIFACT
-                        if [ -f "\${ARTIFACTS}/cf_\${ARCHIVE_NAME}" ]; then
-                             mkdir -p cdk.out
-                             if command -v pigz &>/dev/null; then pigz -dc $ARTIFACTS/cf_$ARCHIVE_NAME | tar xf - -C cdk.out; else tar -xzf $ARTIFACTS/cf_$ARCHIVE_NAME -C cdk.out; fi;
-                         else
-                            set -e && yarn run ts-node --transpile-only cdk.ts synth --stage $ACCELERATOR_STAGE --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
+                "REPLACED-JSON-PATH.json",
                 {
                   "Ref": "AWS::Partition",
                 },
@@ -8052,24 +8018,7 @@ phases:
                 {
                   "Ref": "AWS::Partition",
                 },
-                ";
-                          fi
-                          if [ $FULL_SYNTH = "true" ]; then
-                            set -e && if command -v pigz &>/dev/null; then tar cf - -C cdk.out . | pigz > cf_$ARCHIVE_NAME; else tar -czf cf_$ARCHIVE_NAME -C cdk.out .; fi;
-                          else
-                            touch full-synth-false.txt;
-                          fi
-                          if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
-                            find cdk.out -type f -name "*.diff" -print0 | { if command -v pigz &>/dev/null; then tar --transform='s|.*/||' -cf - --null -T - | pigz > diff_$ARCHIVE_NAME; else tar --transform='s|.*/||' -czf diff_$ARCHIVE_NAME --null -T -; fi; }
-                            aws s3 cp diff_$ARCHIVE_NAME $DIFFS_DIR/$CODEPIPELINE_EXECUTION_ID/
-                          fi
-                       else
-                        eval ARTIFACTS='$'CODEBUILD_SRC_DIR_$STAGE_ARTIFACT
-                        if [ -f "\${ARTIFACTS}/cf_\${ARCHIVE_NAME}" ]; then
-                             mkdir -p cdk.out
-                             if command -v pigz &>/dev/null; then pigz -dc $ARTIFACTS/cf_$ARCHIVE_NAME | tar xf - -C cdk.out; else tar -xzf $ARTIFACTS/cf_$ARCHIVE_NAME -C cdk.out; fi;
-                         else
-                            set -e && yarn run ts-node --transpile-only cdk.ts synth --stage $ACCELERATOR_STAGE --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
+                "REPLACED-JSON-PATH.json",
                 {
                   "Ref": "AWS::Partition",
                 },
@@ -10838,24 +10787,7 @@ phases:
                 {
                   "Ref": "AWS::Partition",
                 },
-                ";
-                          fi
-                          if [ $FULL_SYNTH = "true" ]; then
-                            set -e && if command -v pigz &>/dev/null; then tar cf - -C cdk.out . | pigz > cf_$ARCHIVE_NAME; else tar -czf cf_$ARCHIVE_NAME -C cdk.out .; fi;
-                          else
-                            touch full-synth-false.txt;
-                          fi
-                          if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
-                            find cdk.out -type f -name "*.diff" -print0 | { if command -v pigz &>/dev/null; then tar --transform='s|.*/||' -cf - --null -T - | pigz > diff_$ARCHIVE_NAME; else tar --transform='s|.*/||' -czf diff_$ARCHIVE_NAME --null -T -; fi; }
-                            aws s3 cp diff_$ARCHIVE_NAME $DIFFS_DIR/$CODEPIPELINE_EXECUTION_ID/
-                          fi
-                       else
-                        eval ARTIFACTS='$'CODEBUILD_SRC_DIR_$STAGE_ARTIFACT
-                        if [ -f "\${ARTIFACTS}/cf_\${ARCHIVE_NAME}" ]; then
-                             mkdir -p cdk.out
-                             if command -v pigz &>/dev/null; then pigz -dc $ARTIFACTS/cf_$ARCHIVE_NAME | tar xf - -C cdk.out; else tar -xzf $ARTIFACTS/cf_$ARCHIVE_NAME -C cdk.out; fi;
-                         else
-                            set -e && yarn run ts-node --transpile-only cdk.ts synth --stage $ACCELERATOR_STAGE --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
+                "REPLACED-JSON-PATH.json",
                 {
                   "Ref": "AWS::Partition",
                 },
@@ -13393,24 +13325,7 @@ phases:
                 {
                   "Ref": "AWS::Partition",
                 },
-                ";
-                          fi
-                          if [ $FULL_SYNTH = "true" ]; then
-                            set -e && if command -v pigz &>/dev/null; then tar cf - -C cdk.out . | pigz > cf_$ARCHIVE_NAME; else tar -czf cf_$ARCHIVE_NAME -C cdk.out .; fi;
-                          else
-                            touch full-synth-false.txt;
-                          fi
-                          if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
-                            find cdk.out -type f -name "*.diff" -print0 | { if command -v pigz &>/dev/null; then tar --transform='s|.*/||' -cf - --null -T - | pigz > diff_$ARCHIVE_NAME; else tar --transform='s|.*/||' -czf diff_$ARCHIVE_NAME --null -T -; fi; }
-                            aws s3 cp diff_$ARCHIVE_NAME $DIFFS_DIR/$CODEPIPELINE_EXECUTION_ID/
-                          fi
-                       else
-                        eval ARTIFACTS='$'CODEBUILD_SRC_DIR_$STAGE_ARTIFACT
-                        if [ -f "\${ARTIFACTS}/cf_\${ARCHIVE_NAME}" ]; then
-                             mkdir -p cdk.out
-                             if command -v pigz &>/dev/null; then pigz -dc $ARTIFACTS/cf_$ARCHIVE_NAME | tar xf - -C cdk.out; else tar -xzf $ARTIFACTS/cf_$ARCHIVE_NAME -C cdk.out; fi;
-                         else
-                            set -e && yarn run ts-node --transpile-only cdk.ts synth --stage $ACCELERATOR_STAGE --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
+                "REPLACED-JSON-PATH.json",
                 {
                   "Ref": "AWS::Partition",
                 },

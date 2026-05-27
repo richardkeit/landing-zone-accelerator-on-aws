@@ -511,7 +511,7 @@ export class AcceleratorPipeline extends Construct {
                     touch full-synth-false.txt;
                   fi
                   if [ "\${ACCELERATOR_ENABLE_APPROVAL_STAGE}" = "Yes" ] && [ "$ACCELERATOR_STAGE" != "bootstrap" ]; then
-                    find cdk.out -type f -name "*.diff" -print0 | { if command -v pigz &>/dev/null; then tar --transform='s|.*/||' -cf - --null -T - | pigz > diff_$ARCHIVE_NAME; else tar --transform='s|.*/||' -czf diff_$ARCHIVE_NAME --null -T -; fi; }
+                    find cdk.out -type f \\( -name "*.diff" -o -name "*.diff.json" \\) -print0 | { if command -v pigz &>/dev/null; then tar --transform='s|.*/||' -cf - --null -T - | pigz > diff_$ARCHIVE_NAME; else tar --transform='s|.*/||' -czf diff_$ARCHIVE_NAME --null -T -; fi; }
                     aws s3 cp diff_$ARCHIVE_NAME $DIFFS_DIR/$CODEPIPELINE_EXECUTION_ID/
                   fi
                else
