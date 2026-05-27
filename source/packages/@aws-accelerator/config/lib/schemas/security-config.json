@@ -618,10 +618,10 @@
     },
     "IDetectiveConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Amazon Detective, a security service that helps you analyze, investigate, and quickly identify the\nroot cause of security findings. Use this configuration to enable Amazon Detective for an AWS Organization.",
+      "description": "Configuration for Amazon Detective, a security service that helps you analyze, investigate, and quickly identify the\nroot cause of security findings. Use this configuration to enable Amazon Detective for an AWS Organization.\n\n**Prerequisite:** Amazon Detective requires Amazon GuardDuty to be enabled in every account and region where\nDetective is enabled, and GuardDuty must have been continuously enabled for at least 48 hours before Detective\ncan be turned on. Enabling Detective sooner will cause the accelerator pipeline to fail. Ensure that the\n`guardduty` configuration has been deployed and has been running for at least 48 hours in the target accounts\nand regions before enabling Detective in this configuration.",
       "properties": {
         "enable": {
-          "description": "Controls whether Amazon Detective is enabled across your organization.",
+          "description": "Controls whether Amazon Detective is enabled across your organization.\n\n**Prerequisite:** GuardDuty must be enabled and running for at least 48 hours in every targeted account and region before setting `enable: true` here. Enabling Detective before that window will cause the pipeline to fail.",
           "type": "boolean"
         },
         "excludeRegions": {

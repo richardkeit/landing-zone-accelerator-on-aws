@@ -981,6 +981,12 @@ export interface IAuditManagerConfig {
  * Configuration for Amazon Detective, a security service that helps you analyze, investigate, and quickly identify the
  * root cause of security findings. Use this configuration to enable Amazon Detective for an AWS Organization.
  *
+ * **Prerequisite:** Amazon Detective requires Amazon GuardDuty to be enabled in every account and region where
+ * Detective is enabled, and GuardDuty must have been continuously enabled for at least 48 hours before Detective
+ * can be turned on. Enabling Detective sooner will cause the accelerator pipeline to fail. Ensure that the
+ * `guardduty` configuration has been deployed and has been running for at least 48 hours in the target accounts
+ * and regions before enabling Detective in this configuration.
+ *
  * @see https://docs.aws.amazon.com/detective/latest/adminguide/what-is-detective.html
  *
  * @example
@@ -993,6 +999,9 @@ export interface IAuditManagerConfig {
 export interface IDetectiveConfig {
   /**
    * Controls whether Amazon Detective is enabled across your organization.
+   *
+   * **Prerequisite:** GuardDuty must be enabled and running for at least 48 hours in every targeted account and
+   * region before setting `enable: true` here. Enabling Detective before that window will cause the pipeline to fail.
    */
   readonly enable: boolean;
   /**
