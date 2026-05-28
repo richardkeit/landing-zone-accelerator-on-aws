@@ -12,6 +12,10 @@ This section contains architectural details and configuration references for the
     - [V2 Network Stack Usage](./v2-stacks.md)
     - [AFT Integration](./aft-integration.md)
     - [CDK Diff Viewer](./diff-viewer.md)
+    - [Updating the Solution](./update.md)
+    - [Uninstalling the Solution](./uninstall.md)
+    - [Troubleshooting](./troubleshooting.md)
+    - [Cost and Quotas](./cost-and-quotas.md)
 
 !!! note "See also"
     - [Implementation Guide - Architecture Details](https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/architecture-details.html)

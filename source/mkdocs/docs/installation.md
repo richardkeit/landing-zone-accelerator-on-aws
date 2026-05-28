@@ -83,5 +83,5 @@ ParameterKey=ControlTowerEnabled,ParameterValue=Yes \
     2. Select ‘Create Stack’ and from the dropdown pick ‘with new resources (standard)’
     3. For the prerequisite template, select ‘Template is ready’
     4. When specifying the template, select ‘Upload a template file’
-    5. Ensure that you select the correct file ‘AWSLandingZoneAccelerator-InstallerStack.template.json’
+    5. Ensure that you select the correct file ‘AWSAccelerator-InstallerStack.template.json’
     6. Fill out the required parameters in the UI, and create the stack once the parameters are inputted.

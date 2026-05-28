@@ -8,11 +8,13 @@ This section contains guidance about installing Landing Zone Accelerator package
     - [Command Line Interface and Package Scripts](./scripts.md)
     - [Architecture and Design Philosophy](./design.md)
     - [Feature Development](./features.md)
-    - [Commit messages](./commits.md)
+    - [Commit Messages](./commits.md)
     - [Documentation Guidelines](./doc-guidelines.md)
     - [Using JSON Schema](./json-schema.md)
     - [Module Development](./module-development/index.md)
     - [Building the Container Image Locally](./container-build.md)
+    - [Stack Walkthroughs](./stacks/index.md)
+    - [Cross-Cutting References](./cross-cutting/index.md)
 
 !!! note "See also"
     - [Implementation Guide - Developer Guide](https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/developer-guide.html)

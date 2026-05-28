@@ -19,6 +19,10 @@ nav:
       - V2 Network Stack Usage: user-guide/v2-stacks.md
       - AFT Integration: user-guide/aft-integration.md
       - CDK Diff Viewer: user-guide/diff-viewer.md
+      - Updating the Solution: user-guide/update.md
+      - Uninstalling the Solution: user-guide/uninstall.md
+      - Troubleshooting: user-guide/troubleshooting.md
+      - Cost and Quotas: user-guide/cost-and-quotas.md
   - Developer Guide:
       - developer-guide/index.md
       - Development Dependencies: developer-guide/dependencies.md
@@ -26,10 +30,46 @@ nav:
       - Command Line Interface and Package Scripts: developer-guide/scripts.md
       - Architecture and Design Philosophy: developer-guide/design.md
       - Feature Development: developer-guide/features.md
+      - Commit Messages: developer-guide/commits.md
       - Documentation Guidelines: developer-guide/doc-guidelines.md
       - JSON Schema: developer-guide/json-schema.md
-      - Module Development: developer-guide/module-development/index.md
+      - Module Development:
+          - developer-guide/module-development/index.md
+          - Project Structure: developer-guide/module-development/project-structure.md
+          - Module Naming and Scope: developer-guide/module-development/module-naming-and-scope.md
+          - Development Guidelines: developer-guide/module-development/module-development-guidelines.md
+          - Integration Guide: developer-guide/module-development/integration-guide.md
       - Building the Container Image Locally: developer-guide/container-build.md
+      - Stack Walkthroughs:
+          - developer-guide/stacks/index.md
+          - Pipeline and Execution Flow: developer-guide/stacks/pipeline.md
+          - Prepare: developer-guide/stacks/prepare.md
+          - Accounts: developer-guide/stacks/accounts.md
+          - Bootstrap: developer-guide/stacks/bootstrap.md
+          - Key: developer-guide/stacks/key.md
+          - Logging: developer-guide/stacks/logging.md
+          - Organizations: developer-guide/stacks/organizations.md
+          - Security: developer-guide/stacks/security.md
+          - Security Resources: developer-guide/stacks/security-resources.md
+          - Security Audit: developer-guide/stacks/security-audit.md
+          - Operations: developer-guide/stacks/operations.md
+          - Identity Center: developer-guide/stacks/identity-center.md
+          - Network Prep: developer-guide/stacks/network-prep.md
+          - Network VPC: developer-guide/stacks/network-vpc.md
+          - Network VPC Endpoints: developer-guide/stacks/network-vpc-endpoints.md
+          - Network Associations: developer-guide/stacks/network-associations.md
+          - Network Associations GWLB: developer-guide/stacks/network-associations-gwlb.md
+          - Customizations and Applications: developer-guide/stacks/customizations.md
+          - Finalize: developer-guide/stacks/finalize.md
+          - ASEA Import: developer-guide/stacks/asea-import.md
+      - Cross-Cutting References:
+          - developer-guide/cross-cutting/index.md
+          - SSM Parameter Conventions: developer-guide/cross-cutting/ssm-parameters.md
+          - CDK Aspects: developer-guide/cross-cutting/cdk-aspects.md
+          - AcceleratorStack Base Class: developer-guide/cross-cutting/accelerator-stack-base.md
+          - Resource Naming Conventions: developer-guide/cross-cutting/resource-naming.md
+          - Config-to-Stack Mapping: developer-guide/cross-cutting/config-stack-mapping.md
+          - Stack Deployment Order: developer-guide/cross-cutting/deployment-order.md
   - Sample Configurations:
       - sample-configurations/index.md
       - Standard:
@@ -95,6 +135,9 @@ theme:
       toggle:
         icon: material/lightbulb-outline
         name: Switch to light mode
+
+plugins:
+  - search
 
 extra:
   version:
