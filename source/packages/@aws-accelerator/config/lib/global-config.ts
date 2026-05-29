@@ -222,6 +222,7 @@ export abstract class ControlTowerControlConfig implements i.IControlTowerContro
   readonly enable: boolean = true;
   readonly deploymentTargets: t.DeploymentTargets = new t.DeploymentTargets();
   readonly regions: string[] | undefined = undefined;
+  readonly parameters: i.IControlTowerControlParameter[] | undefined = undefined;
 }
 
 /**

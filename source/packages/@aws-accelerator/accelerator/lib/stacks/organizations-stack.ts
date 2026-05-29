@@ -15,6 +15,7 @@ import {
   CentralSecurityServicesConfig,
   ControlTowerConfig,
   GuardDutyConfig,
+  IControlTowerControlParameter,
   IdentityCenterAssignmentConfig,
   IdentityCenterPermissionSetConfig,
 } from '@aws-accelerator/config';
@@ -235,7 +236,11 @@ export class OrganizationsStack extends AcceleratorStack {
     const enabledControlsTargets = controlsToEnable
       .map(control => {
         const ous = control.deploymentTargets.organizationalUnits;
-        return this.getEnabledControlTargetsFromOUs({ ouNames: ous, enabledControlIdentifier: control.identifier });
+        return this.getEnabledControlTargetsFromOUs({
+          ouNames: ous,
+          enabledControlIdentifier: control.identifier,
+          parameters: control.parameters,
+        });
       })
       .flat();
 
@@ -248,14 +253,20 @@ export class OrganizationsStack extends AcceleratorStack {
    * @param props - Configuration object for enabled control targets
    * @param props.ouNames - Array of organizational unit names to process
    * @param props.enabledControlIdentifier - The identifier of the control to be enabled
+   * @param props.parameters - Optional parameters forwarded to the Control Tower `EnableControl` API
    * @returns Array of objects containing OU details and control identifier mapping
    * @private
    */
 
-  private getEnabledControlTargetsFromOUs(props: { ouNames: string[]; enabledControlIdentifier: string }): {
+  private getEnabledControlTargetsFromOUs(props: {
+    ouNames: string[];
+    enabledControlIdentifier: string;
+    parameters?: IControlTowerControlParameter[];
+  }): {
     ouName: string;
     ouArn: string;
     enabledControlIdentifier: string;
+    parameters?: IControlTowerControlParameter[];
   }[] {
     const enabledControlTargets = [];
     for (const ouName of props.ouNames) {
@@ -264,6 +275,7 @@ export class OrganizationsStack extends AcceleratorStack {
         ouName,
         ouArn,
         enabledControlIdentifier: props.enabledControlIdentifier,
+        parameters: props.parameters,
       });
     }
     return enabledControlTargets;

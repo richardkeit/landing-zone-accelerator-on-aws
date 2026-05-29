@@ -784,6 +784,13 @@
           "$ref": "#/definitions/NonEmptyString",
           "description": "**Control Identifier** *(Required)*\n\nUnique identifier for the Control Tower guardrail to be enabled. The identifier format depends on the control type and determines how the control is referenced.\n\n### Identifier Formats\n\n**Standard Controls (AWS-GR_*):**\n- Format: `AWS-GR_<CONTROL_NAME>`\n- Used for strongly recommended and elective controls\n- Human-readable and descriptive of the control's purpose\n\n**Global Controls (Opaque IDs):**\n- Format: Alphanumeric string (e.g., `m7a5gbdf08wg2o0en010mkng`)\n- Used for global controls that span multiple services\n- Requires reference to AWS documentation for mapping"
         },
+        "parameters": {
+          "description": "**Control Parameters** *(Optional)*\n\nA list of key/value pairs forwarded to the AWS Control Tower `EnableControl` API as the `Parameters` argument. This is required for region-aware controls (for example `AWS-GR_REGION_DENY` or `CT.MULTISERVICE.PV.1`), which otherwise fail to deploy with `Parameter AllowedRegions is required`.\n\n### Usage Example\n\n```yaml\n- identifier: CT.MULTISERVICE.PV.1   enable: true   deploymentTargets:     organizationalUnits:       - Root   parameters:     - key: AllowedRegions       value:         - us-east-1         - us-west-2 ```",
+          "items": {
+            "$ref": "#/definitions/IControlTowerControlParameter"
+          },
+          "type": "array"
+        },
         "regions": {
           "default": "Home region only",
           "description": "**Regional Scope** *(Optional)*\n\nSpecifies the AWS regions where this control should be enabled. If not specified, the control is enabled in the home region only.\n\n### Regional Deployment\n\n**Global Controls:**\n- Some controls are inherently global (e.g., IAM-related controls)\n- Regional specification is ignored for global controls\n- Applied once per account regardless of region list\n\n**Regional Controls:**\n- Most controls are region-specific (e.g., EC2, VPC controls)\n- Must be explicitly enabled in each target region\n- Each region deployment counts as a separate operation\n\n### Usage Examples\n\n```yaml regions:   - us-east-1   - us-west-2   - eu-west-1 ```\n\n### Important Considerations\n\n- Each region deployment counts toward the 10 concurrent operation limit\n- Regions must be listed in the `enabledRegions` section of global-config.yaml\n- Invalid regions will cause deployment failures",
@@ -797,6 +804,45 @@
         "identifier",
         "enable",
         "deploymentTargets"
+      ],
+      "type": "object"
+    },
+    "IControlTowerControlParameter": {
+      "additionalProperties": false,
+      "description": "* {@link  IControlTowerControlConfig }  /  {@link  IControlTowerControlParameter } *\n\nKey/value pair passed to the Control Tower `EnableControl` API as a control parameter. The shape mirrors the CloudFormation `AWS::ControlTower::EnabledControl` `Parameters` property.",
+      "properties": {
+        "key": {
+          "$ref": "#/definitions/NonEmptyString",
+          "description": "Parameter name (for example `AllowedRegions` or `ExemptedActions`)."
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              "type": "array"
+            }
+          ],
+          "description": "Parameter value. Control Tower accepts JSON-compatible scalars or arrays; `AllowedRegions`, in particular, requires an array of region strings."
+        }
+      },
+      "required": [
+        "key",
+        "value"
       ],
       "type": "object"
     },

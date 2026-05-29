@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 feat(networking): add tcp timeout property to gateway load balancer listener
 feat(networking): add routeTableAssociations and routeTablePropagations to transit gateway connect config
+feat(controltower): support parameters on enabled controls
 
 ### Fixed
 - fix(config): add policy replacement support for custom Config rule

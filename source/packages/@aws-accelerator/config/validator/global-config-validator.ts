@@ -1245,12 +1245,59 @@ export class GlobalConfigValidator {
   }
 
   private validateControlTowerControls(values: GlobalConfig, errors: string[]) {
+    // Per the Control Tower control parameter reference, EnableControl rejects
+    // any parameter key outside this set:
+    // https://docs.aws.amazon.com/controltower/latest/controlreference/control-parameter-concepts.html
+    const knownParameterKeys = new Set([
+      'AllowedRegions',
+      'ExemptedActions',
+      'ExemptedPrincipalArns',
+      'ExemptedResourceArns',
+      'ExemptAssumeRoot',
+    ]);
+    // ExemptAssumeRoot is only valid for AWS-GR_RESTRICT_ROOT_USER and only accepts the value `true`.
+    const exemptAssumeRootControl = 'AWS-GR_RESTRICT_ROOT_USER';
+    const logger = createLogger(['global-config-validator-control-tower-controls']);
+
     for (const control of values.controlTower.controls ?? []) {
       // Check deploymentTargets does not contain accounts
       if (control.deploymentTargets?.accounts?.length > 0) {
         errors.push(
           `Control Tower controls can only be deployed to Organizational Units. Please remove all account deployment targets from ${control.identifier}`,
         );
+      }
+
+      for (const parameter of control.parameters ?? []) {
+        if (!knownParameterKeys.has(parameter.key)) {
+          logger.warn(
+            `Control Tower control ${control.identifier} has parameter key "${parameter.key}" which is not one of the known keys ` +
+              `(${[...knownParameterKeys].join(', ')}). The EnableControl API may reject unknown keys.`,
+          );
+        }
+
+        if (parameter.key === 'ExemptAssumeRoot') {
+          // Only flag misuse when the identifier is unambiguous. Skip opaque/regional IDs.
+          if (
+            control.identifier.startsWith('AWS-GR_') &&
+            control.identifier !== exemptAssumeRootControl
+          ) {
+            logger.warn(
+              `Control Tower control ${control.identifier} sets ExemptAssumeRoot. ` +
+                `This parameter is only valid for ${exemptAssumeRootControl}.`,
+            );
+          }
+          const isTrueValue = (v: unknown): boolean =>
+            v === true || (typeof v === 'string' && v.toLowerCase() === 'true');
+          const valueIsTrue =
+            isTrueValue(parameter.value) ||
+            (Array.isArray(parameter.value) && parameter.value.length === 1 && isTrueValue(parameter.value[0]));
+          if (!valueIsTrue) {
+            logger.warn(
+              `Control Tower control ${control.identifier} sets ExemptAssumeRoot to a value other than \`true\`. ` +
+                `Per AWS documentation, ExemptAssumeRoot only accepts \`true\`; omit the parameter entirely to disable the exemption.`,
+            );
+          }
+        }
       }
     }
   }

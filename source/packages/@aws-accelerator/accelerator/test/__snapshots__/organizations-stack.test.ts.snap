@@ -3338,6 +3338,35 @@ exports[`OrganizationsStack > Construct(OrganizationsStack):  Snapshot Test 1`] 
       "Type": "Custom::CreatePolicy",
       "UpdateReplacePolicy": "Delete",
     },
+    "CtEc2Pv5SecureWorkloads": {
+      "DependsOn": [
+        "6s095tcdtgab75dd0229m5x6nSecureWorkloads",
+      ],
+      "Properties": {
+        "ControlIdentifier": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":controlcatalog:::control/CT.EC2.PV.5",
+            ],
+          ],
+        },
+        "Parameters": [
+          {
+            "Key": "ExemptedPrincipalArns",
+            "Value": [
+              "arn:aws:iam::*:role/VMImportExportAdmin",
+            ],
+          },
+        ],
+        "TargetIdentifier": "arn:aws:organizations::111111111111:ou/o-asdf123456/ou-asdf-33333333",
+      },
+      "Type": "AWS::ControlTower::EnabledControl",
+    },
     "CustomAuditManagerEnableOrganizationAdminAccountCustomResourceProviderHandlerCA9379D9": {
       "DependsOn": [
         "CustomAuditManagerEnableOrganizationAdminAccountCustomResourceProviderRoleF4A6BEA4",
@@ -6854,6 +6883,35 @@ exports[`OrganizationsStack with SkipMacie > Construct(OrganizationsStack with S
       },
       "Type": "Custom::CreatePolicy",
       "UpdateReplacePolicy": "Delete",
+    },
+    "CtEc2Pv5SecureWorkloads": {
+      "DependsOn": [
+        "6s095tcdtgab75dd0229m5x6nSecureWorkloads",
+      ],
+      "Properties": {
+        "ControlIdentifier": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":controlcatalog:::control/CT.EC2.PV.5",
+            ],
+          ],
+        },
+        "Parameters": [
+          {
+            "Key": "ExemptedPrincipalArns",
+            "Value": [
+              "arn:aws:iam::*:role/VMImportExportAdmin",
+            ],
+          },
+        ],
+        "TargetIdentifier": "arn:aws:organizations::111111111111:ou/o-asdf123456/ou-asdf-33333333",
+      },
+      "Type": "AWS::ControlTower::EnabledControl",
     },
     "CustomAuditManagerEnableOrganizationAdminAccountCustomResourceProviderHandlerCA9379D9": {
       "DependsOn": [

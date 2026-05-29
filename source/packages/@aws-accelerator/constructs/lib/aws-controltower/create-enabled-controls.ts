@@ -2,6 +2,8 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { pascalCase } from 'pascal-case';
 
+import { IControlTowerControlParameter } from '@aws-accelerator/config';
+
 /**
  * Interface representing the properties required to enable a Control Tower control.
  *
@@ -23,6 +25,16 @@ export interface EnabledControlProps {
   ouName: string;
   ouArn: string;
   enabledControlIdentifier: string;
+  /**
+   * Optional parameters forwarded to the Control Tower `EnableControl` API.
+   * Required for region-aware controls such as `AWS-GR_REGION_DENY` or
+   * `CT.MULTISERVICE.PV.1`, which need `AllowedRegions` to be set.
+   *
+   * Typed as the config-model shape so the schema-validated YAML flows
+   * through unchanged. Translation to the wider CDK
+   * `EnabledControlParameterProperty` shape happens inside this construct.
+   */
+  parameters?: IControlTowerControlParameter[];
 }
 
 /**
@@ -99,6 +111,11 @@ export class CreateControlTowerEnabledControls extends Construct {
         {
           controlIdentifier: cdk.Arn.format(arnComponents),
           targetIdentifier: control.ouArn,
+          // Boundary translation: the public surface uses the config-model
+          // type while CfnEnabledControl wants its own EnabledControlParameter
+          // shape. Today the fields line up 1:1, but doing the map keeps the
+          // boundary explicit and isolates any future CDK shape drift here.
+          parameters: control.parameters?.map(p => ({ key: p.key, value: p.value })),
         },
       );
     });

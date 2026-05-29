@@ -33,3 +33,15 @@ controls:
     deploymentTargets:
       organizationalUnits:
         - SecureWorkloads
+  # Demonstrates the optional `parameters` field. CT.EC2.PV.5 denies the EC2
+  # VM Import/Export APIs and accepts a single optional parameter,
+  # ExemptedPrincipalArns, used to whitelist principals from the deny.
+  - identifier: CT.EC2.PV.5
+    enable: true
+    deploymentTargets:
+      organizationalUnits:
+        - SecureWorkloads
+    parameters:
+      - key: ExemptedPrincipalArns
+        value:
+          - arn:aws:iam::*:role/VMImportExportAdmin

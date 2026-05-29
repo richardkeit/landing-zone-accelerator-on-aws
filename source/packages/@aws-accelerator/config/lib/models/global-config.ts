@@ -975,6 +975,53 @@ export interface IControlTowerControlConfig {
    * @default Home region only
    */
   readonly regions?: string[];
+
+  /**
+   * **Control Parameters** *(Optional)*
+   *
+   * A list of key/value pairs forwarded to the AWS Control Tower `EnableControl`
+   * API as the `Parameters` argument. This is required for region-aware controls
+   * (for example `AWS-GR_REGION_DENY` or `CT.MULTISERVICE.PV.1`), which otherwise
+   * fail to deploy with `Parameter AllowedRegions is required`.
+   *
+   * ### Usage Example
+   *
+   * ```yaml
+   * - identifier: CT.MULTISERVICE.PV.1
+   *   enable: true
+   *   deploymentTargets:
+   *     organizationalUnits:
+   *       - Root
+   *   parameters:
+   *     - key: AllowedRegions
+   *       value:
+   *         - us-east-1
+   *         - us-west-2
+   * ```
+   *
+   * @see [EnabledControl Parameters](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-controltower-enabledcontrol-enabledcontrolparameter.html)
+   */
+  readonly parameters?: IControlTowerControlParameter[];
+}
+
+/**
+ * *{@link IControlTowerControlConfig} / {@link IControlTowerControlParameter}*
+ *
+ * Key/value pair passed to the Control Tower `EnableControl` API as a control
+ * parameter. The shape mirrors the CloudFormation
+ * `AWS::ControlTower::EnabledControl` `Parameters` property.
+ */
+export interface IControlTowerControlParameter {
+  /**
+   * Parameter name (for example `AllowedRegions` or `ExemptedActions`).
+   */
+  readonly key: t.NonEmptyString;
+
+  /**
+   * Parameter value. Control Tower accepts JSON-compatible scalars or arrays;
+   * `AllowedRegions`, in particular, requires an array of region strings.
+   */
+  readonly value: string | number | boolean | (string | number | boolean)[];
 }
 
 /**
