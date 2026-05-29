@@ -497,6 +497,7 @@ export class TgwResources {
             },
             customLambdaLogKmsKey: this.stack.cloudwatchKey,
             logRetentionInDays: this.stack.logRetention ?? 365,
+            peeringName: transitGatewayPeeringItem.name,
           },
         ).peeringAttachmentId;
         tgwPeeringMap.set(transitGatewayPeeringItem.name, peeringAttachmentId);

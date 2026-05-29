@@ -96,6 +96,11 @@ export interface TransitGatewayPeeringProps {
    * Custom resource lambda log retention in days
    */
   readonly logRetentionInDays: number;
+  /**
+   * The peering definition name. Used to tag the accepter-side attachment
+   * so the get-transit-gateway-attachment lookup Lambda can resolve it.
+   */
+  readonly peeringName?: string;
 }
 
 /**
@@ -152,9 +157,18 @@ export class TransitGatewayPeering extends Construct {
     });
 
     const tags: { Key: string; Value: string }[] = [];
+
+    // Always tag the accepter attachment with the peering definition name
+    // so the get-transit-gateway-attachment lookup Lambda can resolve it.
+    if (props.peeringName) {
+      tags.push({ Key: 'Name', Value: props.peeringName });
+    }
+
     if (props.requester.tags) {
       if (props.accepter.applyTags ?? false) {
         for (const peeringTag of props.requester.tags) {
+          // Skip Name tag if we already set it from peeringName above
+          if (peeringTag.key === 'Name' && props.peeringName) continue;
           tags.push({ Key: peeringTag.key, Value: peeringTag.value });
         }
       }

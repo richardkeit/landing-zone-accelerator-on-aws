@@ -237,9 +237,7 @@ async function getTgwAttachmentIdsForGroup(
           if (
             attachment.TransitGatewayId === options.transitGatewayId &&
             attachment.State === 'available' &&
-            attachment.ResourceType === 'peering' &&
-            attachment.Tags &&
-            attachment.Tags.find(tag => tag.Key !== 'Accelerator')
+            attachment.ResourceType === 'peering'
           ) {
             results.set(index, attachment.TransitGatewayAttachmentId!);
             pendingAttachments.delete(index);
@@ -344,6 +342,7 @@ function setOptions(resourceProperties: { [key: string]: any }, serviceToken: st
     transitGatewayId: resourceProperties['transitGatewayId'],
     vpcOwningAccountId: resourceProperties['owningAccountId'],
     vpcLookupRoleArn: resourceProperties['roleArn'],
+    isSameAccountRegionAccepter: resourceProperties['isSameAccountRegionAccepter'] === 'true',
     crossAccountVpnOptions: resourceProperties['crossAccountVpnOptions'],
   };
 }
