@@ -147,10 +147,10 @@ controlTower:
           - Devops
           - Infrastructure
           - Level1
-    # Demonstrates the optional `parameters` field. CT.EC2.PV.5 denies the EC2
-    # VM Import/Export APIs and accepts a single optional parameter,
-    # ExemptedPrincipalArns, used to whitelist principals from the deny.
-    - identifier: CT.EC2.PV.5
+    # Demonstrates the optional `parameters` field (CT.EC2.PV.5).
+    # Must use the opaque global identifier from Control Catalog, not the
+    # human-readable CT.* name (CFN rejects dots in ControlIdentifier ARN).
+    - identifier: 53u8m2z255npa7rldrk77vm5z
       enable: true
       deploymentTargets:
         organizationalUnits:
