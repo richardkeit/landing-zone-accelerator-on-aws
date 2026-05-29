@@ -48,12 +48,22 @@ centralSecurityServices:
     enable: true
     snsTopicName: Security
   macie:
+    overrideExisting: true
     enable: true
     excludeRegions:
       - us-west-2
     policyFindingsPublishingFrequency: FIFTEEN_MINUTES
     publishSensitiveDataFindings: true
     publishPolicyFindings: true
+    lifecycleRules:
+      - enabled: true
+        id: MacieFindingsRetention
+        abortIncompleteMultipartUpload: 7
+        expiration: 365
+        noncurrentVersionExpiration: 365
+        transitions:
+          - storageClass: GLACIER
+            transitionAfter: 90
   guardduty:
     enable: true
     deploymentTargets:
