@@ -25,7 +25,8 @@ const env = { account: '333333333333', region: 'us-east-1' };
 const stack = new cdk.Stack(app, 'Stack', { env: env });
 
 new OptInRegions(stack, 'OptInRegions', {
-  kmsKey: new cdk.aws_kms.Key(stack, 'CustomKey', {}),
+  lambdaKey: new cdk.aws_kms.Key(stack, 'CustomLambdaKey', {}),
+  cloudwatchKey: new cdk.aws_kms.Key(stack, 'CustomCloudWatchKey', {}),
   logRetentionInDays: 3653,
   managementAccountId: '333333333333',
   accountIds: ['333333333333', '444444444444', '555555555555', '666666666666'],

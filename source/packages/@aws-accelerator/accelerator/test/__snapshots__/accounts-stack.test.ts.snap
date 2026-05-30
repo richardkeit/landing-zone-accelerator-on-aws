@@ -1884,7 +1884,7 @@ exports[`AccountsStack us-east-1 > Construct(AccountsStack):  Snapshot Test 1`] 
         },
         "Handler": "index.handler",
         "KmsKeyArn": {
-          "Ref": "SsmParameterValueacceleratorkmscloudwatchkeyarnC96584B6F00A464EAD1953AFF4B05118Parameter",
+          "Ref": "SsmParameterValueacceleratorkmslambdakeyarnC96584B6F00A464EAD1953AFF4B05118Parameter",
         },
         "MemorySize": 512,
         "Role": {
@@ -2015,7 +2015,7 @@ exports[`AccountsStack us-east-1 > Construct(AccountsStack):  Snapshot Test 1`] 
         },
         "Handler": "index.handler",
         "KmsKeyArn": {
-          "Ref": "SsmParameterValueacceleratorkmscloudwatchkeyarnC96584B6F00A464EAD1953AFF4B05118Parameter",
+          "Ref": "SsmParameterValueacceleratorkmslambdakeyarnC96584B6F00A464EAD1953AFF4B05118Parameter",
         },
         "MemorySize": 512,
         "Role": {

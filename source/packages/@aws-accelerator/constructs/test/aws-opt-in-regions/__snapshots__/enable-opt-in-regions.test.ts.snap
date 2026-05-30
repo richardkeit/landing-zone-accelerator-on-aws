@@ -3,7 +3,38 @@
 exports[`EnableOptInRegions > Construct(EnableOptInRegions):  Snapshot Test 1`] = `
 {
   "Resources": {
-    "CustomKey1E6D0D07": {
+    "CustomCloudWatchKey720588E1": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "KeyPolicy": {
+          "Statement": [
+            {
+              "Action": "kms:*",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":iam::333333333333:root",
+                    ],
+                  ],
+                },
+              },
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::KMS::Key",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "CustomLambdaKey2287F5A9": {
       "DeletionPolicy": "Retain",
       "Properties": {
         "KeyPolicy": {
@@ -85,7 +116,7 @@ exports[`EnableOptInRegions > Construct(EnableOptInRegions):  Snapshot Test 1`] 
         "Handler": "index.handler",
         "KmsKeyArn": {
           "Fn::GetAtt": [
-            "CustomKey1E6D0D07",
+            "CustomLambdaKey2287F5A9",
             "Arn",
           ],
         },
@@ -106,7 +137,7 @@ exports[`EnableOptInRegions > Construct(EnableOptInRegions):  Snapshot Test 1`] 
       "Properties": {
         "KmsKeyId": {
           "Fn::GetAtt": [
-            "CustomKey1E6D0D07",
+            "CustomCloudWatchKey720588E1",
             "Arn",
           ],
         },
@@ -202,7 +233,7 @@ exports[`EnableOptInRegions > Construct(EnableOptInRegions):  Snapshot Test 1`] 
         "Handler": "index.handler",
         "KmsKeyArn": {
           "Fn::GetAtt": [
-            "CustomKey1E6D0D07",
+            "CustomLambdaKey2287F5A9",
             "Arn",
           ],
         },
@@ -223,7 +254,7 @@ exports[`EnableOptInRegions > Construct(EnableOptInRegions):  Snapshot Test 1`] 
       "Properties": {
         "KmsKeyId": {
           "Fn::GetAtt": [
-            "CustomKey1E6D0D07",
+            "CustomCloudWatchKey720588E1",
             "Arn",
           ],
         },

@@ -21,9 +21,13 @@ import * as path from 'path';
  */
 export interface OptInRegionsProps {
   /**
+   * Custom resource lambda encryption key, when undefined default AWS managed key will be used
+   */
+  readonly lambdaKey?: cdk.aws_kms.IKey;
+  /**
    * Custom resource lambda log group encryption key, when undefined default AWS managed key will be used
    */
-  readonly kmsKey?: cdk.aws_kms.IKey;
+  readonly cloudwatchKey?: cdk.aws_kms.IKey;
   /**
    * Custom resource lambda log retention in days
    */
@@ -88,14 +92,14 @@ export class OptInRegions extends Construct {
       handler: 'index.handler',
       timeout: cdk.Duration.minutes(1),
       description: 'Opt-in Regions onEvent handler',
-      environmentEncryption: props.kmsKey,
+      environmentEncryption: props.lambdaKey,
       initialPolicy: [serviceAccessAndTokenPolicy],
     });
 
     const onEventLogGroup = new cdk.aws_logs.LogGroup(this, `${this.onEvent.node.id}LogGroup`, {
       logGroupName: `/aws/lambda/${this.onEvent.functionName}`,
       retention: props.logRetentionInDays,
-      encryptionKey: props.kmsKey,
+      encryptionKey: props.cloudwatchKey,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
@@ -105,14 +109,14 @@ export class OptInRegions extends Construct {
       handler: 'index.handler',
       timeout: cdk.Duration.minutes(5),
       description: 'Opt-in Regions isComplete handler',
-      environmentEncryption: props.kmsKey,
+      environmentEncryption: props.lambdaKey,
       initialPolicy: [AccountOperationsPolicy],
     });
 
     const isCompleteLogGroup = new cdk.aws_logs.LogGroup(this, `${this.isComplete.node.id}LogGroup`, {
       logGroupName: `/aws/lambda/${this.isComplete.functionName}`,
       retention: props.logRetentionInDays,
-      encryptionKey: props.kmsKey,
+      encryptionKey: props.cloudwatchKey,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 

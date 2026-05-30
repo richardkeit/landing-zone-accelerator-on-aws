@@ -192,7 +192,8 @@ export class AccountsStack extends AcceleratorStack {
   private enableOptInRegions(props: AccountsStackProps) {
     this.logger.info(`Enable opt-in regions`);
     new OptInRegions(this, 'OptInRegions', {
-      kmsKey: this.keyResource.cloudwatchKey,
+      lambdaKey: this.keyResource.lambdaKey,
+      cloudwatchKey: this.keyResource.cloudwatchKey,
       logRetentionInDays: props.globalConfig.cloudwatchLogRetentionInDays,
       managementAccountId: props.accountsConfig.getManagementAccountId(),
       accountIds: props.accountsConfig.getAccountIds(),
