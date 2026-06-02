@@ -32,17 +32,17 @@ import * as serviceCatalogModule from '@aws-sdk/client-service-catalog';
 
 // Mock SSM Client
 vi.mock('@aws-sdk/client-ssm', () => ({
-  SSMClient: vi.fn().mockImplementation(() => ({
+  SSMClient: vi.fn().mockImplementation(function() { return {
     send: vi.fn().mockResolvedValue({}),
-  })),
+  }; }),
   PutParameterCommand: vi.fn(),
 }));
 
 // Mock STS Client
 vi.mock('@aws-sdk/client-sts', () => ({
-  STSClient: vi.fn().mockImplementation(() => ({
+  STSClient: vi.fn().mockImplementation(function() { return {
     send: vi.fn().mockResolvedValue({ Arn: 'arn:aws:sts::123456789012:assumed-role/MockRole/session' }),
-  })),
+  }; }),
   GetCallerIdentityCommand: vi.fn(),
 }));
 
@@ -51,16 +51,16 @@ vi.mock('@aws-sdk/client-service-catalog', async importOriginal => {
   const original = await importOriginal<typeof serviceCatalogModule>();
   return {
     ...original,
-    ServiceCatalogClient: vi.fn().mockImplementation(() => ({
+    ServiceCatalogClient: vi.fn().mockImplementation(function() { return {
       send: vi.fn().mockResolvedValue({}),
-    })),
-    paginateListPortfolios: vi.fn().mockImplementation(() => ({
+    }; }),
+    paginateListPortfolios: vi.fn().mockImplementation(function() { return {
       async *[Symbol.asyncIterator]() {
         yield {
           PortfolioDetails: [{ Id: 'port-mock123', DisplayName: 'AWS Control Tower Account Factory Portfolio' }],
         };
       },
-    })),
+    }; }),
     AssociatePrincipalWithPortfolioCommand: vi.fn(),
     PrincipalType: original.PrincipalType,
   };
@@ -81,19 +81,19 @@ describe('RegisterOrganizationalUnitModule', () => {
     vi.clearAllMocks();
 
     // Re-establish SSMClient mock after clearAllMocks
-    (SSMClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+    (SSMClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(function() { return {
       send: vi.fn().mockResolvedValue({}),
-    }));
+    }; });
 
     // Re-establish STSClient mock after clearAllMocks
-    (STSClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+    (STSClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(function() { return {
       send: vi.fn().mockResolvedValue({ Arn: 'arn:aws:sts::123456789012:assumed-role/MockRole/session' }),
-    }));
+    }; });
 
     // Re-establish ServiceCatalogClient mock after clearAllMocks
-    (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+    (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(function() { return {
       send: vi.fn().mockResolvedValue({}),
-    }));
+    }; });
     vi.mocked(serviceCatalogModule.paginateListPortfolios).mockImplementation(
       () =>
         ({
@@ -368,9 +368,9 @@ describe('RegisterOrganizationalUnitModule', () => {
 
     test('should associate caller role with Control Tower portfolio on successful execution', async () => {
       const mockScSend = vi.fn().mockResolvedValue({});
-      (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(function() { return {
         send: mockScSend,
-      }));
+      }; });
 
       await RegisterOrganizationalUnitModule.execute(createParams());
 
@@ -393,9 +393,9 @@ describe('RegisterOrganizationalUnitModule', () => {
       );
 
       const mockScSend = vi.fn();
-      (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(function() { return {
         send: mockScSend,
-      }));
+      }; });
 
       const response = await RegisterOrganizationalUnitModule.execute(createParams());
 
@@ -404,9 +404,9 @@ describe('RegisterOrganizationalUnitModule', () => {
     });
 
     test('should continue execution when association fails', async () => {
-      (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      (ServiceCatalogClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(function() { return {
         send: vi.fn().mockRejectedValue(new Error('Access denied')),
-      }));
+      }; });
 
       const response = await RegisterOrganizationalUnitModule.execute(createParams());
 
@@ -415,9 +415,9 @@ describe('RegisterOrganizationalUnitModule', () => {
     });
 
     test('should continue execution when caller identity fails', async () => {
-      (STSClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      (STSClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(function() { return {
         send: vi.fn().mockRejectedValue(new Error('STS error')),
-      }));
+      }; });
 
       const response = await RegisterOrganizationalUnitModule.execute(createParams());
 

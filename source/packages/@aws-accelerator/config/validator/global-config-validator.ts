@@ -1277,10 +1277,7 @@ export class GlobalConfigValidator {
 
         if (parameter.key === 'ExemptAssumeRoot') {
           // Only flag misuse when the identifier is unambiguous. Skip opaque/regional IDs.
-          if (
-            control.identifier.startsWith('AWS-GR_') &&
-            control.identifier !== exemptAssumeRootControl
-          ) {
+          if (control.identifier.startsWith('AWS-GR_') && control.identifier !== exemptAssumeRootControl) {
             logger.warn(
               `Control Tower control ${control.identifier} sets ExemptAssumeRoot. ` +
                 `This parameter is only valid for ${exemptAssumeRootControl}.`,

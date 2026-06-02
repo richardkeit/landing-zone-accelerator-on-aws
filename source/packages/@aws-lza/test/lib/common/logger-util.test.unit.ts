@@ -28,7 +28,9 @@ vi.mock('../../../lib/common/throttle', () => ({
 }));
 
 vi.mock('../../../lib/common/utility', () => ({
-  setRetryStrategy: vi.fn(() => ({})),
+  setRetryStrategy: vi.fn(function () {
+    return {};
+  }),
 }));
 
 const MOCK_CONSTANTS = {

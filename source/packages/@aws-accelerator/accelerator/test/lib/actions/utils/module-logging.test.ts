@@ -18,7 +18,9 @@ import { logModuleExecutionResult } from '../../../../lib/actions/utils/module-l
 // Mock node:path
 vi.mock('node:path', () => ({
   default: {
-    parse: vi.fn(() => ({ name: 'module-logging' })),
+    parse: vi.fn(function () {
+      return { name: 'module-logging' };
+    }),
     basename: vi.fn(() => 'module-logging.ts'),
   },
 }));

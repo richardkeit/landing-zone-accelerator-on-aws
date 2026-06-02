@@ -1019,7 +1019,11 @@ export class VpcBaseStack extends AcceleratorStack {
       logFormat = vpcFlowLogsConfig.customFields.map(c => `$\{${c}}`).join(' ');
     }
 
-    if ((vpcFlowLogsConfig.destinations.includes('cloud-watch-logs') || vpcFlowLogsConfig.destinationsConfig?.cloudWatchLogs) && isV2Resource(this.v2StackProps.v2NetworkResources, this.vpcDetails.name, V2StackComponentsList.CWL_FLOW_LOGS)) {
+    if (
+      (vpcFlowLogsConfig.destinations.includes('cloud-watch-logs') ||
+        vpcFlowLogsConfig.destinationsConfig?.cloudWatchLogs) &&
+      isV2Resource(this.v2StackProps.v2NetworkResources, this.vpcDetails.name, V2StackComponentsList.CWL_FLOW_LOGS)
+    ) {
       this.createCloudWatchLogVpcFlowLogs(vpcFlowLogsConfig, logFormat);
     }
 

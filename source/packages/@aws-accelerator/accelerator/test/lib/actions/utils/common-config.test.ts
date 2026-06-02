@@ -23,25 +23,31 @@ import type { ModuleParams } from '../../../../lib/types';
 // Mock node:path
 vi.mock('node:path', () => ({
   default: {
-    parse: vi.fn(() => ({ name: 'common-config' })),
+    parse: vi.fn(function () {
+      return { name: 'common-config' };
+    }),
     basename: vi.fn(() => 'common-config.ts'),
   },
 }));
 
 // Mock aws-lza module
 vi.mock('aws-lza', () => ({
-  createLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
-  createStatusLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
+  createLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    };
+  }),
+  createStatusLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    };
+  }),
   getParametersValue: vi.fn(),
   DynamoDBFilterOperator: {
     ATTRIBUTE_EXISTS: 'ATTRIBUTE_EXISTS',

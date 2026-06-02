@@ -37,9 +37,11 @@ describe('getCloudFormationTemplates', () => {
       // Setup
       const mockHandler = vi.fn().mockResolvedValue('SUCCESS');
 
-      (GetCloudFormationTemplatesModule as unknown as vi.Mock).mockImplementation(() => ({
-        handler: mockHandler,
-      }));
+      (GetCloudFormationTemplatesModule as unknown as vi.Mock).mockImplementation(function () {
+        return {
+          handler: mockHandler,
+        };
+      });
 
       // Execute
       const result = await getCloudFormationTemplates(input);
@@ -56,9 +58,11 @@ describe('getCloudFormationTemplates', () => {
       const errorMessage = 'Operation failed';
       const mockHandler = vi.fn().mockRejectedValue(new Error(errorMessage));
 
-      (GetCloudFormationTemplatesModule as unknown as vi.Mock).mockImplementation(() => ({
-        handler: mockHandler,
-      }));
+      (GetCloudFormationTemplatesModule as unknown as vi.Mock).mockImplementation(function () {
+        return {
+          handler: mockHandler,
+        };
+      });
 
       // Execute && Verify
       await expect(getCloudFormationTemplates(input)).rejects.toThrow(errorMessage);
@@ -75,7 +79,7 @@ describe('getCloudFormationTemplates', () => {
     beforeEach(() => {
       originalProcessOn = process.on;
 
-      process.on = vi.fn((event: string, listener: NodeJS.UncaughtExceptionListener) => {
+      process.on = vi.fn(function (event: string, listener: NodeJS.UncaughtExceptionListener) {
         if (event === 'uncaughtException') {
           processOnCallback = listener;
         }
@@ -119,9 +123,11 @@ describe('createStackPolicy', () => {
     const errorMessage = 'Create Stack Policy test error';
     const mockHandler = vi.fn().mockRejectedValue(new Error(errorMessage));
 
-    (StackPolicyModule as unknown as vi.Mock).mockImplementation(() => ({
-      handler: mockHandler,
-    }));
+    (StackPolicyModule as unknown as vi.Mock).mockImplementation(function () {
+      return {
+        handler: mockHandler,
+      };
+    });
     const input = {} as IStackPolicyHandlerParameter;
 
     await expect(createStackPolicy(input)).rejects.toThrow(errorMessage);
@@ -131,9 +137,11 @@ describe('createStackPolicy', () => {
     const resultMessage = 'Module success message';
     const mockHandler = vi.fn().mockReturnValue(resultMessage);
 
-    (StackPolicyModule as unknown as vi.Mock).mockImplementation(() => ({
-      handler: mockHandler,
-    }));
+    (StackPolicyModule as unknown as vi.Mock).mockImplementation(function () {
+      return {
+        handler: mockHandler,
+      };
+    });
     const input = {} as IStackPolicyHandlerParameter;
 
     // Execute

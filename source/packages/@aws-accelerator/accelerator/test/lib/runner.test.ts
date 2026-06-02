@@ -97,7 +97,9 @@ const createMockOrganizationsClient = (sendMock: ReturnType<typeof vi.fn>) =>
 // Mock all external dependencies
 vi.mock('path', () => ({
   default: {
-    parse: vi.fn(() => ({ name: 'runner' })),
+    parse: vi.fn(function () {
+      return { name: 'runner' };
+    }),
     basename: vi.fn(() => 'runner.ts'),
   },
 }));
@@ -125,20 +127,24 @@ vi.mock('../../lib/runner.js', async () => {
 });
 
 vi.mock('aws-lza', () => ({
-  createLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    processStart: vi.fn(),
-    processEnd: vi.fn(),
-  })),
-  createStatusLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
+  createLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+      processStart: vi.fn(),
+      processEnd: vi.fn(),
+    };
+  }),
+  createStatusLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    };
+  }),
   waitForLoggerInitialization: vi.fn().mockResolvedValue(undefined),
   flushLoggers: vi.fn().mockResolvedValue(undefined),
   getCredentials: vi.fn(),
@@ -176,24 +182,26 @@ vi.mock('@aws-sdk/client-organizations', async importOriginal => {
   const actual = await importOriginal<typeof import('@aws-sdk/client-organizations')>();
   return {
     ...actual,
-    OrganizationsClient: vi.fn().mockImplementation(() => ({
-      send: vi.fn().mockImplementation(command => {
-        // Mock different responses based on command type
-        if (command.constructor.name === 'DescribeOrganizationCommand') {
-          return Promise.resolve({
-            Organization: {
-              Id: 'o-example123456',
-              Arn: 'arn:aws:organizations::123456789012:organization/o-example123456',
-              FeatureSet: 'ALL',
-              MasterAccountArn: 'arn:aws:organizations::123456789012:account/o-example123456/123456789012',
-              MasterAccountId: '123456789012',
-              MasterAccountEmail: 'test@example.com',
-            },
-          });
-        }
-        return Promise.resolve({});
-      }),
-    })),
+    OrganizationsClient: vi.fn().mockImplementation(function () {
+      return {
+        send: vi.fn().mockImplementation(command => {
+          // Mock different responses based on command type
+          if (command.constructor.name === 'DescribeOrganizationCommand') {
+            return Promise.resolve({
+              Organization: {
+                Id: 'o-example123456',
+                Arn: 'arn:aws:organizations::123456789012:organization/o-example123456',
+                FeatureSet: 'ALL',
+                MasterAccountArn: 'arn:aws:organizations::123456789012:account/o-example123456/123456789012',
+                MasterAccountId: '123456789012',
+                MasterAccountEmail: 'test@example.com',
+              },
+            });
+          }
+          return Promise.resolve({});
+        }),
+      };
+    }),
     DescribeOrganizationCommand: vi.fn(),
     paginateListAccounts: vi.fn().mockReturnValue({
       async *[Symbol.asyncIterator]() {
@@ -210,13 +218,15 @@ vi.mock('@aws-sdk/client-organizations', async importOriginal => {
 });
 
 vi.mock('@aws-sdk/client-ssm', () => ({
-  SSMClient: vi.fn().mockImplementation(() => ({
-    send: vi.fn().mockResolvedValue({
-      Parameter: {
-        Value: 'arn:aws:kms:us-east-1:XXXXXXXXXXXX:key/12345678-1234-1234-1234-123456789012',
-      },
-    }),
-  })),
+  SSMClient: vi.fn().mockImplementation(function () {
+    return {
+      send: vi.fn().mockResolvedValue({
+        Parameter: {
+          Value: 'arn:aws:kms:us-east-1:XXXXXXXXXXXX:key/12345678-1234-1234-1234-123456789012',
+        },
+      }),
+    };
+  }),
   GetParameterCommand: vi.fn(),
   ParameterNotFound: class extends Error {
     constructor(message: string) {
@@ -233,14 +243,16 @@ vi.mock('../../lib/config-loader.js', () => ({
 }));
 
 vi.mock('../../lib/accelerator-resource-names.js', () => ({
-  AcceleratorResourceNames: vi.fn().mockImplementation(() => ({
-    parameters: {
-      centralLogBucketCmkArn: '/accelerator/central-log-bucket-cmk-arn',
-    },
-    bucketPrefixes: {
-      centralLogs: 'aws-accelerator-central-logs',
-    },
-  })),
+  AcceleratorResourceNames: vi.fn().mockImplementation(function () {
+    return {
+      parameters: {
+        centralLogBucketCmkArn: '/accelerator/central-log-bucket-cmk-arn',
+      },
+      bucketPrefixes: {
+        centralLogs: 'aws-accelerator-central-logs',
+      },
+    };
+  }),
 }));
 
 vi.mock('../../utils/app-utils.js', () => ({
@@ -281,7 +293,7 @@ describe('ModuleRunner', () => {
 
     // Store the original process.on and mock it to prevent handlers from being registered
     originalProcessOn = process.on;
-    process.on = vi.fn(() => {
+    process.on = vi.fn(function () {
       // Don't register any process handlers during tests
       return process;
     }) as unknown as typeof process.on;
@@ -1477,12 +1489,11 @@ describe('ModuleRunner', () => {
 
       // Mock SSM client to return response without Parameter object
       const mockSend = vi.fn().mockResolvedValue({});
-      vi.mocked(ssmClient.SSMClient).mockImplementation(
-        () =>
-          ({
-            send: mockSend,
-          }) as any,
-      );
+      vi.mocked(ssmClient.SSMClient).mockImplementation(function () {
+        return {
+          send: mockSend,
+        } as any;
+      });
 
       const mockStage = {
         name: MODULE_SUPPORTED_STAGES.SECURITY, // Use security stage (runOrder 8 > logging runOrder 5)
@@ -1523,12 +1534,11 @@ describe('ModuleRunner', () => {
           // Value is missing
         },
       });
-      vi.mocked(ssmClient.SSMClient).mockImplementation(
-        () =>
-          ({
-            send: mockSend,
-          }) as any,
-      );
+      vi.mocked(ssmClient.SSMClient).mockImplementation(function () {
+        return {
+          send: mockSend,
+        } as any;
+      });
 
       const mockStage = {
         name: MODULE_SUPPORTED_STAGES.SECURITY, // Use security stage (runOrder 8 > logging runOrder 5)
@@ -1568,12 +1578,11 @@ describe('ModuleRunner', () => {
           $metadata: {},
         }),
       );
-      vi.mocked(ssmClient.SSMClient).mockImplementation(
-        () =>
-          ({
-            send: mockSend,
-          }) as any,
-      );
+      vi.mocked(ssmClient.SSMClient).mockImplementation(function () {
+        return {
+          send: mockSend,
+        } as any;
+      });
 
       const mockStage = {
         name: MODULE_SUPPORTED_STAGES.LOGGING,
@@ -1660,12 +1669,11 @@ describe('ModuleRunner', () => {
 
       // Mock SSM client to throw a generic error (not ParameterNotFound)
       const mockSend = vi.fn().mockRejectedValue(new Error('SSM Service Error'));
-      vi.mocked(ssmClient.SSMClient).mockImplementation(
-        () =>
-          ({
-            send: mockSend,
-          }) as any,
-      );
+      vi.mocked(ssmClient.SSMClient).mockImplementation(function () {
+        return {
+          send: mockSend,
+        } as any;
+      });
 
       const mockStage = {
         name: MODULE_SUPPORTED_STAGES.SECURITY,
@@ -1863,12 +1871,11 @@ describe('ModuleRunner', () => {
           Value: 'arn:aws:kms:us-east-1:XXXXXXXXXXXX:key/12345678-1234-1234-1234-123456789012',
         },
       });
-      vi.mocked(ssmClient.SSMClient).mockImplementation(
-        () =>
-          ({
-            send: mockSend,
-          }) as any,
-      );
+      vi.mocked(ssmClient.SSMClient).mockImplementation(function () {
+        return {
+          send: mockSend,
+        } as any;
+      });
 
       const mockStage = {
         name: MODULE_SUPPORTED_STAGES.SECURITY, // Use security stage (runOrder 8 > logging runOrder 5)
@@ -2099,12 +2106,11 @@ describe('ModuleRunner', () => {
           Value: 'arn:aws:kms:us-east-1:XXXXXXXXXXXX:key/imported-key-12345678-1234-1234-1234-123456789012',
         },
       });
-      vi.mocked(ssmClient.SSMClient).mockImplementation(
-        () =>
-          ({
-            send: mockSend,
-          }) as any,
-      );
+      vi.mocked(ssmClient.SSMClient).mockImplementation(function () {
+        return {
+          send: mockSend,
+        } as any;
+      });
 
       const mockStage = {
         name: MODULE_SUPPORTED_STAGES.SECURITY, // Use security stage (runOrder 8 > logging runOrder 5)

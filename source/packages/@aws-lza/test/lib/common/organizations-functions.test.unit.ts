@@ -61,18 +61,22 @@ vi.mock('@aws-sdk/client-organizations', () => {
 
 vi.mock('../../../lib/common/utility', () => ({
   executeApi: vi.fn(),
-  setRetryStrategy: vi.fn(() => ({})),
+  setRetryStrategy: vi.fn(function () {
+    return {};
+  }),
 }));
 
 vi.mock('../../../lib/common/logger', () => ({
-  createLogger: vi.fn(() => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-    commandExecution: vi.fn(),
-    commandSuccess: vi.fn(),
-    dryRun: vi.fn(),
-  })),
+  createLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      commandExecution: vi.fn(),
+      commandSuccess: vi.fn(),
+      dryRun: vi.fn(),
+    };
+  }),
 }));
 
 vi.mock('../../../lib/common/dynamodb-table-functions', () => ({

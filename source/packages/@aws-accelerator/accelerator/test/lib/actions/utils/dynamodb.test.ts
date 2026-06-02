@@ -20,27 +20,33 @@ import {
 
 // Mock @aws-sdk/client-dynamodb
 vi.mock('@aws-sdk/client-dynamodb', () => ({
-  DynamoDBClient: vi.fn(() => ({
-    send: vi.fn(),
-  })),
+  DynamoDBClient: vi.fn(function () {
+    return {
+      send: vi.fn(),
+    };
+  }),
 }));
 
 // Mock node:path
 vi.mock('node:path', () => ({
   default: {
-    parse: vi.fn(() => ({ name: 'dynamodb' })),
+    parse: vi.fn(function () {
+      return { name: 'dynamodb' };
+    }),
     basename: vi.fn(() => 'dynamodb.ts'),
   },
 }));
 
 // Mock aws-lza module
 vi.mock('aws-lza', () => ({
-  createLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
+  createLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    };
+  }),
   setRetryStrategy: vi.fn(() => ({})),
   queryDynamoDBTable: vi.fn(),
   putItemsBatch: vi.fn(),

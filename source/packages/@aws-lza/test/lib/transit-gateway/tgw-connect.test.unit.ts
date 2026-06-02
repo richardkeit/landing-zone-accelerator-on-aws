@@ -22,7 +22,9 @@ const capturedDescribeConnects: { input: unknown }[] = [];
 const capturedDeleteConnect: { input: unknown }[] = [];
 
 vi.mock('../../../lib/common/logger', () => ({
-  createLogger: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() })),
+  createLogger: vi.fn(function () {
+    return { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+  }),
 }));
 
 vi.mock('../../../lib/common/utility', () => ({
@@ -35,20 +37,22 @@ vi.mock('../../../lib/common/sts-functions', () => ({
 }));
 
 vi.mock('@aws-sdk/client-ec2', () => ({
-  EC2Client: vi.fn(() => ({ send: mockEc2Send })),
-  CreateTransitGatewayConnectCommand: vi.fn(input => {
+  EC2Client: vi.fn(function () {
+    return { send: mockEc2Send };
+  }),
+  CreateTransitGatewayConnectCommand: vi.fn(function (input) {
     capturedCreateConnect.push({ input });
     return { input };
   }),
-  CreateTagsCommand: vi.fn(input => {
+  CreateTagsCommand: vi.fn(function (input) {
     capturedCreateTags.push({ input });
     return { input };
   }),
-  DeleteTransitGatewayConnectCommand: vi.fn(input => {
+  DeleteTransitGatewayConnectCommand: vi.fn(function (input) {
     capturedDeleteConnect.push({ input });
     return { input };
   }),
-  DescribeTransitGatewayConnectsCommand: vi.fn(input => {
+  DescribeTransitGatewayConnectsCommand: vi.fn(function (input) {
     capturedDescribeConnects.push({ input });
     return { input };
   }),

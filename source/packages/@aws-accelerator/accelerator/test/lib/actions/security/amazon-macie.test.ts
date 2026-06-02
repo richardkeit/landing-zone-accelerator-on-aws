@@ -24,7 +24,9 @@ import { AcceleratorResourcePrefixes } from '../../../../utils/app-utils';
 // Mock path module
 vi.mock('path', () => ({
   default: {
-    parse: vi.fn(() => ({ name: 'amazon-macie' })),
+    parse: vi.fn(function () {
+      return { name: 'amazon-macie' };
+    }),
     basename: vi.fn(() => 'amazon-macie.ts'),
   },
 }));
@@ -73,13 +75,15 @@ vi.mock('aws-lza', () => {
 
 // Mock common-config module
 vi.mock('../../../../lib/actions/utils/common-config', () => ({
-  extractSecurityServiceMetadata: vi.fn(() => ({
-    delegatedAdminAccountId: 'YYYYYYYYYYYY',
-    enabledRegionsCount: 2,
-    enabledRegionsHash: 'abc123',
-    accountsCount: 4,
-    accountsHash: 'def456',
-  })),
+  extractSecurityServiceMetadata: vi.fn(function () {
+    return {
+      delegatedAdminAccountId: 'YYYYYYYYYYYY',
+      enabledRegionsCount: 2,
+      enabledRegionsHash: 'abc123',
+      accountsCount: 4,
+      accountsHash: 'def456',
+    };
+  }),
   loadOrganizationDataSources: vi.fn(() => Promise.resolve(undefined)),
 }));
 
@@ -150,8 +154,14 @@ describe('AmazonMacie', () => {
     loadOrganizationsFromDynamoDbTable: false,
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    // Reset dynamically-imported mocks to default resolved state (vitest 4.x persists mockRejectedValue through clearAllMocks)
+    const { hasModuleConfigChanged, saveModuleExecutionState } = await import(
+      '../../../../lib/actions/utils/module-state.js'
+    );
+    vi.mocked(hasModuleConfigChanged).mockResolvedValue(true);
+    vi.mocked(saveModuleExecutionState).mockResolvedValue(undefined);
 
     mockAccountsConfig = {
       getManagementAccountId: vi.fn().mockReturnValue('111111111111'),

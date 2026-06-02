@@ -62,13 +62,15 @@ const MOCK_CONSTANTS = {
 
 // Mock logger
 vi.mock('../../../lib/common/logger', () => ({
-  createLogger: vi.fn(() => ({
-    processStart: vi.fn(),
-    processEnd: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  })),
+  createLogger: vi.fn(function () {
+    return {
+      processStart: vi.fn(),
+      processEnd: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+  }),
 }));
 
 describe('batch-processor', () => {

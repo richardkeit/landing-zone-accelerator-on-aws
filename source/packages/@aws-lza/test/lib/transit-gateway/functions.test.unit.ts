@@ -14,7 +14,9 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 vi.mock('@aws-sdk/client-ec2', () => ({
-  EC2Client: vi.fn().mockImplementation((config: Record<string, unknown>) => ({ config })),
+  EC2Client: vi.fn().mockImplementation(function (config: Record<string, unknown>) {
+    return { config };
+  }),
 }));
 
 vi.mock('../../../lib/common/utility', () => ({

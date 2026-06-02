@@ -32,11 +32,15 @@ vi.mock('../../../lib/common/sts-functions', () => ({
 
 const mockSsmHandler = vi.fn();
 vi.mock('../../../lib/aws-ssm/get-parameters', () => ({
-  GetSsmParametersValueModule: vi.fn(() => ({ handler: mockSsmHandler })),
+  GetSsmParametersValueModule: vi.fn(function () {
+    return { handler: mockSsmHandler };
+  }),
 }));
 
 vi.mock('@aws-sdk/client-direct-connect', () => ({
-  DirectConnectClient: vi.fn(() => ({ send: mockDxSend })),
+  DirectConnectClient: vi.fn(function () {
+    return { send: mockDxSend };
+  }),
   CreateDirectConnectGatewayAssociationCommand: vi.fn(),
   CreateDirectConnectGatewayAssociationProposalCommand: vi.fn(),
   DeleteDirectConnectGatewayAssociationCommand: vi.fn(),
@@ -45,7 +49,9 @@ vi.mock('@aws-sdk/client-direct-connect', () => ({
 }));
 
 vi.mock('@aws-sdk/client-ec2', () => ({
-  EC2Client: vi.fn(() => ({ send: mockEc2Send })),
+  EC2Client: vi.fn(function () {
+    return { send: mockEc2Send };
+  }),
   DescribeTransitGatewayAttachmentsCommand: vi.fn(),
 }));
 

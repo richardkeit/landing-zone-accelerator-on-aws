@@ -81,12 +81,24 @@ describe('Build Identity Center Assignments - Principal ID Lookup', () => {
         }),
     };
 
-    vi.mocked(IdentitystoreClient).mockImplementation(() => mockIdentityStoreClient);
-    vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
-    vi.mocked(CreateAccountAssignmentCommand).mockImplementation(input => ({ input }));
-    vi.mocked(DeleteAccountAssignmentCommand).mockImplementation(input => ({ input }));
-    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(input => ({ input }));
-    vi.mocked(DescribeAccountAssignmentDeletionStatusCommand).mockImplementation(input => ({ input }));
+    vi.mocked(IdentitystoreClient).mockImplementation(function () {
+      return mockIdentityStoreClient;
+    });
+    vi.mocked(SSOAdminClient).mockImplementation(function () {
+      return mockSSOAdminClient;
+    });
+    vi.mocked(CreateAccountAssignmentCommand).mockImplementation(function (input) {
+      return { input };
+    });
+    vi.mocked(DeleteAccountAssignmentCommand).mockImplementation(function (input) {
+      return { input };
+    });
+    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(function (input) {
+      return { input };
+    });
+    vi.mocked(DescribeAccountAssignmentDeletionStatusCommand).mockImplementation(function (input) {
+      return { input };
+    });
   });
 
   it('should use GetUserIdCommand with correct parameters for user lookup', async () => {
@@ -289,7 +301,9 @@ describe('Build Identity Center Assignments - Assignment Status Polling', () => 
       send: vi.fn().mockResolvedValue({ GroupId: 'group-123456789' }),
     };
 
-    vi.mocked(IdentitystoreClient).mockImplementation(() => mockIdentityStoreClient);
+    vi.mocked(IdentitystoreClient).mockImplementation(function () {
+      return mockIdentityStoreClient;
+    });
   });
 
   const createEvent = (requestType: string, overrides = {}) =>
@@ -330,9 +344,15 @@ describe('Build Identity Center Assignments - Assignment Status Polling', () => 
           },
         }),
     };
-    vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
-    vi.mocked(CreateAccountAssignmentCommand).mockImplementation(input => ({ input }));
-    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(input => ({ input }));
+    vi.mocked(SSOAdminClient).mockImplementation(function () {
+      return mockSSOAdminClient;
+    });
+    vi.mocked(CreateAccountAssignmentCommand).mockImplementation(function (input) {
+      return { input };
+    });
+    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(function (input) {
+      return { input };
+    });
 
     const { handler } = await import('../../lib/aws-identity-center/build-identity-center-assignments/index.ts');
     const result = await handler(createEvent('Create'));
@@ -360,9 +380,15 @@ describe('Build Identity Center Assignments - Assignment Status Polling', () => 
           },
         }),
     };
-    vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
-    vi.mocked(CreateAccountAssignmentCommand).mockImplementation(input => ({ input }));
-    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(input => ({ input }));
+    vi.mocked(SSOAdminClient).mockImplementation(function () {
+      return mockSSOAdminClient;
+    });
+    vi.mocked(CreateAccountAssignmentCommand).mockImplementation(function (input) {
+      return { input };
+    });
+    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(function (input) {
+      return { input };
+    });
 
     const { handler } = await import('../../lib/aws-identity-center/build-identity-center-assignments/index.ts');
     const result = await handler(createEvent('Create'));
@@ -396,9 +422,15 @@ describe('Build Identity Center Assignments - Assignment Status Polling', () => 
           },
         }),
     };
-    vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
-    vi.mocked(CreateAccountAssignmentCommand).mockImplementation(input => ({ input }));
-    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(input => ({ input }));
+    vi.mocked(SSOAdminClient).mockImplementation(function () {
+      return mockSSOAdminClient;
+    });
+    vi.mocked(CreateAccountAssignmentCommand).mockImplementation(function (input) {
+      return { input };
+    });
+    vi.mocked(DescribeAccountAssignmentCreationStatusCommand).mockImplementation(function (input) {
+      return { input };
+    });
 
     const { handler } = await import('../../lib/aws-identity-center/build-identity-center-assignments/index.ts');
     const result = await handler(createEvent('Create'));
@@ -425,9 +457,15 @@ describe('Build Identity Center Assignments - Assignment Status Polling', () => 
           },
         }),
     };
-    vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
-    vi.mocked(DeleteAccountAssignmentCommand).mockImplementation(input => ({ input }));
-    vi.mocked(DescribeAccountAssignmentDeletionStatusCommand).mockImplementation(input => ({ input }));
+    vi.mocked(SSOAdminClient).mockImplementation(function () {
+      return mockSSOAdminClient;
+    });
+    vi.mocked(DeleteAccountAssignmentCommand).mockImplementation(function (input) {
+      return { input };
+    });
+    vi.mocked(DescribeAccountAssignmentDeletionStatusCommand).mockImplementation(function (input) {
+      return { input };
+    });
 
     const { handler } = await import('../../lib/aws-identity-center/build-identity-center-assignments/index.ts');
     const result = await handler(createEvent('Delete'));
@@ -454,9 +492,15 @@ describe('Build Identity Center Assignments - Assignment Status Polling', () => 
           },
         }),
     };
-    vi.mocked(SSOAdminClient).mockImplementation(() => mockSSOAdminClient);
-    vi.mocked(DeleteAccountAssignmentCommand).mockImplementation(input => ({ input }));
-    vi.mocked(DescribeAccountAssignmentDeletionStatusCommand).mockImplementation(input => ({ input }));
+    vi.mocked(SSOAdminClient).mockImplementation(function () {
+      return mockSSOAdminClient;
+    });
+    vi.mocked(DeleteAccountAssignmentCommand).mockImplementation(function (input) {
+      return { input };
+    });
+    vi.mocked(DescribeAccountAssignmentDeletionStatusCommand).mockImplementation(function (input) {
+      return { input };
+    });
 
     const { handler } = await import('../../lib/aws-identity-center/build-identity-center-assignments/index.ts');
     const result = await handler(createEvent('Delete'));

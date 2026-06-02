@@ -77,6 +77,7 @@ describe('SecurityServiceContextBuilder', () => {
   const WORKLOAD_ACCOUNT_ID_2 = '444444444444';
 
   beforeEach(() => {
+    vi.clearAllMocks();
     // Create mock logger
     mockLogger = {
       processStart: vi.fn(),

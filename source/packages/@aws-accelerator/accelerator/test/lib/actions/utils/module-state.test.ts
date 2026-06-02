@@ -24,30 +24,38 @@ import type { ModuleParams } from '../../../../lib/types.js';
 // Mock node:path
 vi.mock('node:path', () => ({
   default: {
-    parse: vi.fn(() => ({ name: 'module-state' })),
+    parse: vi.fn(function () {
+      return { name: 'module-state' };
+    }),
     basename: vi.fn(() => 'module-state.ts'),
   },
 }));
 
 // Mock aws-lza module
 vi.mock('aws-lza', () => ({
-  createLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
-  createStatusLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
+  createLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    };
+  }),
+  createStatusLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    };
+  }),
 }));
 
 // Mock dynamodb module
 vi.mock('../../../../lib/actions/utils/dynamodb.js', () => ({
-  createDynamoDBClient: vi.fn(() => ({ send: vi.fn() })),
+  createDynamoDBClient: vi.fn(function () {
+    return { send: vi.fn() };
+  }),
   getItem: vi.fn(),
   putItem: vi.fn(),
   getModuleResourcePrefix: vi.fn(() => 'AWSAccelerator'),

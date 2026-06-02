@@ -16,11 +16,13 @@ import { CredentialCache } from '../../../lib/common/credential-cache';
 import { IAssumeRoleCredential } from '../../../lib/common/interfaces';
 
 vi.mock('../../../lib/common/logger', () => ({
-  createLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  })),
+  createLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+  }),
 }));
 
 const MOCK_CONSTANTS = {

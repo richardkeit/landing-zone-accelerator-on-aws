@@ -41,7 +41,9 @@ vi.mock('../../../common/functions', () => ({
 }));
 
 vi.mock('@aws-sdk/client-ec2', () => ({
-  EC2Client: vi.fn(() => ({ send: mockSend })),
+  EC2Client: vi.fn(function () {
+    return { send: mockSend };
+  }),
   EnableTransitGatewayRouteTablePropagationCommand: vi.fn(),
   DisableTransitGatewayRouteTablePropagationCommand: vi.fn(),
   GetTransitGatewayRouteTablePropagationsCommand: vi.fn(),

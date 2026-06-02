@@ -18,9 +18,11 @@ import {
 
 // Mock ALL AWS SDK modules completely
 vi.mock('@aws-sdk/client-cloudformation', () => ({
-  CloudFormationClient: vi.fn(() => ({
-    send: vi.fn(),
-  })),
+  CloudFormationClient: vi.fn(function () {
+    return {
+      send: vi.fn(),
+    };
+  }),
   DescribeStacksCommand: vi.fn(),
   GetTemplateCommand: vi.fn(),
   UpdateStackCommand: vi.fn(),
@@ -50,9 +52,11 @@ vi.mock('@aws-sdk/client-cloudformation', () => ({
 }));
 
 vi.mock('@aws-sdk/client-s3', () => ({
-  S3Client: vi.fn(() => ({
-    send: vi.fn(),
-  })),
+  S3Client: vi.fn(function () {
+    return {
+      send: vi.fn(),
+    };
+  }),
 }));
 
 // Mock node:fs/promises
@@ -64,7 +68,9 @@ vi.mock('node:fs/promises', () => ({
 // Mock node:path
 vi.mock('node:path', () => ({
   default: {
-    parse: vi.fn(() => ({ name: 'cfn-retention' })),
+    parse: vi.fn(function () {
+      return { name: 'cfn-retention' };
+    }),
     basename: vi.fn(() => 'cfn-retention.ts'),
     join: vi.fn((...args: string[]) => args.join('/')),
     dirname: vi.fn(() => '/mock/dir'),
@@ -74,18 +80,22 @@ vi.mock('node:path', () => ({
 // Mock the entire @aws-lza module
 vi.mock('aws-lza', () => ({
   getCredentials: vi.fn(),
-  createLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    dryRun: vi.fn(),
-  })),
-  createStatusLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    dryRun: vi.fn(),
-  })),
+  createLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      dryRun: vi.fn(),
+    };
+  }),
+  createStatusLogger: vi.fn(function () {
+    return {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      dryRun: vi.fn(),
+    };
+  }),
   setRetryStrategy: vi.fn(() => ({})),
   executeApi: vi.fn(),
   uploadFileToS3: vi.fn(),

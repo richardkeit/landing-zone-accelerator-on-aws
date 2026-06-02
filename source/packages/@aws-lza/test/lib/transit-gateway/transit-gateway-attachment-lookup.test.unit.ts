@@ -25,13 +25,22 @@ vi.mock('@aws-sdk/client-ec2', () => ({
 
 const mockSsmHandler = vi.fn();
 vi.mock('../../../lib/aws-ssm/get-parameters', () => ({
-  GetSsmParametersValueModule: vi.fn().mockImplementation(() => ({ handler: mockSsmHandler })),
+  GetSsmParametersValueModule: vi.fn().mockImplementation(function () {
+    return { handler: mockSsmHandler };
+  }),
 }));
 
 vi.mock('../../../lib/common/sts-functions', () => ({ getCredentials: vi.fn() }));
-vi.mock('../../../lib/common/utility', () => ({ executeApi: vi.fn(), setRetryStrategy: vi.fn(() => ({})) }));
+vi.mock('../../../lib/common/utility', () => ({
+  executeApi: vi.fn(),
+  setRetryStrategy: vi.fn(function () {
+    return {};
+  }),
+}));
 vi.mock('../../../lib/common/logger', () => ({
-  createLogger: vi.fn(() => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn() })),
+  createLogger: vi.fn(function () {
+    return { info: vi.fn(), error: vi.fn(), warn: vi.fn() };
+  }),
 }));
 
 const MOCK_CONSTANTS = {

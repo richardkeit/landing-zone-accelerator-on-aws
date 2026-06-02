@@ -17,14 +17,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock all dependencies
 vi.mock('../../../lib/common/logger', () => ({
-  createLogger: vi.fn(() => ({
-    processStart: vi.fn(),
-    processEnd: vi.fn(),
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-    dryRun: vi.fn(),
-  })),
+  createLogger: vi.fn(function () {
+    return {
+      processStart: vi.fn(),
+      processEnd: vi.fn(),
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      dryRun: vi.fn(),
+    };
+  }),
 }));
 
 vi.mock('../../../lib/common/batch-processor', () => ({
@@ -45,39 +47,41 @@ vi.mock('../../../lib/common/sts-functions', () => ({
 }));
 
 vi.mock('../../../lib/common/security/delegated-admin-manager', () => ({
-  DelegatedAdminManager: vi.fn().mockImplementation(() => ({
-    enable: vi.fn().mockImplementation(
-      async (
-        _accountId: string,
-        client: unknown,
-        ops: {
-          enable: (client: unknown, accountId: string, dryRun: boolean, logPrefix: string) => Promise<void>;
-          getCurrent: (client: unknown, logPrefix: string) => Promise<string | null>;
+  DelegatedAdminManager: vi.fn().mockImplementation(function () {
+    return {
+      enable: vi.fn().mockImplementation(
+        async (
+          _accountId: string,
+          client: unknown,
+          ops: {
+            enable: (client: unknown, accountId: string, dryRun: boolean, logPrefix: string) => Promise<void>;
+            getCurrent: (client: unknown, logPrefix: string) => Promise<string | null>;
+          },
+          dryRun: boolean,
+          logPrefix: string,
+        ) => {
+          await ops.getCurrent(client, logPrefix);
+          await ops.enable(client, _accountId, dryRun, logPrefix);
         },
-        dryRun: boolean,
-        logPrefix: string,
-      ) => {
-        await ops.getCurrent(client, logPrefix);
-        await ops.enable(client, _accountId, dryRun, logPrefix);
-      },
-    ),
-    disable: vi.fn().mockImplementation(
-      async (
-        client: unknown,
-        ops: {
-          disable: (client: unknown, accountId: string, dryRun: boolean, logPrefix: string) => Promise<void>;
-          getCurrent: (client: unknown, logPrefix: string) => Promise<string | null>;
+      ),
+      disable: vi.fn().mockImplementation(
+        async (
+          client: unknown,
+          ops: {
+            disable: (client: unknown, accountId: string, dryRun: boolean, logPrefix: string) => Promise<void>;
+            getCurrent: (client: unknown, logPrefix: string) => Promise<string | null>;
+          },
+          dryRun: boolean,
+          logPrefix: string,
+        ) => {
+          const currentAdmin = await ops.getCurrent(client, logPrefix);
+          if (currentAdmin) {
+            await ops.disable(client, currentAdmin, dryRun, logPrefix);
+          }
         },
-        dryRun: boolean,
-        logPrefix: string,
-      ) => {
-        const currentAdmin = await ops.getCurrent(client, logPrefix);
-        if (currentAdmin) {
-          await ops.disable(client, currentAdmin, dryRun, logPrefix);
-        }
-      },
-    ),
-  })),
+      ),
+    };
+  }),
   manageOrganizationsApiDelegatedAdmin: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -111,9 +115,11 @@ vi.mock('../../../lib/amazon-macie/macie-session', () => ({
 }));
 
 vi.mock('@aws-sdk/client-organizations', () => ({
-  OrganizationsClient: vi.fn().mockImplementation(() => ({
-    send: vi.fn().mockResolvedValue({ DelegatedAdministrators: [] }),
-  })),
+  OrganizationsClient: vi.fn().mockImplementation(function () {
+    return {
+      send: vi.fn().mockResolvedValue({ DelegatedAdministrators: [] }),
+    };
+  }),
   ListDelegatedAdministratorsCommand: vi.fn(),
   RegisterDelegatedAdministratorCommand: vi.fn(),
   DeregisterDelegatedAdministratorCommand: vi.fn(),
@@ -218,7 +224,9 @@ describe('configureMacie', () => {
         batchOperationSettings: { maxConcurrentEnvironments: 5, operationTimeoutMs: 60000 },
       }),
     };
-    (SecurityServiceContextBuilder as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => mockContextBuilder);
+    (SecurityServiceContextBuilder as unknown as ReturnType<typeof vi.fn>).mockImplementation(function () {
+      return mockContextBuilder;
+    });
 
     // Mock response builder
     mockResponseBuilder = {
@@ -274,9 +282,9 @@ describe('configureMacie', () => {
           };
         }),
     };
-    (SecurityServiceModuleResponseBuilder as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      () => mockResponseBuilder,
-    );
+    (SecurityServiceModuleResponseBuilder as unknown as ReturnType<typeof vi.fn>).mockImplementation(function () {
+      return mockResponseBuilder;
+    });
 
     // Mock batch processor functions
     (processEnableOperations as ReturnType<typeof vi.fn>).mockResolvedValue([]);

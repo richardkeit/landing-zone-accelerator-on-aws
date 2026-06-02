@@ -35,6 +35,7 @@ describe('DelegatedAdminManager', () => {
   const TEST_LOG_PREFIX = 'test-prefix';
 
   beforeEach(() => {
+    vi.clearAllMocks();
     // Create mock clients
     mockOrganizationsClient = {} as OrganizationsClient;
     mockServiceClient = {} as Macie2Client;
@@ -334,6 +335,7 @@ describe('manageOrganizationsApiDelegatedAdmin', () => {
   const TEST_LOG_PREFIX = 'test-prefix';
 
   beforeEach(() => {
+    vi.clearAllMocks();
     mockOrganizationsClient = {} as OrganizationsClient;
 
     mockLogger = {

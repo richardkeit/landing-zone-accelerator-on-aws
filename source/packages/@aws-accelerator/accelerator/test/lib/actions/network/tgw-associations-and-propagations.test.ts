@@ -23,7 +23,9 @@ import { AcceleratorResourcePrefixes } from '../../../../utils/app-utils';
 
 vi.mock('path', () => ({
   default: {
-    parse: vi.fn(() => ({ name: 'tgw-associations-and-propagations' })),
+    parse: vi.fn(function () {
+      return { name: 'tgw-associations-and-propagations' };
+    }),
     basename: vi.fn(() => 'tgw-associations-and-propagations.ts'),
   },
 }));
@@ -538,6 +540,8 @@ describe('TgwAssociationsAndPropagations', () => {
     });
 
     it('should return FAILED when state save fails', async () => {
+      const { hasModuleConfigChanged } = await import('../../../../lib/actions/utils/module-state.js');
+      vi.mocked(hasModuleConfigChanged).mockResolvedValue(true);
       const { saveModuleExecutionState } = await import('../../../../lib/actions/utils/module-state.js');
       vi.mocked(saveModuleExecutionState).mockRejectedValue(new Error('DynamoDB write failed'));
 
