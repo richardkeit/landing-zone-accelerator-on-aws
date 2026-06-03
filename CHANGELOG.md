@@ -33,21 +33,105 @@ feat(controltower): support parameters on enabled controls
 
 ### Changed
 
-## [1.15.1] - 
+## [1.15.5] - 2026-06-02
+
+### Fixed
+
+- fix(asea): fix route table propagation lookup
+- fix(deps): remediate CVE-2026-44705 in tmp [Tier 2]
+- fix(deps): remediate CVE-2025-62718 in axios
+
+### Changed
+
+- chore(deps): upgrade vitest 3.2.4 to 4.1.8 (resolves CVE advisory 1120011)
+- chore(deps): upgrade vite 7.3.2 to 8.0.16
+
+## [1.15.4] - 2026-05-18
+
+### Fixed
+
+- fix(control-tower): enroll-accounts module filters ignored OUs from baseline status checks
+- fix(deps): remediate CVE-2026-42338 in ip-address
+- fix(deps): remediate CVE-2026-42264 in axios
+- fix(deps): remediate CVE-2026-41907 in uuid
+- fix(deps): remediate CVE-2026-44665 in fast-xml-builder
+- fix(deps): remediate CVE-2026-44240 in basic-ftp
+- fix(deps): remediate CVE-2026-6322 in fast-uri
+- fix(deps): remediate CVE-2026-33750 in brace-expansion
+
+### Changed
+
+- chore: removed kmskey from iso and isob aspect
+
+## [1.15.3] - 2026-05-04
+
+### Fixed
+
+- fix(asea): fix cross account propagations regression
+- fix(aspects): enabling organization trail in iso overrides
+- fix(cloudwatch): add DescribeKey permissions to new cloudwatch log event function
+- fix(container): copy source folder instead of tar
+- fix(container): handle both source/ directory and source.tar.gz in staging copy
+- fix(deps): resolve basic-ftp HIGH vulnerability (5.2.2 → 5.3.0)
+- fix(gitlab): synth and produce installer stack with unit tests
+- fix(iam): support full ARN format for AWS managed policies
+- fix(installer): add codeConnections apis to github pipeline role
+- fix(organizations): skip Identity Center delegated admin setup when not configured
+
+### Changed
+
+- chore: update cfn-nag for GitHubPipelineRole to allow codeconnections
+- chore(gitlab): add installer-container step in release
+- chore(lza): make aws-lza package private
+- docs: change example on awsConfig to Audit account
+- enhance: rework create-container.sh for local dev use and document it
+- enhance: service catalog documentation in customizations config
+- fix: bump @aws-sdk packages to 3.1041.0 and remove fast-xml-parser resolution
+- fix: resolve HIGH and MODERATE dev dependency vulnerabilities
+
+## [1.15.2] - 2026-04-16
 
 ### Added
 
+- feat(uninstaller): add container build mode and OU-ignore filtering to uninstaller
+
+### Fixed
+
+- fix(accelerator): exclude ignored ou accounts from bootstrap and stack deployment
+- fix(ssm): use PutParameter with Overwrite for cross-account SSM params
+
+### Changed
+
+- chore(accelerator): bump AWS SDK to 3.1018.0, CDK to 2.246.0, and update tooling
+- chore(dependencies): updated proxy-agent
+- chore: added resolutions for axios and basic-ftp
+
+## [1.15.1] - 2026-03-31
+
+### Added
+
+- feat(iam): add maxSessionDuration to roleSets.roles[]
 - feat(iam): add support for IAM role trust policy conditions in iam-config.yaml
 - feat(uninstaller): add support for container deployment
 
 ### Fixed
-- fix(networking): add validation for modifying IPAM allocations at VPC level
-- fix(config): external pipeline deployment config validation to use passed mgmt creds
-- fix(uninstaller): add support for accounts and OUs that are ignored
+
 - fix(asea): tgw route propagation failure when adding a new vpc
+- fix(aspects): enabling organization trail in isob overrides
+- fix(aspects): add delivery stream overrides for iso-f
+- fix(container): updated default imageUri to contain v
+- fix(control-tower): modify exclusion logic for CT Security OU #1008
+- fix(installer-container): remove VpcCidr
+- fix(modules): pass in credential provider as mgmt credential to avoid session timeout
+- fix(networking): add validation for modifying IPAM allocations at VPC level
+- fix(networking): cross account NLB targets
 - fix(networking): ssm parameter race condition when sharing multiple subnets from the same vpc with v2 stacks
+- fix(ssm): add back overwrite to put ssm param
+- fix(uninstaller): add support for accounts and OUs that are ignored
 
 ### Changed
+
+- docs(validation): add validate-config instructions for external pipeline
 
 ## [1.15.0] - 2026-03-10
 
