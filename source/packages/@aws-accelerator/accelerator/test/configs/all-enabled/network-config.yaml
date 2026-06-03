@@ -2180,6 +2180,15 @@ vpcs:
     virtualPrivateGateway:
       asn: 65002
     useCentralEndpoints: true
+    interfaceEndpoints:
+      defaultPolicy: Default
+      subnets:
+        - SharedServices-App-A
+        - SharedServices-App-B
+      endpoints:
+        - service: ssm
+        - service: ssmmessages
+        - service: ec2messages
     securityGroups:
       - name: SharedServices-Main-Rsyslog-sg
         description: Security Group for AWS Accelerator rsyslog
