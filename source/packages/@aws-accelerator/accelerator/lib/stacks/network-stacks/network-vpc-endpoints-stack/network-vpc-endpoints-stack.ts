@@ -558,6 +558,7 @@ export class NetworkVpcEndpointsStack extends NetworkStack {
           routeTables: s3EndpointRouteTables,
           policyDocument: this.createVpcEndpointPolicy(vpcItem, gatewayEndpointItem, true),
           serviceName: gatewayEndpointItem.serviceName ?? undefined,
+          name: `${vpcItem.name}-${gatewayEndpointItem.service}`,
         });
       }
       if (gatewayEndpointItem.service === 'dynamodb') {
@@ -568,6 +569,7 @@ export class NetworkVpcEndpointsStack extends NetworkStack {
           routeTables: dynamodbEndpointRouteTables,
           policyDocument: this.createVpcEndpointPolicy(vpcItem, gatewayEndpointItem, true),
           serviceName: gatewayEndpointItem.serviceName ?? undefined,
+          name: `${vpcItem.name}-${gatewayEndpointItem.service}`,
         });
       }
     }
@@ -757,6 +759,7 @@ export class NetworkVpcEndpointsStack extends NetworkStack {
         privateDnsEnabled: privateDnsValue,
         policyDocument: this.createVpcEndpointPolicy(vpcItem, endpointItem),
         partition: cdk.Stack.of(this).partition,
+        name: `${vpcItem.name}-${endpointItem.service}`,
       });
       this.ssmParameters.push({
         logicalId: pascalCase(`SsmParam${vpcItem.name}${endpointItem.service}Dns`),

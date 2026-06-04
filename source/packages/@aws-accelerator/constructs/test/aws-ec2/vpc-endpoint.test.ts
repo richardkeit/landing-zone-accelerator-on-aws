@@ -304,4 +304,74 @@ describe('VpcEndpoint', () => {
       ServiceName: cdk.assertions.Match.exact('eu.amazonaws.vpce.eusc-de-east-1.vpce-svc-12345'),
     });
   });
+
+  it('interface endpoint includes Name tag when name is provided', () => {
+    const tagStack = new cdk.Stack(undefined, 'TagInterfaceStack', {
+      env: { account: '123456789012', region: 'us-east-1' },
+    });
+    const sg = new SecurityGroup(tagStack, 'TagSg', {
+      securityGroupName: 'TagSg',
+      description: 'Test SG',
+      vpcId: 'Test',
+    });
+    new VpcEndpoint(tagStack, 'VpcEndpointWithName', {
+      vpcId: 'Test',
+      vpcEndpointType: VpcEndpointType.INTERFACE,
+      service: 'ec2',
+      subnets: ['Test1'],
+      securityGroups: [sg],
+      privateDnsEnabled: true,
+      name: 'my-vpc-ec2',
+    });
+    const template = cdk.assertions.Template.fromStack(tagStack);
+    template.hasResourceProperties('AWS::EC2::VPCEndpoint', {
+      Tags: [{ Key: 'Name', Value: 'my-vpc-ec2' }],
+    });
+  });
+
+  it('gateway endpoint includes Name tag when name is provided', () => {
+    const tagStack = new cdk.Stack(undefined, 'TagGatewayStack');
+    new VpcEndpoint(tagStack, 'VpcEndpointGwWithName', {
+      vpcId: 'Test',
+      vpcEndpointType: VpcEndpointType.GATEWAY,
+      service: 's3',
+      routeTables: ['rt-1'],
+      name: 'my-vpc-s3',
+    });
+    const template = cdk.assertions.Template.fromStack(tagStack);
+    template.hasResourceProperties('AWS::EC2::VPCEndpoint', {
+      Tags: [{ Key: 'Name', Value: 'my-vpc-s3' }],
+    });
+  });
+
+  it('gwlb endpoint includes Name tag when name is provided', () => {
+    const tagStack = new cdk.Stack(undefined, 'TagGwlbStack', {
+      env: { account: '123456789012', region: 'us-east-1' },
+    });
+    new VpcEndpoint(tagStack, 'VpcEndpointGwlbWithName', {
+      vpcId: 'Test',
+      vpcEndpointType: VpcEndpointType.GWLB,
+      service: 'vpce-svc-12345',
+      subnets: ['Test1'],
+      name: 'my-vpc-gwlb',
+    });
+    const template = cdk.assertions.Template.fromStack(tagStack);
+    template.hasResourceProperties('AWS::EC2::VPCEndpoint', {
+      Tags: [{ Key: 'Name', Value: 'my-vpc-gwlb' }],
+    });
+  });
+
+  it('endpoint does not include tags when name is not provided', () => {
+    const tagStack = new cdk.Stack(undefined, 'NoTagStack');
+    new VpcEndpoint(tagStack, 'VpcEndpointNoName', {
+      vpcId: 'Test',
+      vpcEndpointType: VpcEndpointType.GATEWAY,
+      service: 's3',
+      routeTables: ['rt-1'],
+    });
+    const template = cdk.assertions.Template.fromStack(tagStack);
+    template.hasResourceProperties('AWS::EC2::VPCEndpoint', {
+      Tags: cdk.assertions.Match.absent(),
+    });
+  });
 });

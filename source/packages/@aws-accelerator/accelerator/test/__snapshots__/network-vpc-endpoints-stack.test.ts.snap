@@ -722,6 +722,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-access-analyzer",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -779,6 +785,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-codeartifact.api",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -834,6 +846,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-codeartifact.repositories",
           },
         ],
         "VpcEndpointType": "Interface",
@@ -898,6 +916,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             ],
           ],
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-dynamodb",
+          },
+        ],
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
         },
@@ -952,6 +976,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-ec2",
           },
         ],
         "VpcEndpointType": "Interface",
@@ -1011,6 +1041,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-ec2messages",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -1068,6 +1104,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-ecr.dkr",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -1090,6 +1132,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-eks",
           },
         ],
         "VpcEndpointType": "Interface",
@@ -1149,6 +1197,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-iam",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -1204,6 +1258,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-kms",
           },
         ],
         "VpcEndpointType": "Interface",
@@ -1263,6 +1323,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-logs",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -1318,6 +1384,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-route53",
           },
         ],
         "VpcEndpointType": "Interface",
@@ -1382,6 +1454,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             ],
           ],
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-s3",
+          },
+        ],
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
         },
@@ -1436,6 +1514,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-s3",
           },
         ],
         "VpcEndpointType": "Interface",
@@ -1495,6 +1579,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-s3-global.accesspoint",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -1550,6 +1640,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-sagemaker.api",
           },
         ],
         "VpcEndpointType": "Interface",
@@ -1609,6 +1705,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-sagemaker.featurestore-runtime",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -1664,6 +1766,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-sagemaker.runtime",
           },
         ],
         "VpcEndpointType": "Interface",
@@ -1723,6 +1831,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-secretsmanager",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -1780,6 +1894,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-ssm",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointsidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -1835,6 +1955,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkEndpointssubnetNetworkEndpointsBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Endpoints-ssmmessages",
           },
         ],
         "VpcEndpointType": "Interface",
@@ -2001,6 +2127,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             ],
           ],
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Inspection-dynamodb",
+          },
+        ],
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkInspectionidC96584B6F00A464EAD1953AFF4B05118Parameter",
         },
@@ -2062,6 +2194,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             ],
           ],
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Inspection-s3",
+          },
+        ],
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkInspectionidC96584B6F00A464EAD1953AFF4B05118Parameter",
         },
@@ -2319,6 +2457,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondarysubnetNetworkSecondaryBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-application-autoscaling",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondaryidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -2341,6 +2485,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondarysubnetNetworkSecondaryBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-appmesh-envoy-management",
           },
         ],
         "VpcEndpointType": "Interface",
@@ -2400,6 +2550,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondarysubnetNetworkSecondaryBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-athena",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondaryidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -2455,6 +2611,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
           },
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondarysubnetNetworkSecondaryBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-autoscaling",
           },
         ],
         "VpcEndpointType": "Interface",
@@ -2514,6 +2676,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondarysubnetNetworkSecondaryBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-autoscaling-plans",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondaryidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -2571,6 +2739,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondarysubnetNetworkSecondaryBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-cloudformation",
+          },
+        ],
         "VpcEndpointType": "Interface",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondaryidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -2626,6 +2800,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             ],
           ],
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-dynamodb",
+          },
+        ],
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondaryidC96584B6F00A464EAD1953AFF4B05118Parameter",
         },
@@ -2680,6 +2860,12 @@ exports[`NetworkVpcEndpointsStack > Construct(NetworkVpcEndpointsStack):  Snapsh
             ],
           ],
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-s3",
+          },
+        ],
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondaryidC96584B6F00A464EAD1953AFF4B05118Parameter",
         },

@@ -918,6 +918,7 @@ export class NetworkAssociationsGwlbStack extends NetworkStack {
       vpcId,
       subnets: [subnet],
       partition: partition,
+      name: `${endpointItem.vpc}-${endpointItem.name}`,
     });
   }
 

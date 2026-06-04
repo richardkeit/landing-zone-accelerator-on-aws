@@ -43,6 +43,7 @@ export interface VpcEndpointProps {
   readonly routeTables?: string[];
   readonly partition?: string;
   readonly serviceName?: string;
+  readonly name?: string;
 }
 
 abstract class VpcEndpointBase extends cdk.Resource implements IVpcEndpoint {
@@ -122,6 +123,7 @@ export class VpcEndpoint extends VpcEndpointBase {
         securityGroupIds: props.securityGroups?.map(item => item.securityGroupId),
         privateDnsEnabled: props.privateDnsEnabled,
         policyDocument: props.policyDocument,
+        ...(props.name ? { tags: [{ key: 'Name', value: props.name }] } : {}),
       });
       this.vpcEndpointId = resource.ref;
 
@@ -143,6 +145,7 @@ export class VpcEndpoint extends VpcEndpointBase {
         vpcId: this.vpcId,
         routeTableIds: props.routeTables,
         policyDocument: props.policyDocument,
+        ...(props.name ? { tags: [{ key: 'Name', value: props.name }] } : {}),
       });
       this.vpcEndpointId = resource.ref;
       return;
@@ -155,6 +158,7 @@ export class VpcEndpoint extends VpcEndpointBase {
         vpcEndpointType: props.vpcEndpointType,
         vpcId: this.vpcId,
         subnetIds: props.subnets,
+        ...(props.name ? { tags: [{ key: 'Name', value: props.name }] } : {}),
       });
       this.vpcEndpointId = resource.ref;
       return;

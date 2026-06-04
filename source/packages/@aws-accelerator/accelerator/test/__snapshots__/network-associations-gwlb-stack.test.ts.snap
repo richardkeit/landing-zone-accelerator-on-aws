@@ -1017,6 +1017,12 @@ exports[`NetworkAssociationsGwlbStack > Construct(NetworkAssociationsGwlbStack):
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkInspectionsubnetNetworkInspectionAidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Inspection-Endpoint-A",
+          },
+        ],
         "VpcEndpointType": "GatewayLoadBalancer",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkInspectionidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -1069,6 +1075,12 @@ exports[`NetworkAssociationsGwlbStack > Construct(NetworkAssociationsGwlbStack):
         "SubnetIds": [
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkInspectionsubnetNetworkInspectionBidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Inspection-Endpoint-B",
           },
         ],
         "VpcEndpointType": "GatewayLoadBalancer",
@@ -2554,6 +2566,12 @@ exports[`NetworkAssociationsGwlbStack > Construct(NetworkAssociationsGwlbStack):
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondarysubnetNetworkSecondaryAidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-Secondary-Endpoint-A",
+          },
+        ],
         "VpcEndpointType": "GatewayLoadBalancer",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondaryidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -2579,6 +2597,12 @@ exports[`NetworkAssociationsGwlbStack > Construct(NetworkAssociationsGwlbStack):
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondarysubnetNetworkSecondaryBidC96584B6F00A464EAD1953AFF4B05118Parameter",
           },
         ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-Secondary-Endpoint-B",
+          },
+        ],
         "VpcEndpointType": "GatewayLoadBalancer",
         "VpcId": {
           "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondaryidC96584B6F00A464EAD1953AFF4B05118Parameter",
@@ -2602,6 +2626,12 @@ exports[`NetworkAssociationsGwlbStack > Construct(NetworkAssociationsGwlbStack):
         "SubnetIds": [
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondarysubnetNetworkSecondaryAidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-Shared-Secondary-Endpoint-A",
           },
         ],
         "VpcEndpointType": "GatewayLoadBalancer",
@@ -2651,6 +2681,12 @@ exports[`NetworkAssociationsGwlbStack > Construct(NetworkAssociationsGwlbStack):
         "SubnetIds": [
           {
             "Ref": "SsmParameterValueacceleratornetworkvpcNetworkSecondarysubnetNetworkSecondaryDidC96584B6F00A464EAD1953AFF4B05118Parameter",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Network-Secondary-Shared-Secondary-Endpoint-D",
           },
         ],
         "VpcEndpointType": "GatewayLoadBalancer",
