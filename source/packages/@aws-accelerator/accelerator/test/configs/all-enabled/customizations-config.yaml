@@ -775,6 +775,7 @@ firewalls:
           - deviceIndex: 0
             description: Primary interface
             associateElasticIp: true
+            deleteOnTermination: true
             groups:
               - SharedServices-Main-Rsyslog-sg
             subnetId: SharedServices-App-A
@@ -799,6 +800,7 @@ firewalls:
           - deviceIndex: 0
             description: Primary interface
             associateElasticIp: true
+            deleteOnTermination: true
             sourceDestCheck: true
             groups:
               - SharedServices-Main-Rsyslog-sg
