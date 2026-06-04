@@ -2024,14 +2024,6 @@ vpcs:
             ipv6Destination: fd00::/8
             type: vpcPeering
             target: CrossAccount
-          - name: CrossAcctNetworkInterfaceRoute
-            destination: 10.0.0.0/28
-            type: networkInterface
-            target: ${ACCEL_LOOKUP::EC2:ENI_0:firewall-with-shared-subnet}
-          - name: CrossAcctNetworkInterfaceRoutev6
-            ipv6Destination: ff06::/64
-            type: networkInterface
-            target: ${ACCEL_LOOKUP::EC2:ENI_0:firewall-with-shared-subnet}
           - name: GwlbRoute
             destination: 10.1.0.0/24
             type: gatewayLoadBalancerEndpoint
@@ -2079,7 +2071,7 @@ vpcs:
     subnets:
       - name: SharedServices-App-A
         availabilityZone: a
-        routeTable: SharedServices-Main-Default
+        routeTable: SharedServices-App-A
         ipv4CidrBlock: 10.4.0.0/24
         shareTargets:
           organizationalUnits:
@@ -2180,15 +2172,6 @@ vpcs:
     virtualPrivateGateway:
       asn: 65002
     useCentralEndpoints: true
-    interfaceEndpoints:
-      defaultPolicy: Default
-      subnets:
-        - SharedServices-App-A
-        - SharedServices-App-B
-      endpoints:
-        - service: ssm
-        - service: ssmmessages
-        - service: ec2messages
     securityGroups:
       - name: SharedServices-Main-Rsyslog-sg
         description: Security Group for AWS Accelerator rsyslog

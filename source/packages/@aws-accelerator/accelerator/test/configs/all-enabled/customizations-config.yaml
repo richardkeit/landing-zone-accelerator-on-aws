@@ -769,7 +769,7 @@ firewalls:
               encrypted: true
               volumeSize: 10
         iamInstanceProfile: EC2-Default-SSM-AD-Role
-        imageId: ami-0e1c5d8c23330dee3
+        imageId: ami-046b36f55e189564a
         instanceType: t3.large
         networkInterfaces:
           - deviceIndex: 0
@@ -799,6 +799,7 @@ firewalls:
           - deviceIndex: 0
             description: Primary interface
             associateElasticIp: true
+            sourceDestCheck: true
             groups:
               - SharedServices-Main-Rsyslog-sg
             subnetId: SharedServices-App-C
