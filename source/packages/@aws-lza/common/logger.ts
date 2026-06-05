@@ -13,18 +13,38 @@
 
 import * as winston from 'winston';
 
+// eslint-disable-next-line no-control-regex
+const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
+const stripAnsi = winston.format(info => {
+  if (typeof info.message === 'string') {
+    info.message = info.message.replace(ANSI_REGEX, '');
+  }
+  return info;
+});
+
+const logFormat = winston.format.printf(({ message, timestamp, level, mainLabel, childLabel }) => {
+  return `${timestamp} | ${level} | ${childLabel || mainLabel} | ${message}`;
+});
+
+const statusLogFormat = winston.format.printf(({ message, timestamp, childLabel }) => {
+  return `${timestamp} | status | ${childLabel} | ${message}`;
+});
+
 const Logger = winston.createLogger({
   defaultMeta: { mainLabel: 'accelerator' },
-  level: process.env['LOG_LEVEL'] ?? 'info',
-  format: winston.format.combine(
-    winston.format.colorize(),
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.printf(({ message, timestamp, level, mainLabel, childLabel }) => {
-      return `${timestamp} | ${level} | ${childLabel || mainLabel} | ${message}`;
+  level: 'debug',
+  format: winston.format.combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' })),
+  transports: [
+    new winston.transports.Console({
+      level: process.env['LOG_LEVEL'] ?? 'info',
+      format: winston.format.combine(winston.format.colorize(), logFormat),
     }),
-    winston.format.align(),
-  ),
-  transports: [new winston.transports.Console()],
+    new winston.transports.File({
+      filename: 'debug.log',
+      level: 'debug',
+      format: winston.format.combine(stripAnsi(), logFormat),
+    }),
+  ],
 });
 
 winston.add(Logger);
@@ -36,15 +56,17 @@ export const createLogger = (logInfo: string[]) => {
 
 const StatusLogger = winston.createLogger({
   level: 'info',
-  format: winston.format.combine(
-    winston.format.colorize(),
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.printf(({ message, timestamp, childLabel }) => {
-      return `${timestamp} | status | ${childLabel} | ${message}`;
+  format: winston.format.combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' })),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(winston.format.colorize(), statusLogFormat),
     }),
-    winston.format.align(),
-  ),
-  transports: [new winston.transports.Console()],
+    new winston.transports.File({
+      filename: 'debug.log',
+      level: 'info',
+      format: winston.format.combine(stripAnsi(), statusLogFormat),
+    }),
+  ],
 });
 
 winston.add(StatusLogger);
@@ -63,3 +85,23 @@ export const createStatusLogger = (logInfo: string[]) => {
   const logInfoString = logInfo.join(' | ');
   return StatusLogger.child({ childLabel: logInfoString });
 };
+
+/**
+ * Drains and closes all File transports on both loggers.
+ * Call before process exit to ensure all buffered writes reach disk.
+ */
+export async function flushFileTransports(): Promise<void> {
+  const allTransports = [...Logger.transports, ...StatusLogger.transports];
+  const fileTransports = allTransports.filter(
+    (t): t is winston.transports.FileTransportInstance => t instanceof winston.transports.File,
+  );
+  await Promise.all(
+    fileTransports.map(
+      t =>
+        new Promise<void>(resolve => {
+          t.once('finish', () => resolve());
+          t.end();
+        }),
+    ),
+  );
+}

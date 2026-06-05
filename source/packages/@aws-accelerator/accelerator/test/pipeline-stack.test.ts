@@ -15,7 +15,7 @@ import * as cdk from 'aws-cdk-lib';
 
 import { PipelineStack } from '../lib/stacks/pipeline-stack';
 import { snapShotTest } from './snapshot-test';
-import { describe } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { memoize } from './accelerator-test-helpers';
 
 const testNamePrefix = 'Construct(PipelineStack): ';
@@ -224,4 +224,16 @@ describe('PipelineStack customS3Path', () => {
   } else {
     delete process.env['ACCELERATOR_CUSTOM_SOURCE_KEY'];
   }
+});
+
+describe('PipelineStack post_build diagnostics', () => {
+  it('ToolkitProject buildspec includes post_build phase with collect-diagnostics', () => {
+    const stack = getStacks()[0];
+    const template = cdk.assertions.Template.fromStack(stack);
+    const templateJson = JSON.stringify(template.toJSON());
+
+    // The buildspec should contain a post_build phase referencing collect-diagnostics.sh
+    expect(templateJson).toContain('post_build');
+    expect(templateJson).toContain('collect-diagnostics.sh');
+  });
 });

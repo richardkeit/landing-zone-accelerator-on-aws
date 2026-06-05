@@ -527,6 +527,9 @@ export class AcceleratorPipeline extends Construct {
                fi`,
             ],
           },
+          post_build: {
+            commands: [`"$WORK_DIR/scripts/collect-diagnostics.sh"`],
+          },
         },
         artifacts: {
           'base-directory': '$WORK_DIR',

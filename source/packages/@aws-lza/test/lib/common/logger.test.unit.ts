@@ -49,6 +49,7 @@ vi.mock('winston', () => ({
   format: mockFormatFunction,
   transports: {
     Console: vi.fn(),
+    File: vi.fn(),
   },
   add: vi.fn(),
 }));
@@ -88,9 +89,9 @@ describe('logger', () => {
       expect(mockCreateLogger).toHaveBeenCalledWith(
         expect.objectContaining({
           defaultMeta: { mainLabel: 'accelerator' },
-          level: 'info',
+          level: 'debug',
           format: 'mockedCombinedFormat',
-          transports: [expect.any(Object)],
+          transports: [expect.any(Object), expect.any(Object)],
         }),
       );
 

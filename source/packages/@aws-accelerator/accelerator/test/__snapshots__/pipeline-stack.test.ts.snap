@@ -2501,6 +2501,9 @@ phases:
                 ";
                         fi
                        fi
+  post_build:
+    commands:
+      - '"$WORK_DIR/scripts/collect-diagnostics.sh"'
 artifacts:
   base-directory: $WORK_DIR
   files:
@@ -5493,6 +5496,9 @@ phases:
                 ";
                         fi
                        fi
+  post_build:
+    commands:
+      - '"$WORK_DIR/scripts/collect-diagnostics.sh"'
 artifacts:
   base-directory: $WORK_DIR
   files:
@@ -8031,6 +8037,9 @@ phases:
                 ";
                         fi
                        fi
+  post_build:
+    commands:
+      - '"$WORK_DIR/scripts/collect-diagnostics.sh"'
 artifacts:
   base-directory: $WORK_DIR
   files:
@@ -10800,6 +10809,9 @@ phases:
                 ";
                         fi
                        fi
+  post_build:
+    commands:
+      - '"$WORK_DIR/scripts/collect-diagnostics.sh"'
 artifacts:
   base-directory: $WORK_DIR
   files:
@@ -13338,6 +13350,9 @@ phases:
                 ";
                         fi
                        fi
+  post_build:
+    commands:
+      - '"$WORK_DIR/scripts/collect-diagnostics.sh"'
 artifacts:
   base-directory: $WORK_DIR
   files:

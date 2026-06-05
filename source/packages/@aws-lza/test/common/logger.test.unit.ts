@@ -15,20 +15,24 @@ import { describe, beforeEach, expect, test, afterAll, vi, type Mock } from 'vit
 const originalEnv = process.env;
 
 // Mock winston at the top level
-vi.mock('winston', () => ({
-  createLogger: vi.fn(),
-  format: {
-    combine: vi.fn(),
-    colorize: vi.fn(),
-    timestamp: vi.fn(),
-    printf: vi.fn(),
-    align: vi.fn(),
-  },
-  transports: {
-    Console: vi.fn(),
-  },
-  add: vi.fn(),
-}));
+vi.mock('winston', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const formatFn: any = vi.fn(() => vi.fn());
+  formatFn.combine = vi.fn();
+  formatFn.colorize = vi.fn();
+  formatFn.timestamp = vi.fn();
+  formatFn.printf = vi.fn();
+  formatFn.align = vi.fn();
+  return {
+    createLogger: vi.fn(),
+    format: formatFn,
+    transports: {
+      Console: vi.fn(),
+      File: vi.fn(),
+    },
+    add: vi.fn(),
+  };
+});
 
 describe('LoggerUtil', () => {
   let mockCreateLogger: Mock;
@@ -68,6 +72,7 @@ describe('LoggerUtil', () => {
     // Set up the mock implementations
     vi.mocked(winston.createLogger).mockImplementation(mockCreateLogger);
     vi.mocked(winston.add).mockImplementation(mockAdd);
+    // winston.format is already callable from the factory; update sub-method implementations
     vi.mocked(winston.format.combine).mockImplementation(mockFormat.combine);
     vi.mocked(winston.format.colorize).mockImplementation(mockFormat.colorize);
     vi.mocked(winston.format.timestamp).mockImplementation(mockFormat.timestamp);
@@ -89,18 +94,10 @@ describe('LoggerUtil', () => {
       expect(mockCreateLogger).toHaveBeenCalledWith(
         expect.objectContaining({
           defaultMeta: { mainLabel: 'accelerator' },
-          level: 'info',
+          level: 'debug',
           format: 'mockedCombinedFormat',
-          transports: [expect.any(Object)],
+          transports: [expect.any(Object), expect.any(Object)],
         }),
-      );
-
-      // Verify format configuration
-      expect(mockFormat.combine).toHaveBeenCalledWith(
-        'mockedColorize',
-        'mockedTimestamp',
-        expect.any(Function),
-        'mockedAlign',
       );
 
       expect(mockFormat.timestamp).toHaveBeenCalledWith({
@@ -115,7 +112,7 @@ describe('LoggerUtil', () => {
       // Execute
       await import('../../common/logger');
 
-      // Verify
+      // Verify logger level is always debug
       expect(mockCreateLogger).toHaveBeenCalledWith(
         expect.objectContaining({
           level: 'debug',

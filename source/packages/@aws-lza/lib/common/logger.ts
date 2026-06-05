@@ -431,7 +431,7 @@ export class CloudWatchLogsTransport extends TransportStream {
  */
 const Logger = winston.createLogger({
   defaultMeta: { mainLabel: 'accelerator' },
-  level: process.env['LOG_LEVEL'] ?? 'info',
+  level: 'debug',
   format: winston.format.combine(
     sanitizeFormat(),
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
@@ -442,7 +442,12 @@ const Logger = winston.createLogger({
   ),
   transports: [
     new winston.transports.Console({
+      level: process.env['LOG_LEVEL'] ?? 'info',
       format: winston.format.colorize({ all: true }),
+    }),
+    new winston.transports.File({
+      filename: 'debug.log',
+      level: 'debug',
     }),
   ],
 });
@@ -467,6 +472,10 @@ const StatusLogger = winston.createLogger({
   transports: [
     new winston.transports.Console({
       format: winston.format.colorize({ all: true }),
+    }),
+    new winston.transports.File({
+      filename: 'debug.log',
+      level: 'info',
     }),
   ],
 });
