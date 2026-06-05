@@ -620,7 +620,7 @@
         },
         "resolverRuleName": {
           "$ref": "#/definitions/NonEmptyString",
-          "description": "The name of a Route 53 resolver rule to update with the directory's DNS server IP addresses."
+          "description": "The name of a Route 53 resolver rule to update with the directory's DNS server IP addresses.\n\nThis property updates an existing FORWARD rule; it does not create one. The referenced rule must already be created with a target, so you must seed its `targetIps` with at least one placeholder IP address in network-config.yaml. On deployment, the accelerator replaces those placeholder IPs with the directory's DNS server IPs (the DNS port is read from the existing target entry). A FORWARD rule defined with no target fails network configuration validation."
         },
         "secretConfig": {
           "$ref": "#/definitions/IManagedActiveDirectorySecretConfig",

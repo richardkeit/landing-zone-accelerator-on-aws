@@ -2273,6 +2273,12 @@ export interface IManagedActiveDirectoryConfig {
   /**
    * The name of a Route 53 resolver rule to update with the directory's DNS server IP addresses.
    *
+   * This property updates an existing FORWARD rule; it does not create one. The referenced rule must
+   * already be created with a target, so you must seed its `targetIps` with at least one placeholder IP
+   * address in network-config.yaml. On deployment, the accelerator replaces those placeholder IPs with the
+   * directory's DNS server IPs (the DNS port is read from the existing target entry). A FORWARD rule defined
+   * with no target fails network configuration validation.
+   *
    * @remarks
    * When specified, the accelerator will automatically update the specified resolver rule with
    * the IP addresses of the managed Active Directory domain controllers. This enables DNS

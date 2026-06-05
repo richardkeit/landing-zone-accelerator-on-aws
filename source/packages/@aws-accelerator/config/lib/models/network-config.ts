@@ -5107,6 +5107,10 @@ export interface IResolverRuleConfig {
   /**
    * (OPTIONAL) The friendly name of an inbound endpoint to target.
    *
+   * A FORWARD rule must be created with a target. You must specify exactly one of `inboundEndpointTarget`
+   * or `targetIps` on a FORWARD rule. Defining both, or omitting both, fails validation. This property is
+   * marked optional only because `targetIps` is the alternative way to supply the rule's target.
+   *
    * @remarks
    * This is the logical `name` property of an INBOUND endpoint as defined in network-config.yaml.
    *
@@ -5150,6 +5154,16 @@ export interface IResolverRuleConfig {
   readonly shareTargets?: t.IShareTargets;
   /**
    * (OPTIONAL) An array of target IP configurations for the resolver rule.
+   *
+   * A FORWARD rule must be created with a target. You must specify exactly one of `targetIps` or
+   * `inboundEndpointTarget` on a FORWARD rule. Defining both, or omitting both, fails validation. This
+   * property is marked optional only because `inboundEndpointTarget` is the alternative way to supply the
+   * rule's target.
+   *
+   * When this FORWARD rule is referenced by a managed Active Directory's `resolverRuleName` property, you
+   * must still seed `targetIps` with at least one placeholder IP address. The managed AD integration
+   * updates an existing rule by replacing its target IP addresses with the directory's DNS server IPs (and
+   * reads the DNS port from an existing target entry); it cannot populate a rule that has no target.
    *
    * @remarks
    * Use this property to define target IP addresses/ports to forward DNS queries to.

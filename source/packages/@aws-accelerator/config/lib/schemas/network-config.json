@@ -3025,7 +3025,7 @@
         },
         "inboundEndpointTarget": {
           "$ref": "#/definitions/NonEmptyString",
-          "description": "(OPTIONAL) The friendly name of an inbound endpoint to target."
+          "description": "(OPTIONAL) The friendly name of an inbound endpoint to target.\n\nA FORWARD rule must be created with a target. You must specify exactly one of `inboundEndpointTarget` or `targetIps` on a FORWARD rule. Defining both, or omitting both, fails validation. This property is marked optional only because `targetIps` is the alternative way to supply the rule's target."
         },
         "name": {
           "$ref": "#/definitions/NonEmptyString",
@@ -3047,7 +3047,7 @@
           "type": "array"
         },
         "targetIps": {
-          "description": "(OPTIONAL) An array of target IP configurations for the resolver rule.",
+          "description": "(OPTIONAL) An array of target IP configurations for the resolver rule.\n\nA FORWARD rule must be created with a target. You must specify exactly one of `targetIps` or `inboundEndpointTarget` on a FORWARD rule. Defining both, or omitting both, fails validation. This property is marked optional only because `inboundEndpointTarget` is the alternative way to supply the rule's target.\n\nWhen this FORWARD rule is referenced by a managed Active Directory's `resolverRuleName` property, you must still seed `targetIps` with at least one placeholder IP address. The managed AD integration updates an existing rule by replacing its target IP addresses with the directory's DNS server IPs (and reads the DNS port from an existing target entry); it cannot populate a rule that has no target.",
           "items": {
             "$ref": "#/definitions/IRuleTargetIps"
           },
