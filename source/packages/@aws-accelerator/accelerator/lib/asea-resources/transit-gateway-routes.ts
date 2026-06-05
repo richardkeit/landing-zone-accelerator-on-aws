@@ -102,6 +102,16 @@ export class TransitGatewayRoutes extends AseaResource {
   }
   /**
    * Sets Global TGW Peering Mapping Resource Maps for TGW Attachment Ids and Route Tables Ids
+   *
+   * @remarks
+   * In ASEA-migrated environments, a TGW peering may be defined between an ASEA-owned TGW
+   * and an LZA-native TGW in an account that was never part of ASEA. In that case, the
+   * ASEA `templateMap` will not contain a Phase0/Phase1 SharedNetwork stack entry for the
+   * non-ASEA side, and the lookup returns `undefined`. Each side (requester, peering
+   * attachment, accepter) is therefore guarded independently so that the ASEA side(s) are
+   * still processed while the non-ASEA side is skipped instead of causing a TypeError in
+   * `ImportStackResources.initSync` (cannot read 'resourcePath' of undefined).
+   *
    * @param tgwPeeringConfig
    * @returns
    */
@@ -116,23 +126,53 @@ export class TransitGatewayRoutes extends AseaResource {
     const tgwPeeringAttachmentStackMapping = `${props.stackInfo.accountId}|${tgwPeeringConfig.requester.region}|${aseaPrefix}-SharedNetwork-Phase1`;
     const tgwRequesterMapping = mappings[tgwRequesterStackMapping];
     const tgwPeeringAttachmentMapping = mappings[tgwPeeringAttachmentStackMapping];
-    const tgwRequesterResources = ImportStackResources.initSync({ stackMapping: tgwRequesterMapping });
-    const tgwPeeringAttachmentResources = ImportStackResources.initSync({
-      stackMapping: tgwPeeringAttachmentMapping,
-    });
-    const tgwRequesterRouteTables = tgwRequesterResources.getResourcesByType(RESOURCE_TYPE.TGW_ROUTE_TABLE);
-    const tgwPeeringAttachments = tgwPeeringAttachmentResources.getResourcesByType(
-      RESOURCE_TYPE.TGW_PEERING_ATTACHMENT,
-    );
-    this.allGlobalRouteTables.push(...tgwRequesterRouteTables);
-    this.allGlobalTgwPeeringAttachments.push(...tgwPeeringAttachments);
+
+    // Requester TGW route tables (Phase0). Skip if the requester account/region is not ASEA-owned.
+    if (tgwRequesterMapping) {
+      const tgwRequesterResources = ImportStackResources.initSync({ stackMapping: tgwRequesterMapping });
+      const tgwRequesterRouteTables = tgwRequesterResources.getResourcesByType(RESOURCE_TYPE.TGW_ROUTE_TABLE);
+      this.allGlobalRouteTables.push(...tgwRequesterRouteTables);
+    } else {
+      this.scope.addLogs(
+        LogLevel.INFO,
+        `Skipping ASEA TGW requester route-table lookup for peering "${tgwPeeringConfig.name}": ` +
+          `no ASEA template mapping for ${tgwRequesterStackMapping}.`,
+      );
+    }
+
+    // Peering attachments (Phase1) live in the requester account. Skip if not ASEA-owned.
+    if (tgwPeeringAttachmentMapping) {
+      const tgwPeeringAttachmentResources = ImportStackResources.initSync({
+        stackMapping: tgwPeeringAttachmentMapping,
+      });
+      const tgwPeeringAttachments = tgwPeeringAttachmentResources.getResourcesByType(
+        RESOURCE_TYPE.TGW_PEERING_ATTACHMENT,
+      );
+      this.allGlobalTgwPeeringAttachments.push(...tgwPeeringAttachments);
+    } else {
+      this.scope.addLogs(
+        LogLevel.INFO,
+        `Skipping ASEA TGW peering-attachment lookup for peering "${tgwPeeringConfig.name}": ` +
+          `no ASEA template mapping for ${tgwPeeringAttachmentStackMapping}.`,
+      );
+    }
 
     const tgwAccepterAccountId = this.props.accountsConfig.getAccountId(tgwPeeringConfig.accepter.account);
     const tgwAccepterStackMapping = `${tgwAccepterAccountId}|${tgwPeeringConfig.accepter.region}|${aseaPrefix}-SharedNetwork-Phase0`;
     const tgwAccepterMapping = mappings[tgwAccepterStackMapping];
-    const tgwAccepterResources = ImportStackResources.initSync({ stackMapping: tgwAccepterMapping });
-    const tgwAccepterRouteTables = tgwAccepterResources.getResourcesByType(RESOURCE_TYPE.TGW_ROUTE_TABLE);
-    this.allGlobalRouteTables.push(...tgwAccepterRouteTables);
+
+    // Accepter TGW route tables (Phase0). Skip if the accepter account/region is not ASEA-owned.
+    if (tgwAccepterMapping) {
+      const tgwAccepterResources = ImportStackResources.initSync({ stackMapping: tgwAccepterMapping });
+      const tgwAccepterRouteTables = tgwAccepterResources.getResourcesByType(RESOURCE_TYPE.TGW_ROUTE_TABLE);
+      this.allGlobalRouteTables.push(...tgwAccepterRouteTables);
+    } else {
+      this.scope.addLogs(
+        LogLevel.INFO,
+        `Skipping ASEA TGW accepter route-table lookup for peering "${tgwPeeringConfig.name}": ` +
+          `no ASEA template mapping for ${tgwAccepterStackMapping}.`,
+      );
+    }
 
     this.allGlobalRouteTables.forEach(allGlobalRouteTable => {
       const tags = allGlobalRouteTable.resourceMetadata['Properties'].Tags;
