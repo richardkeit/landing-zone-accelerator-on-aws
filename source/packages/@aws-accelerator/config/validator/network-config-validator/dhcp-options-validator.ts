@@ -77,17 +77,17 @@ export class DhcpOptionsValidator {
 
   /**
    * Validate DHCP option set domain name
+   *
+   * @remarks
+   * Format validation of `domainName` is intentionally not enforced. Amazon EC2 accepts a single
+   * domain name or, for some operating systems, multiple space-separated domain names. See
+   * {@link https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateDhcpOptions.html | CreateDhcpOptions}
+   * for the behavioral caveats associated with multiple domain names.
    * @param set
    * @param helpers
    * @param errors
    */
   private validateDomainName(set: DhcpOptsConfig, helpers: NetworkValidatorFunctions, errors: string[]) {
-    // Validate regex
-    if (set.domainName && !helpers.matchesRegex(set.domainName, '^[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-z]{2,8}$')) {
-      errors.push(
-        `[DHCP options set ${set.name}]: domainName "${set.domainName}" is invalid. Domain names must match the pattern "^[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-z]{2,8}$"`,
-      );
-    }
     // Validate regional domain names are not deployed to more than one region
     const isRegionalName = set.domainName
       ? set.domainName === 'ec2.internal' || helpers.matchesRegex(set.domainName, '^.+\\.compute\\.internal$')

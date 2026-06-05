@@ -3197,6 +3197,8 @@ export interface IDhcpOptsConfig {
   readonly regions: string[];
   /**
    * (OPTIONAL) A domain name to assign to hosts using the options set.
+   * You may specify a single domain name (for example, `example.com`) or multiple domain names separated by spaces (for example, `example.com example.org`).
+   * CAUTION: Multiple domain names are only honored by some Linux operating systems. Windows and other Linux operating systems treat the value as a single domain name, which results in unexpected behavior. If the options set is associated with a VPC that has instances running operating systems that treat the value as a single domain, specify only one domain name. See https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateDhcpOptions.html for more information.
    *
    * @remarks
    * **CAUTION**: Changing this property value after initial deployment causes the DHCP options set to be recreated.
