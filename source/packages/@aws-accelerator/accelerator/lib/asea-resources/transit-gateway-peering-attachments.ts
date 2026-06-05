@@ -100,6 +100,17 @@ export class TransitGatewayPeeringAttachments extends AseaResource {
     const tgwPeeringAttachmentStackMapping = `${props.stackInfo.accountId}|${tgwPeeringConfig.requester.region}|${aseaPrefix}-SharedNetwork-Phase1`;
     const tgwPeeringAttachmentMapping = mappings[tgwPeeringAttachmentStackMapping];
     if (!tgwPeeringAttachmentMapping) {
+      // Reachable when the requester side of the peering is an LZA-native TGW in an
+      // account that was never part of ASEA: no Phase1 SharedNetwork stack exists in
+      // the requester account, so we have nothing to import for this peering. Logged
+      // (rather than silently returned) so the inverse of LZA-1524 — a peering that
+      // exists in network-config.yaml but is never registered in aseaResources.json —
+      // is debuggable from the import-asea-resources logs.
+      this.scope.addLogs(
+        LogLevel.INFO,
+        `Skipping ASEA TGW peering-attachment lookup for peering "${tgwPeeringConfig.name}": ` +
+          `no ASEA template mapping for ${tgwPeeringAttachmentStackMapping}.`,
+      );
       return;
     }
     const tgwPeeringAttachmentResources = ImportStackResources.initSync({
