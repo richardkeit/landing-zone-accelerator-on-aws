@@ -19,6 +19,7 @@ import {
   GroupConfig,
   GroupSetConfig,
   LoggingConfig,
+  ServiceQuotaLimitsConfig,
   UserConfig,
   UserSetConfig,
 } from '@aws-accelerator/config';
@@ -141,6 +142,71 @@ describe('OperationsStack cdk assert tests', () => {
     );
   });
 });
+
+describe('OperationsStack service quota limits tests', () => {
+  const serviceQuotaResource = 'Custom::ServiceQuotaLimits';
+
+  test('global service limit without regions is created in the global region', () => {
+    const stack = createStackWithLimits([buildLimit('iam')], { homeRegion: 'us-east-1', globalRegion: 'us-east-1' });
+    const template = Template.fromStack(stack);
+    template.resourceCountIs(serviceQuotaResource, 1);
+  });
+
+  test('global service limit without regions is NOT created in a non-global home region', () => {
+    // Regression test: home region (eu-west-1) differs from global region (us-east-1).
+    // A global service like iam with no regions must not be requested outside the global
+    // region, otherwise AWS returns NoSuchResourceException.
+    const stack = createStackWithLimits([buildLimit('iam')], { homeRegion: 'eu-west-1', globalRegion: 'us-east-1' });
+    const template = Template.fromStack(stack);
+    template.resourceCountIs(serviceQuotaResource, 0);
+  });
+
+  test('non-global service limit without regions is created in the home region', () => {
+    const stack = createStackWithLimits([buildLimit('lambda')], { homeRegion: 'us-east-1', globalRegion: 'us-east-1' });
+    const template = Template.fromStack(stack);
+    template.resourceCountIs(serviceQuotaResource, 1);
+  });
+});
+
+function buildLimit(serviceCode: string): ServiceQuotaLimitsConfig {
+  return {
+    serviceCode,
+    quotaCode: 'L-TEST0001',
+    desiredValue: 100,
+    deploymentTargets: { accounts: [], organizationalUnits: [], excludedRegions: [], excludedAccounts: [] },
+  } as unknown as ServiceQuotaLimitsConfig;
+}
+
+function createStackWithLimits(
+  limits: ServiceQuotaLimitsConfig[],
+  options: { homeRegion: string; globalRegion: string },
+) {
+  const overrideProps = {
+    globalRegion: options.globalRegion,
+    // Deploy the stack in the home region so the home-region fallback branch is exercised.
+    env: {
+      region: options.homeRegion,
+      account: '00000001',
+    },
+    globalConfig: {
+      homeRegion: options.homeRegion,
+      limits,
+      logging: {
+        cloudwatchLogs: {} as CloudWatchLogsConfig,
+        sessionManager: {
+          sendToCloudWatchLogs: false,
+          sendToS3: false,
+        },
+        cloudtrail: {
+          enable: false,
+        },
+      } as LoggingConfig,
+    } as GlobalConfig,
+  } as AcceleratorStackProps;
+  const props = createAcceleratorStackProps(overrideProps);
+
+  return new OperationsStack(app, 'unit-test-operations-stack-with-limits', props as OperationsStackProps);
+}
 
 function createStackWithUsers(
   userName: string,

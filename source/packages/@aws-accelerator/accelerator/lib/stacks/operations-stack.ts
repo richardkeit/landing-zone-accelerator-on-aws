@@ -274,8 +274,12 @@ export class OperationsStack extends AcceleratorStack {
             kmsKey: this.cloudwatchKey,
             logRetentionInDays: this.props.globalConfig.cloudwatchLogRetentionInDays,
           });
-          // Non-specified Regions apply to home region
-        } else if (!limit.regions && this.isHomeRegion(this.props.globalConfig.homeRegion)) {
+          // Non-specified Regions apply to home region (global services are handled above and must only be requested in the global region)
+        } else if (
+          !limit.regions &&
+          !globalServices.includes(limit.serviceCode) &&
+          this.isHomeRegion(this.props.globalConfig.homeRegion)
+        ) {
           this.logger.info(
             `Regions property not specified, creating service quota increase ${limit.quotaCode} in home region`,
           );
