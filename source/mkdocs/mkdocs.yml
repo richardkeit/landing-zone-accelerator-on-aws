@@ -106,6 +106,7 @@ nav:
   - TypeDocs: typedocs/index.html
 theme:
   name: material
+  custom_dir: overrides
   highlightjs: true
   hljs_languages:
     - yaml
