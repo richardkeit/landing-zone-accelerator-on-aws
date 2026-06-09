@@ -85,6 +85,38 @@ export function setRetryStrategy() {
   const numberOfRetries = Number(process.env['ACCELERATOR_SDK_MAX_ATTEMPTS'] ?? 800);
   return new ConfiguredRetryStrategy(numberOfRetries, (attempt: number) => 100 + attempt * 1000);
 }
+
+/**
+ * Returns the regional STS endpoint URL for the given partition and region.
+ *
+ * Isolated and sovereign partitions do not use the standard
+ * `sts.<region>.amazonaws.com` endpoint, so credentials minted there are
+ * rejected when sent to the commercial endpoint. This function maps each
+ * partition to its correct STS endpoint host.
+ *
+ * @param partition - AWS partition identifier
+ * @param region - AWS region
+ * @returns Fully qualified STS endpoint URL
+ */
+export function getStsEndpoint(partition: string, region: string): string {
+  switch (partition) {
+    case 'aws-iso':
+      return `https://sts.${region}.c2s.ic.gov`;
+    case 'aws-iso-b':
+      return `https://sts.${region}.sc2s.sgov.gov`;
+    case 'aws-iso-f':
+      return `https://sts.${region}.csp.hci.ic.gov`;
+    case 'aws-iso-e':
+      return `https://sts.${region}.cloud.adc-e.uk`;
+    case 'aws-cn':
+      return `https://sts.${region}.amazonaws.com.cn`;
+    case 'aws-eusc':
+      return `https://sts.${region}.amazonaws.eu`;
+    default:
+      // both commercial and GovCloud use this pattern
+      return `https://sts.${region}.amazonaws.com`;
+  }
+}
 /**
  * Function to get list of organization for given parent
  * @param client {@link OrganizationsClient}
@@ -274,8 +306,13 @@ export async function getCredentials(options: {
   const roleArn =
     options.assumeRoleArn ?? `arn:${options.partition}:iam::${options.accountId}:role/${options.assumeRoleName}`;
 
+  // Derive partition from the role ARN (arn:<partition>:...) so the STS client
+  // targets the correct regional endpoint. Isolated and sovereign partitions
+  // (e.g. aws-eusc) reject tokens sent to the commercial endpoint.
+  const partition = options.partition ?? roleArn.split(':')[1];
   const client: STSClient = new STSClient({
     region: options.region,
+    endpoint: getStsEndpoint(partition, options.region),
     customUserAgent: options.solutionId,
     retryStrategy: setRetryStrategy(),
     credentials: options.credentials,

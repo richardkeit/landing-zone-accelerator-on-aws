@@ -14,7 +14,12 @@
 import { STSClient } from '@aws-sdk/client-sts';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { IAssumeRoleCredential } from '../../../lib/common/interfaces';
-import { getCredentials, getCurrentSessionDetails, getGlobalRegion } from '../../../lib/common/sts-functions';
+import {
+  getCredentials,
+  getCurrentSessionDetails,
+  getGlobalRegion,
+  getStsEndpoint,
+} from '../../../lib/common/sts-functions';
 
 vi.mock('@aws-sdk/client-sts', () => ({
   STSClient: vi.fn(),
@@ -399,8 +404,31 @@ describe('sts-functions', () => {
       expect(getGlobalRegion('aws-iso-e')).toBe('eu-isoe-west-1');
       expect(getGlobalRegion('aws-iso-f')).toBe('us-isof-south-1');
       expect(getGlobalRegion('aws-cn')).toBe('cn-northwest-1');
+      expect(getGlobalRegion('aws-eusc')).toBe('eusc-de-east-1');
       expect(getGlobalRegion('aws')).toBe('us-east-1');
       expect(getGlobalRegion('unknown')).toBe('us-east-1');
+    });
+  });
+
+  describe('getStsEndpoint', () => {
+    const region = 'eusc-de-east-1';
+
+    test('should return the EUSC STS endpoint for aws-eusc partition', () => {
+      expect(getStsEndpoint('aws-eusc', region)).toBe(`https://sts.${region}.amazonaws.eu`);
+    });
+
+    test('should return correct endpoints for isolated and sovereign partitions', () => {
+      expect(getStsEndpoint('aws-iso', 'us-iso-east-1')).toBe('https://sts.us-iso-east-1.c2s.ic.gov');
+      expect(getStsEndpoint('aws-iso-b', 'us-isob-east-1')).toBe('https://sts.us-isob-east-1.sc2s.sgov.gov');
+      expect(getStsEndpoint('aws-iso-f', 'us-isof-south-1')).toBe('https://sts.us-isof-south-1.csp.hci.ic.gov');
+      expect(getStsEndpoint('aws-iso-e', 'eu-isoe-west-1')).toBe('https://sts.eu-isoe-west-1.cloud.adc-e.uk');
+      expect(getStsEndpoint('aws-cn', 'cn-northwest-1')).toBe('https://sts.cn-northwest-1.amazonaws.com.cn');
+    });
+
+    test('should return the commercial STS endpoint for aws and GovCloud partitions', () => {
+      expect(getStsEndpoint('aws', 'us-east-1')).toBe('https://sts.us-east-1.amazonaws.com');
+      expect(getStsEndpoint('aws-us-gov', 'us-gov-west-1')).toBe('https://sts.us-gov-west-1.amazonaws.com');
+      expect(getStsEndpoint('unknown', 'us-east-1')).toBe('https://sts.us-east-1.amazonaws.com');
     });
   });
 

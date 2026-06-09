@@ -31,6 +31,7 @@ import {
   generateDryRunResponse,
   getCredentials,
   getCurrentAccountId,
+  getStsEndpoint,
   setRetryStrategy,
 } from '../../../common/functions';
 import { AssumeRoleCredentialType } from '../../../common/resources';
@@ -72,6 +73,7 @@ export class StackPolicyModule implements IStackPolicyModule {
     const currentAccountId = await getCurrentAccountId(
       new STSClient({
         region: props.region,
+        endpoint: getStsEndpoint(props.partition, props.region),
         customUserAgent: props.solutionId,
         retryStrategy: setRetryStrategy(),
         credentials: props.credentials,

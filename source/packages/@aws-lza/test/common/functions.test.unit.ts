@@ -51,6 +51,7 @@ import {
   getOrganizationId,
   getOrganizationRootId,
   getParentOuId,
+  getStsEndpoint,
   isOrganizationsConfigured,
   processModulePromises,
   setRetryStrategy,
@@ -142,6 +143,26 @@ describe('functions', () => {
       } else {
         fail('Expected second argument to be a function, but it was not');
       }
+    });
+  });
+
+  describe('getStsEndpoint', () => {
+    test('should return the EUSC STS endpoint for aws-eusc partition', () => {
+      expect(getStsEndpoint('aws-eusc', 'eusc-de-east-1')).toBe('https://sts.eusc-de-east-1.amazonaws.eu');
+    });
+
+    test('should return correct endpoints for isolated and sovereign partitions', () => {
+      expect(getStsEndpoint('aws-iso', 'us-iso-east-1')).toBe('https://sts.us-iso-east-1.c2s.ic.gov');
+      expect(getStsEndpoint('aws-iso-b', 'us-isob-east-1')).toBe('https://sts.us-isob-east-1.sc2s.sgov.gov');
+      expect(getStsEndpoint('aws-iso-f', 'us-isof-south-1')).toBe('https://sts.us-isof-south-1.csp.hci.ic.gov');
+      expect(getStsEndpoint('aws-iso-e', 'eu-isoe-west-1')).toBe('https://sts.eu-isoe-west-1.cloud.adc-e.uk');
+      expect(getStsEndpoint('aws-cn', 'cn-northwest-1')).toBe('https://sts.cn-northwest-1.amazonaws.com.cn');
+    });
+
+    test('should return the commercial STS endpoint for aws, GovCloud, and unknown partitions', () => {
+      expect(getStsEndpoint('aws', 'us-east-1')).toBe('https://sts.us-east-1.amazonaws.com');
+      expect(getStsEndpoint('aws-us-gov', 'us-gov-west-1')).toBe('https://sts.us-gov-west-1.amazonaws.com');
+      expect(getStsEndpoint('unknown', 'us-east-1')).toBe('https://sts.us-east-1.amazonaws.com');
     });
   });
 

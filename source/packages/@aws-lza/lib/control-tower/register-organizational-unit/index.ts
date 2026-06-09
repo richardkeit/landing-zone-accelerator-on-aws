@@ -27,6 +27,7 @@ import {
   getModuleDefaultParameters,
   getOrganizationalUnitArn,
   getOrganizationalUnitIdByPath,
+  getStsEndpoint,
   setRetryStrategy,
 } from '../../../common/functions';
 
@@ -115,6 +116,7 @@ export class RegisterOrganizationalUnitModule implements IRegisterOrganizational
         organizationClient,
         new STSClient({
           region: props.region,
+          endpoint: getStsEndpoint(props.partition, props.region),
           customUserAgent: props.solutionId,
           retryStrategy: setRetryStrategy(),
           credentials: props.credentials,

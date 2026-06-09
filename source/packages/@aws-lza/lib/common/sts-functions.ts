@@ -204,8 +204,13 @@ export async function getCredentials(options: {
   return await credentialCache.getOrFetch(
     cacheKey,
     async () => {
+      // Derive partition from the role ARN (arn:<partition>:...) so the STS
+      // client targets the correct regional endpoint. Isolated and sovereign
+      // partitions (e.g. aws-eusc) reject tokens sent to the commercial endpoint.
+      const partition = options.partition ?? roleArn.split(':')[1];
       const client: STSClient = new STSClient({
         region: options.region,
+        endpoint: getStsEndpoint(partition, options.region),
         customUserAgent: options.solutionId,
         retryStrategy: setRetryStrategy(),
         credentials: options.credentials,
@@ -302,8 +307,42 @@ export function getGlobalRegion(partition: string): string {
       return 'us-isof-south-1';
     case 'aws-cn':
       return 'cn-northwest-1';
+    case 'aws-eusc':
+      return 'eusc-de-east-1';
     default:
       return 'us-east-1';
+  }
+}
+
+/**
+ * Returns the regional STS endpoint URL for the given partition and region.
+ *
+ * Isolated and sovereign partitions do not use the standard
+ * `sts.<region>.amazonaws.com` endpoint, so credentials minted there are
+ * rejected when sent to the commercial endpoint. This function maps each
+ * partition to its correct STS endpoint host.
+ *
+ * @param partition - AWS partition identifier
+ * @param region - AWS region
+ * @returns Fully qualified STS endpoint URL
+ */
+export function getStsEndpoint(partition: string, region: string): string {
+  switch (partition) {
+    case 'aws-iso':
+      return `https://sts.${region}.c2s.ic.gov`;
+    case 'aws-iso-b':
+      return `https://sts.${region}.sc2s.sgov.gov`;
+    case 'aws-iso-f':
+      return `https://sts.${region}.csp.hci.ic.gov`;
+    case 'aws-iso-e':
+      return `https://sts.${region}.cloud.adc-e.uk`;
+    case 'aws-cn':
+      return `https://sts.${region}.amazonaws.com.cn`;
+    case 'aws-eusc':
+      return `https://sts.${region}.amazonaws.eu`;
+    default:
+      // both commercial and GovCloud use this pattern
+      return `https://sts.${region}.amazonaws.com`;
   }
 }
 
