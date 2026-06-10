@@ -438,6 +438,61 @@ describe('ModuleRunner', () => {
       );
     });
 
+    it('should initialize CachingCredentialProvider with the session context before loading config', async () => {
+      // Dynamic import to avoid hoisting issues
+      const { ModuleRunner } = await import('../../lib/runner.js');
+      const moduleOrchestration = await import('../../lib/module-orchestration.js');
+      const { CachingCredentialProvider } = await import('@aws-accelerator/utils');
+
+      // Reset any singleton left over from a previous test so init() args are observable.
+      try {
+        CachingCredentialProvider.get().shutdown();
+      } catch {
+        // not initialized yet
+      }
+      const initSpy = vi.spyOn(CachingCredentialProvider, 'init');
+
+      // Provide a non-empty stage list so execute() passes its guard. Using a stage name
+      // that is not present makes execute() return early (SKIPPED) without loading
+      // configuration, keeping the test focused on the init() call.
+      moduleOrchestration.AcceleratorModuleStageDetails.push({
+        stage: { name: MODULE_SUPPORTED_STAGES.PREPARE, runOrder: 1 },
+        modules: [],
+      });
+
+      const mockRunnerParameters = {
+        sessionContext: {
+          invokingAccountId: '123456789012',
+          region: 'ca-central-1',
+          partition: 'aws',
+          globalRegion: 'us-east-1',
+        },
+        configDirPath: '/mock/config',
+        stage: MOCK_CONSTANTS.invalidStage,
+        prefix: 'AWSAccelerator',
+        solutionId: 'AwsSolution/SO0199/1.0.0',
+        dryRun: false,
+        loadOrganizationsFromDynamoDbTable: false,
+      };
+
+      await ModuleRunner.execute(mockRunnerParameters);
+
+      expect(initSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          partition: 'aws',
+          regions: expect.arrayContaining(['us-east-1', 'ca-central-1']),
+          sessionName: 'lza',
+        }),
+      );
+
+      // Cleanup singleton for subsequent tests
+      try {
+        CachingCredentialProvider.get().shutdown();
+      } catch {
+        // already shut down
+      }
+    });
+
     it('should execute stage modules with synth phase', async () => {
       // Setup
       process.env['CDK_OPTIONS'] = 'bootstrap';

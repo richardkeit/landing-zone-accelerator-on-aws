@@ -1102,8 +1102,14 @@ export class GlobalConfig implements i.IGlobalConfig {
     }
   }
   private getCrossAccountSsmClient(region: string, accountId: string, roleName: string) {
+    const credentialProvider = CachingCredentialProvider.get();
+    // Register an STS client for this region on demand before assuming a role in it.
+    // loadLzaResources() is invoked per enabled ASEA region during configuration loading
+    // and may reference regions beyond those passed to the initial init() call. addRegion()
+    // is idempotent, so this is a no-op for regions that are already configured.
+    credentialProvider.addRegion(region);
     return AwsClientFactory.create(SSMClient, {
-      credentials: CachingCredentialProvider.get().forRole(accountId, roleName, region),
+      credentials: credentialProvider.forRole(accountId, roleName, region),
       region: region,
       enableLogging: false,
     });

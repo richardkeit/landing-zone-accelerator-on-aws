@@ -136,6 +136,7 @@ import { getOrganizationSourceTableName } from './actions/utils/common-config';
 import { writeModuleDiffFile } from './actions/utils/module-diff-formatter';
 
 import { AccountsConfig, GlobalConfig } from '@aws-accelerator/config';
+import { CachingCredentialProvider } from '@aws-accelerator/utils';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { Account } from '@aws-sdk/client-organizations';
 import { GetParameterCommand, ParameterNotFound, SSMClient } from '@aws-sdk/client-ssm';
@@ -392,6 +393,26 @@ export abstract class ModuleRunner {
     if (AcceleratorModuleStageDetails.length === 0) {
       throw new Error(`No modules found in AcceleratorModuleStageDetails`);
     }
+
+    //
+    // Initialize the centralized credential cache before any configuration loading.
+    // ModuleRunner is a separate entry point from Accelerator.run(); without this,
+    // shared config-loading code that calls CachingCredentialProvider.get() (for example
+    // GlobalConfig.getCrossAccountSsmClient via loadLzaResources) throws
+    // "CachingCredentialProvider not initialized". init() is idempotent. Additional
+    // enabled regions are registered on demand during config load.
+    //
+    const initRegions = [params.sessionContext.globalRegion];
+    if (params.sessionContext.region && !initRegions.includes(params.sessionContext.region)) {
+      initRegions.push(params.sessionContext.region);
+    }
+    CachingCredentialProvider.init({
+      partition: params.sessionContext.partition,
+      regions: initRegions,
+      sessionName: 'lza',
+      enableDebug: process.env['LOG_LEVEL'] === 'debug',
+      maxSockets: Number(process.env['CREDENTIAL_PROVIDER_MAX_SOCKETS'] ?? 150),
+    });
 
     const logPrefix = `${params.sessionContext.invokingAccountId}:${params.sessionContext.region}`;
 

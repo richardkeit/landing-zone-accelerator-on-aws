@@ -136,6 +136,40 @@ describe('CachingCredentialProvider', () => {
     });
   });
 
+  describe('addRegion', () => {
+    it('should register a region on demand so forRole no longer throws', async () => {
+      CachingCredentialProvider.init({
+        partition: 'aws',
+        regions: ['us-east-1'],
+      });
+
+      const provider = CachingCredentialProvider.get();
+
+      // Region was not provided at init time.
+      expect(() => provider.forRole('123456789012', 'TestRole', 'eu-west-1')).toThrow(
+        'Region "eu-west-1" not configured',
+      );
+
+      // Registering it on demand makes the region usable.
+      provider.addRegion('eu-west-1');
+      const credentials = await provider.forRole('123456789012', 'TestRole', 'eu-west-1')();
+      expect(credentials.accessKeyId).toBe(MOCK_CREDENTIALS.AccessKeyId);
+    });
+
+    it('should be idempotent for an already-configured region', () => {
+      CachingCredentialProvider.init({
+        partition: 'aws',
+        regions: ['us-east-1'],
+      });
+
+      const provider = CachingCredentialProvider.get();
+      provider.addRegion('us-east-1');
+      provider.addRegion('us-east-1');
+
+      expect(() => provider.forRole('123456789012', 'TestRole', 'us-east-1')).not.toThrow();
+    });
+  });
+
   describe('caching behavior', () => {
     it('should cache credentials and not call STS again for the same role', async () => {
       CachingCredentialProvider.init({

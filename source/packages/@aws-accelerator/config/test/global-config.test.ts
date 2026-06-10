@@ -37,7 +37,9 @@ import {
   externalLandingZoneResourcesConfig,
 } from '../lib/global-config';
 import { ReplacementsConfig } from '../lib/replacements-config';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
+import { CachingCredentialProvider } from '@aws-accelerator/utils';
+import { SSMClient } from '@aws-sdk/client-ssm';
 import * as path from 'path';
 import * as fs from 'fs';
 import { SNAPSHOT_CONFIG } from './config-test-helper';
@@ -155,5 +157,40 @@ describe('GlobalConfig', () => {
       expect(globalConfig.controlTower.landingZone!.logging.loggingBucketRetentionDays).toBe(365);
       expect(globalConfig.controlTower.landingZone!.logging.accessLoggingBucketRetentionDays).toBe(365);
     });
+  });
+});
+
+describe('GlobalConfig cross-account SSM client', () => {
+  afterEach(() => {
+    try {
+      CachingCredentialProvider.get().shutdown();
+    } catch {
+      // not initialized
+    }
+  });
+
+  it('registers a region on demand before assuming a role (getCrossAccountSsmClient)', () => {
+    // loadLzaResources() assumes a role per enabled ASEA region, which may include
+    // regions not passed to CachingCredentialProvider.init(). getCrossAccountSsmClient
+    // must register the region on demand so forRole() does not throw.
+    CachingCredentialProvider.init({ partition: 'aws', regions: ['us-east-1'] });
+    const provider = CachingCredentialProvider.get();
+
+    // The target region is not configured at init time.
+    expect(() => provider.forRole('111111111111', 'MyRole', 'eu-west-1')).toThrow('Region "eu-west-1" not configured');
+
+    // getCrossAccountSsmClient is private and does not reference `this`; invoke it via the
+    // prototype to verify it registers the region with the credential cache on demand.
+    const getCrossAccountSsmClient = (
+      GlobalConfig.prototype as unknown as {
+        getCrossAccountSsmClient: (region: string, accountId: string, roleName: string) => SSMClient;
+      }
+    ).getCrossAccountSsmClient;
+
+    const client = getCrossAccountSsmClient.call({}, 'eu-west-1', '111111111111', 'MyRole');
+    expect(client).toBeInstanceOf(SSMClient);
+
+    // The region is now registered, so assuming a role there no longer throws.
+    expect(() => provider.forRole('111111111111', 'MyRole', 'eu-west-1')).not.toThrow();
   });
 });
