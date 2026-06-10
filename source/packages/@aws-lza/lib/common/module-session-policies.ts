@@ -146,6 +146,10 @@ const MACIE = createModulePolicy('macie', [
   'macie2:PutFindingsPublicationConfiguration',
   'macie2:*ClassificationScope*',
   'macie2:UpdateAutomatedDiscoveryConfiguration',
+  // macie2:EnableMacie implicitly creates the AWSServiceRoleForAmazonMacie SLR on first
+  // enablement in a member account; without this the clamped session fails with
+  // iam:CreateServiceLinkedRole AccessDenied (the legacy custom resource carried this grant).
+  'iam:CreateServiceLinkedRole',
 ]);
 
 const GET_CLOUDFORMATION_TEMPLATES = createModulePolicy('get-cloudformation-templates', [

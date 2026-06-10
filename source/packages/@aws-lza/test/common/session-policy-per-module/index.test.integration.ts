@@ -35,7 +35,7 @@ import { EC2Client, DescribeTransitGatewaysCommand, DescribeRegionsCommand } fro
 import { DirectConnectClient, DescribeDirectConnectGatewaysCommand } from '@aws-sdk/client-direct-connect';
 import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
 import { OrganizationsClient, ListRootsCommand, ListAccountsCommand } from '@aws-sdk/client-organizations';
-import { IAMClient, ListAccountAliasesCommand } from '@aws-sdk/client-iam';
+import { IAMClient, ListAccountAliasesCommand, SimulatePrincipalPolicyCommand } from '@aws-sdk/client-iam';
 import { SSMClient, GetServiceSettingCommand } from '@aws-sdk/client-ssm';
 import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { Macie2Client, GetMacieSessionCommand } from '@aws-sdk/client-macie2';
@@ -110,6 +110,31 @@ describe('Per-Module Session Policy Scoping', () => {
         expect((e as Error).name).not.toBe('AccessDenied');
         expect((e as Error).name).not.toBe('UnauthorizedOperation');
       }
+    });
+
+    it('should allow iam:CreateServiceLinkedRole for the Macie SLR', async () => {
+      // The clamped session must permit creating AWSServiceRoleForAmazonMacie, otherwise
+      // macie2:EnableMacie 400s on member accounts with no pre-existing SLR. Use
+      // SimulatePrincipalPolicy so we assert the grant without actually creating the role.
+      const creds = await assumeWithModulePolicy('macie');
+      const iam = makeClient(IAMClient, creds!);
+      const result = await iam.send(
+        new SimulatePrincipalPolicyCommand({
+          PolicySourceArn: ROLE_ARN,
+          ActionNames: ['iam:CreateServiceLinkedRole'],
+          ResourceArns: [
+            `arn:aws:iam::${ROLE_ARN!.split(':')[4]}:role/aws-service-role/macie.amazonaws.com/AWSServiceRoleForAmazonMacie`,
+          ],
+          ContextEntries: [
+            {
+              ContextKeyName: 'iam:AWSServiceName',
+              ContextKeyType: 'string',
+              ContextKeyValues: ['macie.amazonaws.com'],
+            },
+          ],
+        }),
+      );
+      expect(result.EvaluationResults?.[0]?.EvalDecision).toBe('allowed');
     });
 
     it('should DENY s3:ListBuckets', async () => {

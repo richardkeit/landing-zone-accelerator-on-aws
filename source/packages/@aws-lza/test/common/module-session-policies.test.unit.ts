@@ -129,5 +129,15 @@ describe('ModuleSessionPolicies', () => {
       expect(actions.some(a => a.startsWith('macie2:'))).toBe(true);
       expect(actions.some(a => a.includes('*'))).toBe(true);
     });
+
+    it('Macie module should grant iam:CreateServiceLinkedRole', () => {
+      // macie2:EnableMacie implicitly creates AWSServiceRoleForAmazonMacie on first enablement
+      // in a member account; the clamped session must allow that or EnableMacie 400s.
+      const parsed = JSON.parse(MODULE_SESSION_POLICIES['macie'].policy);
+      const actions: string[] = parsed.Statement.find(
+        (s: { Sid?: string }) => s.Sid === 'ModuleSpecificActions',
+      ).Action;
+      expect(actions).toContain('iam:CreateServiceLinkedRole');
+    });
   });
 });
