@@ -2443,6 +2443,7 @@ phases:
       - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
       - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
       - echo "=========================================="
+      - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
@@ -2452,7 +2453,6 @@ phases:
                   "Ref": "AWS::Region",
                 },
                 " --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose
-      - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
                         cd $WORK_DIR;
@@ -5455,6 +5455,7 @@ phases:
       - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
       - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
       - echo "=========================================="
+      - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
@@ -5464,7 +5465,6 @@ phases:
                   "Ref": "AWS::Region",
                 },
                 " --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose
-      - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
                         cd $WORK_DIR;
@@ -8013,6 +8013,7 @@ phases:
       - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
       - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
       - echo "=========================================="
+      - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
@@ -8022,7 +8023,6 @@ phases:
                   "Ref": "AWS::Region",
                 },
                 " --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose
-      - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
                         cd $WORK_DIR;
@@ -10802,6 +10802,7 @@ phases:
       - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
       - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
       - echo "=========================================="
+      - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
@@ -10811,7 +10812,6 @@ phases:
                   "Ref": "AWS::Region",
                 },
                 " --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose
-      - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
                         cd $WORK_DIR;
@@ -13360,6 +13360,7 @@ phases:
       - 'echo "Log Stream: $ACCELERATOR_STAGE/<timestamp>-000000000000"'
       - echo "For detailed troubleshooting, view logs in CloudWatch Logs console"
       - echo "=========================================="
+      - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - yarn run lza --config-dir $CODEBUILD_SRC_DIR_Config --partition ",
                 {
                   "Ref": "AWS::Partition",
@@ -13369,7 +13370,6 @@ phases:
                   "Ref": "AWS::Region",
                 },
                 " --stage $ACCELERATOR_STAGE --accelerator-prefix $ACCELERATOR_PREFIX --verbose
-      - set -e && ./scripts/bootstrap_management_before_prepare.sh us-east-1;
       - |-
         if [ "\${ACCELERATOR_STAGE}" = "pre-approval" ]; then
                         cd $WORK_DIR;
