@@ -1,4 +1,4 @@
-Description: (SO0199-moduleinfrastructure) Landing Zone Accelerator on AWS - Module Infrastructure Resources. Version 1.15.0-rc.7.
+Description: (SO0199-moduleinfrastructure) Landing Zone Accelerator on AWS - Module Infrastructure Resources. Version 1.16.0.
 Parameters:
   AcceleratorPrefix:
     Type: String
