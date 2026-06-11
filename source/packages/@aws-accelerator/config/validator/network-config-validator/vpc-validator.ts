@@ -523,6 +523,16 @@ export class VpcValidator {
       );
     }
 
+    // Throw error if gateway endpoint service isn't defined on the VPC
+    if (
+      routeTableEntryItem.type === 'gatewayEndpoint' &&
+      !vpcItem.gatewayEndpoints?.endpoints.find(endpoint => endpoint.service === routeTableEntryItem.target)
+    ) {
+      errors.push(
+        `[Route table ${routeTableName} for VPC ${vpcItem.name}]: route entry ${routeTableEntryItem.name} target ${routeTableEntryItem.target} does not exist`,
+      );
+    }
+
     //
     // Validate network firewall route entry
     this.validateNfwRouteEntry(routeTableEntryItem, routeTableName, vpcItem, networkFirewalls, helpers, errors);
@@ -732,6 +742,7 @@ export class VpcValidator {
         if (
           entry.type &&
           [
+            'gatewayEndpoint',
             'gatewayLoadBalancerEndpoint',
             'natGateway',
             'networkFirewall',

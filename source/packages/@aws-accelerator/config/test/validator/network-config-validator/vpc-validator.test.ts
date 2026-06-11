@@ -14,9 +14,13 @@
 import { describe, test } from 'vitest';
 import * as fc from 'fast-check';
 import {
+  GatewayEndpointConfig,
+  GatewayEndpointServiceConfig,
   InterfaceEndpointConfig,
   InterfaceEndpointServiceConfig,
   NetworkConfig,
+  RouteTableConfig,
+  RouteTableEntryConfig,
   VpcConfig,
 } from '../../../lib/network-config';
 import { VpcValidator } from '../../../validator/network-config-validator/vpc-validator';
@@ -164,6 +168,112 @@ describe('VpcValidator - interface endpoint hostedZoneName length', () => {
       throw new Error(
         `Expected at least one error containing '1024' for a 1025-character hostedZoneName. ` +
           `errors=${JSON.stringify(errors)}`,
+      );
+    }
+  });
+});
+
+/**
+ * Build a minimal NetworkConfig fixture with a single VPC containing one route
+ * table whose only entry is a `gatewayEndpoint` route targeting `routeTarget`,
+ * plus a `gatewayEndpoints` block defining `definedServices`. Static CIDR so
+ * `validateVpcStructure` passes and route-table validation actually runs; the
+ * `defaultPolicy` matches the fixture policy name to avoid an unrelated error.
+ */
+function buildGatewayEndpointRouteFixture(params: {
+  vpcName: string;
+  routeTarget: string;
+  definedServices: GatewayEndpointServiceConfig['service'][];
+}): { networkConfig: NetworkConfig; helpers: NetworkValidatorFunctions } {
+  const { vpcName, routeTarget, definedServices } = params;
+
+  const route: Partial<RouteTableEntryConfig> = {
+    name: 'S3GatewayRoute',
+    type: 'gatewayEndpoint',
+    target: routeTarget,
+  };
+
+  const routeTable: Partial<RouteTableConfig> = {
+    name: 'TestRouteTable',
+    routes: [route as RouteTableEntryConfig],
+  };
+
+  const gatewayEndpoints: Partial<GatewayEndpointConfig> = {
+    defaultPolicy: 'Default',
+    endpoints: definedServices.map(service => ({ service }) as GatewayEndpointServiceConfig),
+  };
+
+  const vpc: Partial<VpcConfig> = {
+    name: vpcName,
+    account: 'Network',
+    region: 'us-east-1',
+    cidrs: ['10.0.0.0/16'],
+    routeTables: [routeTable as RouteTableConfig],
+    gatewayEndpoints: gatewayEndpoints as GatewayEndpointConfig,
+  };
+
+  const networkConfig: Partial<NetworkConfig> = {
+    defaultVpc: { delete: false, excludeAccounts: [], excludeRegions: [] },
+    transitGateways: [],
+    endpointPolicies: [{ name: 'Default', document: 'path/to/policy.json' }],
+    vpcs: [vpc as VpcConfig],
+  };
+
+  const helpers = new NetworkValidatorFunctions(
+    networkConfig as NetworkConfig,
+    ['Root'],
+    [
+      {
+        name: 'Network',
+        description: '',
+        email: 'network@example.com',
+        organizationalUnit: 'Infrastructure',
+        warm: true,
+        accountAlias: undefined,
+      },
+    ],
+    [],
+    ['us-east-1'],
+  );
+
+  return { networkConfig: networkConfig as NetworkConfig, helpers };
+}
+
+describe('VpcValidator - gateway endpoint route target existence (issue #1063)', () => {
+  test('rejects a gatewayEndpoint route whose target service is not defined on the VPC', () => {
+    const errors: string[] = [];
+    const { networkConfig, helpers } = buildGatewayEndpointRouteFixture({
+      vpcName: 'test-vpc',
+      routeTarget: 's3',
+      definedServices: [],
+    });
+
+    new VpcValidator(networkConfig, helpers, errors);
+
+    const targetErrors = errors.filter(
+      e => e.includes('S3GatewayRoute') && e.includes('s3') && e.includes('does not exist'),
+    );
+    if (targetErrors.length === 0) {
+      throw new Error(
+        `Expected an error that the gatewayEndpoint route target 's3' does not exist. errors=${JSON.stringify(errors)}`,
+      );
+    }
+  });
+
+  test('accepts a gatewayEndpoint route whose target service is defined on the VPC', () => {
+    const errors: string[] = [];
+    const { networkConfig, helpers } = buildGatewayEndpointRouteFixture({
+      vpcName: 'test-vpc',
+      routeTarget: 's3',
+      definedServices: ['s3'],
+    });
+
+    new VpcValidator(networkConfig, helpers, errors);
+
+    const targetErrors = errors.filter(e => e.includes('S3GatewayRoute') && e.includes('does not exist'));
+    if (targetErrors.length !== 0) {
+      throw new Error(
+        `Expected no 'does not exist' error for a defined gatewayEndpoint service. errors=${JSON.stringify(targetErrors)}`,
       );
     }
   });
