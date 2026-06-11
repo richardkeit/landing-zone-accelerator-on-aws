@@ -6428,6 +6428,20 @@ export interface INfwRuleVariableDefinitionConfig {
   readonly name: t.NonEmptyString;
   /**
    * An array of values for the rule variable.
+   *
+   * The accepted value syntax depends on the rule variable type that this definition belongs to.
+   * For `ipSets`, each value is an IPv4 address or CIDR range, for example `'10.0.0.0/16'`.
+   * For `portSets`, each value is either a single TCP/UDP port (a number between `0` and `65535`,
+   * for example `'443'`) or a port range. A port range is two numbers separated by a colon (`:`)
+   * in the form `'<fromPort>:<toPort>'`, for example `'1024:2048'`, where the colon denotes an
+   * inclusive range from `fromPort` through `toPort`. Both ends must be between `0` and `65535`,
+   * and `fromPort` must be less than or equal to `toPort` (`'1024:2048'` is valid; `'2048:1024'`
+   * is rejected). Single ports and ranges can be combined in the same array, for example
+   * `['80', '443', '1024:2048']`. The colon range notation matches the syntax accepted by the
+   * AWS Network Firewall API and console.
+   *
+   * @see {@link https://docs.aws.amazon.com/network-firewall/latest/APIReference/API_PortSet.html | Network Firewall PortSet API reference}
+   * @see {@link https://docs.aws.amazon.com/network-firewall/latest/developerguide/suricata-examples.html#suricata-example-rule-with-variables | Suricata rule variable examples}
    */
   readonly definition: t.NonEmptyString[];
 }
@@ -6442,11 +6456,20 @@ export interface INfwRuleVariableDefinitionConfig {
  * Rule variables can be used in Suricata-compatible and domain list rule definitions.
  * They are not supported in stateful rule IP header definitions.
  *
+ * `ipSets` hold IP addresses and CIDR ranges; `portSets` hold individual TCP/UDP
+ * ports and/or port ranges. Port ranges use colon notation (`'<fromPort>:<toPort>'`,
+ * for example `'1024:2048'`) and can be combined with single ports in the same array.
+ *
  * @see {@link https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-networkfirewall-rulegroup-rulevariables.html}
+ * @see {@link https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-networkfirewall-rulegroup-portset.html | CloudFormation PortSet reference}
+ * @see {@link https://docs.aws.amazon.com/network-firewall/latest/developerguide/suricata-examples.html#suricata-example-rule-with-variables | Network Firewall Suricata rule variable examples}
  *
  * @example
  * CURRENT SYNTAX: use the following syntax when defining new rule variables in v1.3.1 and newer.
  * The additional example underneath is provided for backward compatibility.
+ *
+ * Port values support single ports (`'443'`) and inclusive port ranges using a
+ * colon separator (`'1024:2048'`). Both forms may be mixed in one definition array.
  * ```
  * ipSets:
  *   - name: HOME_NET
@@ -6454,6 +6477,10 @@ export interface INfwRuleVariableDefinitionConfig {
  * portSets:
  *   - name: HOME_NET
  *     definition: ['80', '443']
+ *   - name: EPHEMERAL_PORTS
+ *     definition: ['1024:65535']
+ *   - name: CUSTOM_PORTS
+ *     definition: ['80', '443', '1024:2048']
  * ```
  *
  * THE BELOW EXAMPLE SYNTAX IS DEPRECATED: use the above syntax when defining new or more than one rule variable
@@ -6468,15 +6495,25 @@ export interface INfwRuleVariableDefinitionConfig {
  */
 export interface INfwRuleVariableConfig {
   /**
-   * A Network Firewall rule variable definition configuration.
+   * A Network Firewall rule variable definition for IP addresses.
+   *
+   * Each `definition` value is an IPv4 address or CIDR range (for example
+   * `'10.0.0.0/16'`).
    *
    * @see {@link NfwRuleVariableDefinitionConfig}
    */
   readonly ipSets: INfwRuleVariableDefinitionConfig | INfwRuleVariableDefinitionConfig[];
   /**
-   * A Network Firewall rule variable definition configuration.
+   * A Network Firewall rule variable definition for TCP/UDP ports.
+   *
+   * Each `definition` value is either a single port (`'443'`) or an inclusive
+   * port range expressed with a colon separator (`'<fromPort>:<toPort>'`, for
+   * example `'1024:2048'`). Single ports and ranges may be combined in the same
+   * array (`['80', '443', '1024:2048']`). All port numbers must be between `0`
+   * and `65535`, and for ranges `fromPort` must be less than or equal to `toPort`.
    *
    * @see {@link NfwRuleVariableDefinitionConfig}
+   * @see {@link https://docs.aws.amazon.com/network-firewall/latest/APIReference/API_PortSet.html | PortSet API reference}
    */
   readonly portSets: INfwRuleVariableDefinitionConfig | INfwRuleVariableDefinitionConfig[];
 }

@@ -777,18 +777,60 @@ export class NetworkFirewallValidator {
     // Validate ports
     portSets.forEach(portSet => {
       portSet.definition.forEach(port => {
-        if (!helpers.matchesRegex(port, '^\\d{1,5}$')) {
-          errors.push(
-            `[Network Firewall rule group ${rule.name} rule variable ${portSet.name}]: invalid port "${port}". Valid value is a single TCP/UDP port between 0-65535`,
-          );
-        }
-        if (helpers.matchesRegex(port, '^\\d{1,5}$') && (parseInt(port) < 0 || parseInt(port) > 65535)) {
-          errors.push(
-            `[Network Firewall rule group ${rule.name} rule variable ${portSet.name}]: invalid port "${port}". Valid value is a single TCP/UDP port between 0-65535`,
-          );
-        }
+        this.validateRuleVariablePort(rule, portSet, port, helpers, errors);
       });
     });
+  }
+
+  /**
+   * Validate a single rule variable port definition. Accepts either a single
+   * TCP/UDP port (e.g. "443") or a port range using colon notation (e.g.
+   * "1024:2048"), matching the syntax supported by the AWS Network Firewall
+   * API and Console.
+   * @param rule
+   * @param portSet
+   * @param port
+   * @param helpers
+   * @param errors
+   */
+  private validateRuleVariablePort(
+    rule: NfwRuleGroupConfig,
+    portSet: NfwRuleVariableDefinitionConfig,
+    port: string,
+    helpers: NetworkValidatorFunctions,
+    errors: string[],
+  ) {
+    const errorPrefix = `[Network Firewall rule group ${rule.name} rule variable ${portSet.name}]`;
+
+    // Validate the port is using the correct format: single port or colon-separated range
+    if (!helpers.matchesRegex(port, '^\\d{1,5}(:\\d{1,5})?$')) {
+      errors.push(
+        `${errorPrefix}: invalid port "${port}". Valid values are a single TCP/UDP port (443) or a port range separated by colon (1024:2048), each between 0-65535`,
+      );
+      return;
+    }
+
+    // Validate port ranges
+    if (helpers.matchesRegex(port, '^\\d{1,5}:\\d{1,5}$')) {
+      const fromPort = parseInt(port.split(':')[0]);
+      const toPort = parseInt(port.split(':')[1]);
+
+      if (fromPort > toPort) {
+        errors.push(`${errorPrefix}: invalid port range "${port}". fromPort is greater than toPort`);
+      }
+      if (fromPort < 0 || fromPort > 65535) {
+        errors.push(`${errorPrefix}: invalid port range "${port}". fromPort is outside range 0-65535`);
+      }
+      if (toPort < 0 || toPort > 65535) {
+        errors.push(`${errorPrefix}: invalid port range "${port}". toPort is outside range 0-65535`);
+      }
+      return;
+    }
+
+    // Validate single port bounds
+    if (parseInt(port) < 0 || parseInt(port) > 65535) {
+      errors.push(`${errorPrefix}: invalid port "${port}". Valid value is a single TCP/UDP port between 0-65535`);
+    }
   }
 
   /**
