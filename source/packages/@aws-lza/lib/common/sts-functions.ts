@@ -347,6 +347,49 @@ export function getStsEndpoint(partition: string, region: string): string {
 }
 
 /**
+ * Returns the regional S3 virtual-hosted endpoint URL for the given partition,
+ * region, and bucket.
+ *
+ * Isolated and sovereign partitions do not use the standard
+ * `.amazonaws.com` host suffix, so a hardcoded suffix produces an unreachable
+ * URL (for example, CloudFormation `TemplateURL` references fail in those
+ * partitions). This function maps each partition to its correct S3 host suffix.
+ *
+ * @param partition - AWS partition identifier
+ * @param region - AWS region where the bucket exists
+ * @param bucket - S3 bucket name
+ * @returns Fully qualified S3 virtual-hosted endpoint URL (no trailing slash)
+ */
+export function getS3Endpoint(partition: string, region: string, bucket: string): string {
+  let suffix: string;
+  switch (partition) {
+    case 'aws-iso':
+      suffix = 'c2s.ic.gov';
+      break;
+    case 'aws-iso-b':
+      suffix = 'sc2s.sgov.gov';
+      break;
+    case 'aws-iso-f':
+      suffix = 'csp.hci.ic.gov';
+      break;
+    case 'aws-iso-e':
+      suffix = 'cloud.adc-e.uk';
+      break;
+    case 'aws-cn':
+      suffix = 'amazonaws.com.cn';
+      break;
+    case 'aws-eusc':
+      suffix = 'amazonaws.eu';
+      break;
+    default:
+      // both commercial and GovCloud use this pattern
+      suffix = 'amazonaws.com';
+      break;
+  }
+  return `https://${bucket}.s3.${region}.${suffix}`;
+}
+
+/**
  * Retrieves current AWS session details including account ID, region, global region, and partition.
  * Automatically detects session context without requiring explicit partition or region parameters.
  *

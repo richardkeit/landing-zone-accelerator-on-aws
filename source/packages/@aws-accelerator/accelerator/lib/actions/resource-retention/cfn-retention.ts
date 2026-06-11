@@ -76,6 +76,7 @@ import {
   createStatusLogger,
   executeApi,
   getCredentials,
+  getS3Endpoint,
   setRetryStrategy,
   uploadFileToS3,
   waitUntil,
@@ -744,6 +745,7 @@ export async function retainResources(props: IRetainResourceModuleRequest): Prom
     modificationResult.templateBody!,
     dryRun,
     logPrefix,
+    props.partition,
     props.solutionId,
     props.credentials, // Use management account credentials for S3 upload
   );
@@ -907,6 +909,7 @@ async function deployStack(
   templateBody: string,
   dryRun: boolean,
   logPrefix: string,
+  partition: string,
   solutionId?: string,
   credentials?: AssumeRoleCredentialType,
 ): Promise<void> {
@@ -914,7 +917,7 @@ async function deployStack(
 
   // Upload template to S3
   const s3Key = await uploadTemplateToS3(config, templateBody, dryRun, logPrefix, solutionId, credentials);
-  const s3Url = `https://${config.s3BucketName}.s3.${config.bucketRegion}.amazonaws.com/${s3Key}`;
+  const s3Url = `${getS3Endpoint(partition, config.bucketRegion, config.s3BucketName)}/${s3Key}`;
 
   // Deploy stack using S3 template URL
   await updateStackWithS3Template(client, config.stackName, s3Url, dryRun, logPrefix);

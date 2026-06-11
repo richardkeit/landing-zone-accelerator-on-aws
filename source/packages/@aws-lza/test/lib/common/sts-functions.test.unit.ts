@@ -18,6 +18,7 @@ import {
   getCredentials,
   getCurrentSessionDetails,
   getGlobalRegion,
+  getS3Endpoint,
   getStsEndpoint,
 } from '../../../lib/common/sts-functions';
 
@@ -429,6 +430,40 @@ describe('sts-functions', () => {
       expect(getStsEndpoint('aws', 'us-east-1')).toBe('https://sts.us-east-1.amazonaws.com');
       expect(getStsEndpoint('aws-us-gov', 'us-gov-west-1')).toBe('https://sts.us-gov-west-1.amazonaws.com');
       expect(getStsEndpoint('unknown', 'us-east-1')).toBe('https://sts.us-east-1.amazonaws.com');
+    });
+  });
+
+  describe('getS3Endpoint', () => {
+    const bucket = 'cdk-accel-assets-049171542103-eusc-de-east-1';
+
+    test('should return the EUSC S3 endpoint for aws-eusc partition', () => {
+      expect(getS3Endpoint('aws-eusc', 'eusc-de-east-1', bucket)).toBe(
+        `https://${bucket}.s3.eusc-de-east-1.amazonaws.eu`,
+      );
+    });
+
+    test('should return correct endpoints for isolated and sovereign partitions', () => {
+      expect(getS3Endpoint('aws-iso', 'us-iso-east-1', bucket)).toBe(`https://${bucket}.s3.us-iso-east-1.c2s.ic.gov`);
+      expect(getS3Endpoint('aws-iso-b', 'us-isob-east-1', bucket)).toBe(
+        `https://${bucket}.s3.us-isob-east-1.sc2s.sgov.gov`,
+      );
+      expect(getS3Endpoint('aws-iso-f', 'us-isof-south-1', bucket)).toBe(
+        `https://${bucket}.s3.us-isof-south-1.csp.hci.ic.gov`,
+      );
+      expect(getS3Endpoint('aws-iso-e', 'eu-isoe-west-1', bucket)).toBe(
+        `https://${bucket}.s3.eu-isoe-west-1.cloud.adc-e.uk`,
+      );
+      expect(getS3Endpoint('aws-cn', 'cn-northwest-1', bucket)).toBe(
+        `https://${bucket}.s3.cn-northwest-1.amazonaws.com.cn`,
+      );
+    });
+
+    test('should return the commercial S3 endpoint for aws, GovCloud, and unknown partitions', () => {
+      expect(getS3Endpoint('aws', 'us-east-1', bucket)).toBe(`https://${bucket}.s3.us-east-1.amazonaws.com`);
+      expect(getS3Endpoint('aws-us-gov', 'us-gov-west-1', bucket)).toBe(
+        `https://${bucket}.s3.us-gov-west-1.amazonaws.com`,
+      );
+      expect(getS3Endpoint('unknown', 'us-east-1', bucket)).toBe(`https://${bucket}.s3.us-east-1.amazonaws.com`);
     });
   });
 

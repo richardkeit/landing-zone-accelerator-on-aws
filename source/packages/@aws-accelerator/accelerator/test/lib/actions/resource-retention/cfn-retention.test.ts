@@ -99,6 +99,9 @@ vi.mock('aws-lza', () => ({
   setRetryStrategy: vi.fn(() => ({})),
   executeApi: vi.fn(),
   uploadFileToS3: vi.fn(),
+  getS3Endpoint: vi.fn(
+    (partition: string, region: string, bucket: string) => `https://${bucket}.s3.${region}.amazonaws.com`,
+  ),
   waitUntil: vi.fn(),
   MODULE_EXCEPTIONS: {
     SERVICE_EXCEPTION: 'SERVICE_EXCEPTION',

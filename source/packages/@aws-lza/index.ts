@@ -45,8 +45,12 @@ export {
   getOrganizationDetails,
 } from './lib/common/organizations-functions';
 export { getParametersValue } from './lib/common/ssm-functions';
-export { getCredentials, getCurrentSessionDetails } from './lib/common/sts-functions';
-export { IModuleSessionPolicy, MODULE_SESSION_POLICIES, getModuleSessionPolicy } from './lib/common/module-session-policies';
+export { getCredentials, getCurrentSessionDetails, getS3Endpoint } from './lib/common/sts-functions';
+export {
+  IModuleSessionPolicy,
+  MODULE_SESSION_POLICIES,
+  getModuleSessionPolicy,
+} from './lib/common/module-session-policies';
 export { throttlingBackOff } from './lib/common/throttle';
 export { DynamoDBFilterOperator, MODULE_EXCEPTIONS, MODULE_STATE_CODE } from './lib/common/types';
 export { executeApi, setRetryStrategy, waitUntil } from './lib/common/utility';
