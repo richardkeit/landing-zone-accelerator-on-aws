@@ -36,7 +36,10 @@ import {
   MacieStatus,
   paginateListOrganizationAdminAccounts,
 } from '@aws-sdk/client-macie2';
-import { executeApi, waitUntil } from '../common/utility';
+import { InvalidInputException, OrganizationsClient } from '@aws-sdk/client-organizations';
+import { AssumeRoleCredentialType } from '../common/interfaces';
+import { getDelegatedAdministratorAccountId } from '../common/organizations-functions';
+import { executeApi, setRetryStrategy, waitUntil } from '../common/utility';
 
 import path from 'node:path';
 import { createLogger } from '../common/logger';
@@ -135,4 +138,51 @@ export async function listAdminAccounts(client: Macie2Client, logPrefix: string)
   }
   logger.commandSuccess(commandName, parameters, logPrefix);
   return adminAccounts;
+}
+
+/**
+ * Macie service principal used for Organizations API calls
+ */
+export const MACIE_SERVICE_NAME = 'macie.amazonaws.com';
+
+/**
+ * Checks if Amazon Macie is available in the current partition by attempting
+ * to query the Organizations API with the Macie service principal.
+ *
+ * In partitions where Macie is not available (e.g., GovCloud), the Organizations API
+ * throws InvalidInputException with "You specified an unrecognized service principal"
+ * when attempting to list delegated administrators for macie.amazonaws.com.
+ *
+ * @param props - Properties for the availability check
+ * @param props.region - AWS region for the Organizations API call (should be global region)
+ * @param props.solutionId - Solution identifier for user agent
+ * @param props.credentials - AWS credentials for the API call
+ * @param logPrefix - Prefix for logging messages
+ * @returns Promise resolving to true if Macie is available in the partition, false otherwise
+ */
+export async function isMacieAvailableInPartition(
+  props: {
+    region: string;
+    solutionId?: string;
+    credentials?: AssumeRoleCredentialType;
+  },
+  logPrefix: string,
+): Promise<boolean> {
+  const client = new OrganizationsClient({
+    region: props.region,
+    customUserAgent: props.solutionId,
+    retryStrategy: setRetryStrategy(),
+    credentials: props.credentials,
+  });
+
+  try {
+    await getDelegatedAdministratorAccountId(client, MACIE_SERVICE_NAME, logPrefix);
+    return true;
+  } catch (error: unknown) {
+    if (error instanceof InvalidInputException && error.message?.includes('unrecognized service principal')) {
+      logger.info(`Macie is not available in this partition: ${error.message}`, logPrefix);
+      return false;
+    }
+    throw error;
+  }
 }

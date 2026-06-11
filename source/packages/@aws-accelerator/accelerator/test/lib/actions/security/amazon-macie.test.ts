@@ -55,6 +55,7 @@ vi.mock('aws-lza', () => {
     configureMacie: vi.fn(),
     createLogger: vi.fn(() => mockLogger),
     createStatusLogger: vi.fn(() => mockStatusLogger),
+    isMacieAvailableInPartition: vi.fn(() => Promise.resolve(true)),
     DynamoDBFilterOperator: {
       ATTRIBUTE_EXISTS: 'attribute_exists',
       EQUALS: '=',
@@ -290,6 +291,44 @@ describe('AmazonMacie', () => {
       });
 
       await expect(AmazonMacie.configure(params)).rejects.toThrow('Logging bucket name and key arn must be provided.');
+    });
+
+    it('should skip module when Macie is not available in the partition', async () => {
+      const { isMacieAvailableInPartition } = await import('aws-lza');
+      vi.mocked(isMacieAvailableInPartition).mockResolvedValue(false);
+
+      const params = createMockModuleParams();
+      const result = await AmazonMacie.configure(params);
+
+      expect(result.status).toBe('SKIPPED');
+      expect(result.summary).toContain('not available in this partition');
+      expect(result.moduleName).toBe(AcceleratorModules.MACIE);
+      expect(isMacieAvailableInPartition).toHaveBeenCalledWith(
+        {
+          region: mockSessionContext.globalRegion,
+          solutionId: mockRunnerParameters.solutionId,
+          credentials: expect.anything(),
+        },
+        'XXXXXXXXXXXX:us-east-1',
+      );
+    });
+
+    it('should proceed when Macie is available in the partition', async () => {
+      const { configureMacie, isMacieAvailableInPartition } = await import('aws-lza');
+      vi.mocked(isMacieAvailableInPartition).mockResolvedValue(true);
+      vi.mocked(configureMacie).mockResolvedValue({
+        status: MODULE_STATE_CODE.COMPLETED,
+        summary: 'Macie configured successfully',
+        timestamp: new Date().toISOString(),
+        moduleName: AcceleratorModules.MACIE,
+        dryRun: false,
+      });
+
+      const params = createMockModuleParams();
+      const result = await AmazonMacie.configure(params);
+
+      expect(result.status).toBe('COMPLETED');
+      expect(configureMacie).toHaveBeenCalled();
     });
   });
 

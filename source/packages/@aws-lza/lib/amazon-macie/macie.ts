@@ -62,7 +62,7 @@ import {
 import { getCredentials } from '../common/sts-functions';
 import { SecurityModuleOperationAction, SecurityModuleOperationType } from '../common/types';
 import { setRetryStrategy } from '../common/utility';
-import { disableMacie, enableMacie, isMacieEnabled } from './functions';
+import { disableMacie, enableMacie, isMacieEnabled, MACIE_SERVICE_NAME } from './functions';
 import { IMacieModuleRequest, IMacieModuleResponse, IMacieS3Destination, IMacieSessionResponse } from './interfaces';
 import { MacieMembers } from './macie-members';
 import { MacieSession } from './macie-session';
@@ -70,11 +70,6 @@ import { OrganizationsDelegatedAdminAccount } from './organizations-delegated-ad
 import { MacieSessionResponseHandler } from './response-factories';
 
 const logger = createLogger([path.parse(path.basename(__filename)).name]);
-
-/**
- * Macie service name constant used for Organizations API calls
- */
-const MACIE_SERVICE_NAME = 'macie.amazonaws.com';
 
 /**
  * Macie session configuration data

@@ -89,6 +89,7 @@ vi.mock('../../../lib/amazon-macie/functions', () => ({
   enableMacie: vi.fn(),
   disableMacie: vi.fn(),
   isMacieEnabled: vi.fn(),
+  MACIE_SERVICE_NAME: 'macie.amazonaws.com',
 }));
 
 vi.mock('../../../lib/amazon-macie/organizations-delegated-admin-account', () => ({

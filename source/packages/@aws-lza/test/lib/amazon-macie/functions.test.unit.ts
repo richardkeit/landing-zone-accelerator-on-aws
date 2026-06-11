@@ -12,8 +12,16 @@
  */
 
 import { AccessDeniedException, Macie2Client, MacieStatus } from '@aws-sdk/client-macie2';
+import { InvalidInputException } from '@aws-sdk/client-organizations';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { disableMacie, enableMacie, isMacieEnabled, listAdminAccounts } from '../../../lib/amazon-macie/functions';
+import {
+  disableMacie,
+  enableMacie,
+  isMacieAvailableInPartition,
+  isMacieEnabled,
+  listAdminAccounts,
+  MACIE_SERVICE_NAME,
+} from '../../../lib/amazon-macie/functions';
 
 vi.mock('@aws-sdk/client-macie2', () => ({
   Macie2Client: vi.fn(),
@@ -25,9 +33,25 @@ vi.mock('@aws-sdk/client-macie2', () => ({
   AccessDeniedException: vi.fn(),
 }));
 
+vi.mock('@aws-sdk/client-organizations', () => ({
+  OrganizationsClient: vi.fn(),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  InvalidInputException: vi.fn().mockImplementation(function (this: any, params: { message: string }) {
+    const error = new Error(params.message);
+    error.name = 'InvalidInputException';
+    Object.setPrototypeOf(error, InvalidInputException.prototype);
+    return error;
+  }),
+}));
+
+vi.mock('../../../lib/common/organizations-functions', () => ({
+  getDelegatedAdministratorAccountId: vi.fn(),
+}));
+
 vi.mock('../../../lib/common/utility', () => ({
   executeApi: vi.fn(),
   waitUntil: vi.fn(),
+  setRetryStrategy: vi.fn(),
 }));
 
 vi.mock('../../../lib/common/logger', () => ({
@@ -204,6 +228,59 @@ describe('amazon-macie functions', () => {
       const result = await listAdminAccounts(mockClient, logPrefix);
 
       expect(result).toEqual([{ accountId: 'XXXXXXXXXXXX', status: 'ENABLED' }]);
+    });
+  });
+
+  describe('isMacieAvailableInPartition', () => {
+    const props = {
+      region: 'us-east-1',
+      solutionId: 'SO0199',
+      credentials: undefined,
+    };
+
+    let mockGetDelegatedAdmin: ReturnType<typeof vi.fn>;
+
+    beforeEach(async () => {
+      const orgFunctions = await import('../../../lib/common/organizations-functions.js');
+      mockGetDelegatedAdmin = vi.mocked(orgFunctions.getDelegatedAdministratorAccountId);
+    });
+
+    test('should return true when Macie is available in the partition', async () => {
+      mockGetDelegatedAdmin.mockResolvedValue(undefined);
+
+      const result = await isMacieAvailableInPartition(props, logPrefix);
+
+      expect(result).toBe(true);
+      expect(mockGetDelegatedAdmin).toHaveBeenCalledWith(expect.anything(), MACIE_SERVICE_NAME, logPrefix);
+    });
+
+    test('should return false when InvalidInputException with unrecognized service principal is thrown', async () => {
+      const error = new InvalidInputException({
+        message: 'You specified an unrecognized service principal.',
+        $metadata: {},
+      });
+      mockGetDelegatedAdmin.mockRejectedValue(error);
+
+      const result = await isMacieAvailableInPartition(props, logPrefix);
+
+      expect(result).toBe(false);
+    });
+
+    test('should rethrow InvalidInputException with other messages', async () => {
+      const error = new InvalidInputException({
+        message: 'You specified an invalid account ID.',
+        $metadata: {},
+      });
+      mockGetDelegatedAdmin.mockRejectedValue(error);
+
+      await expect(isMacieAvailableInPartition(props, logPrefix)).rejects.toThrow(InvalidInputException);
+    });
+
+    test('should rethrow non-InvalidInputException errors', async () => {
+      const error = new Error('Network error');
+      mockGetDelegatedAdmin.mockRejectedValue(error);
+
+      await expect(isMacieAvailableInPartition(props, logPrefix)).rejects.toThrow('Network error');
     });
   });
 });

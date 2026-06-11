@@ -70,6 +70,7 @@ import {
   createStatusLogger,
   IMacieModuleRequest,
   IMacieModuleResponse,
+  isMacieAvailableInPartition,
   IModuleResponse,
   MacieClassificationScopeUpdateOperation,
   MODULE_STATE_CODE,
@@ -189,7 +190,7 @@ export abstract class AmazonMacie {
    * and operational visibility. Uses the filename as the logger context for
    * easy identification in log aggregation systems.
    */
-  private static statusLogger = createStatusLogger([path.parse(path.basename(__filename)).name]);
+  private static readonly statusLogger = createStatusLogger([path.parse(path.basename(__filename)).name]);
 
   /**
    * General purpose logger instance for detailed operational logging.
@@ -203,7 +204,7 @@ export abstract class AmazonMacie {
    * and error details. Complements the status logger with more granular
    * operational information.
    */
-  private static logger = createLogger([path.parse(path.basename(__filename)).name]);
+  private static readonly logger = createLogger([path.parse(path.basename(__filename)).name]);
 
   /**
    * Validates required logging configuration parameters.
@@ -599,6 +600,31 @@ export abstract class AmazonMacie {
     // Skip execution if configuration hasn't changed and not forcing run
     if (!configChanged) {
       const message = `Skipping module ${params.moduleItem.name} as configuration has not changed since last execution.`;
+      AmazonMacie.statusLogger.info(message, logPrefix);
+      return {
+        status: MODULE_STATE_CODE.SKIPPED,
+        summary: message,
+        timestamp: new Date().toISOString(),
+        moduleName: params.moduleItem.name,
+        dryRun: params.runnerParameters.dryRun,
+      };
+    }
+
+    // ========================================
+    // PARTITION AVAILABILITY CHECK
+    // ========================================
+    // In partitions where Macie is not available (e.g., GovCloud), skip the module
+    const macieAvailable = await isMacieAvailableInPartition(
+      {
+        region: params.runnerParameters.sessionContext.globalRegion,
+        solutionId: params.runnerParameters.solutionId,
+        credentials: params.moduleRunnerParameters.managementAccountCredentials,
+      },
+      logPrefix,
+    );
+
+    if (!macieAvailable) {
+      const message = `Skipping module ${params.moduleItem.name} as Amazon Macie is not available in this partition.`;
       AmazonMacie.statusLogger.info(message, logPrefix);
       return {
         status: MODULE_STATE_CODE.SKIPPED,

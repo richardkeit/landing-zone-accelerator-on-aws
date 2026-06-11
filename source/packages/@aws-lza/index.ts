@@ -148,6 +148,7 @@ export { IDetectiveManageOrganizationAdminParameter } from './interfaces/detecti
 export { ClassificationScopeUpdateOperation as MacieClassificationScopeUpdateOperation } from '@aws-sdk/client-macie2';
 export { IMacieModuleDataSources, IMacieModuleRequest, IMacieModuleResponse } from './lib/amazon-macie/interfaces';
 export { configureMacie } from './lib/amazon-macie/macie';
+export { isMacieAvailableInPartition } from './lib/amazon-macie/functions';
 
 //
 // AWS Lambda Module Resources
