@@ -32,7 +32,7 @@ import {
   OrganizationsClient,
   paginateListAccounts,
 } from '@aws-sdk/client-organizations';
-import { ParameterNotFound, SSMClient } from '@aws-sdk/client-ssm';
+import { GetParameterCommand, ParameterNotFound, SSMClient } from '@aws-sdk/client-ssm';
 import {
   AccountsConfig,
   CustomizationsConfig,
@@ -78,11 +78,13 @@ vi.mock('@aws-sdk/client-organizations', async () => ({
 }));
 
 vi.mock('@aws-sdk/client-ssm', () => ({
-  SSMClient: vi.fn().mockImplementation(function() { return {
-    send: vi.fn().mockResolvedValue({
-      Parameter: MOCK_CONSTANTS.centralLogBucketCmkSsmParameter,
-    }),
-  }; }),
+  SSMClient: vi.fn().mockImplementation(function () {
+    return {
+      send: vi.fn().mockResolvedValue({
+        Parameter: MOCK_CONSTANTS.centralLogBucketCmkSsmParameter,
+      }),
+    };
+  }),
   GetParameterCommand: vi.fn(),
   ParameterNotFound: class ParameterNotFound extends Error {
     constructor() {
@@ -522,9 +524,11 @@ describe('functions', () => {
 
     beforeEach(() => {
       vi.clearAllMocks();
-      (OrganizationsClient as any).mockImplementation(function() { return {
-        send: mockSend,
-      }; });
+      (OrganizationsClient as any).mockImplementation(function () {
+        return {
+          send: mockSend,
+        };
+      });
     });
 
     test('should return organization details when successful', async () => {
@@ -650,9 +654,11 @@ describe('functions', () => {
 
     beforeEach(() => {
       vi.clearAllMocks();
-      (SSMClient as any).mockImplementation(function() { return {
-        send: mockSend,
-      }; });
+      (SSMClient as any).mockImplementation(function () {
+        return {
+          send: mockSend,
+        };
+      });
       ssmMockClient = new SSMClient({});
       mockAccountsConfig = {
         getLogArchiveAccount: vi.fn().mockReturnValue(MOCK_CONSTANTS.logArchiveAccount),
@@ -701,6 +707,54 @@ describe('functions', () => {
           credentials: MOCK_CONSTANTS.credentials,
         }),
       );
+    });
+
+    test('should read importedCentralLogBucketCmkArn for an imported bucket without an accelerator-managed key', async () => {
+      // Regression test for the SSM parameter-name mismatch root cause. An imported central log
+      // bucket without createAcceleratorManagedKey must read `importedCentralLogBucketCmkArn`
+      // (what the logging stack writes for ANY imported central log bucket), not
+      // `centralLogBucketCmkArn`. Keying off createAcceleratorManagedKey read the wrong name ->
+      // ParameterNotFound -> undefined logging bucket -> downstream security module failures.
+      vi.spyOn(lzaCommonFunctions, 'getCredentials').mockResolvedValue(MOCK_CONSTANTS.credentials);
+
+      mockSend.mockResolvedValue({ Parameter: MOCK_CONSTANTS.centralLogBucketCmkSsmParameter });
+
+      const importedNoManagedKeyGlobalConfig = {
+        ...mockImportedLoggingBucketGlobalConfig,
+        logging: {
+          ...mockImportedLoggingBucketGlobalConfig.logging,
+          centralLogBucket: {
+            importedBucket: { name: 'mock-existing-central-log-bucket' },
+          },
+        },
+      } as unknown as GlobalConfig;
+
+      const result = await getCentralLoggingResources(
+        MOCK_CONSTANTS.runnerParameters.partition,
+        MOCK_CONSTANTS.runnerParameters.solutionId,
+        MOCK_CONSTANTS.centralizedLoggingRegion,
+        MOCK_CONSTANTS.acceleratorResourceNames,
+        importedNoManagedKeyGlobalConfig,
+        mockAccountsConfig as AccountsConfig,
+        {
+          name: AcceleratorModuleStages.PREPARE,
+          runOrder: AcceleratorModuleStageOrders.logging.runOrder + 1,
+          module: {
+            name: AcceleratorModules.SETUP_CONTROL_TOWER_LANDING_ZONE,
+            executionPhase: ModuleExecutionPhase.DEPLOY,
+          },
+        },
+        MOCK_CONSTANTS.credentials,
+      );
+
+      // Verify the imported-bucket parameter name was requested, not the accelerator-created one.
+      expect(vi.mocked(GetParameterCommand)).toHaveBeenCalledWith({
+        Name: MOCK_CONSTANTS.acceleratorResourceNames.parameters.importedCentralLogBucketCmkArn,
+      });
+      expect(vi.mocked(GetParameterCommand)).not.toHaveBeenCalledWith({
+        Name: MOCK_CONSTANTS.acceleratorResourceNames.parameters.centralLogBucketCmkArn,
+      });
+      expect(result?.keyArn).toBe(MOCK_CONSTANTS.centralLogBucketCmkSsmParameter.Value);
     });
 
     test('should return undefined when parameter not found', async () => {
@@ -873,13 +927,17 @@ describe('functions', () => {
     beforeEach(() => {
       vi.clearAllMocks();
 
-      (OrganizationsClient as any).mockImplementation(function() { return {
-        send: mockOrgSend,
-      }; });
+      (OrganizationsClient as any).mockImplementation(function () {
+        return {
+          send: mockOrgSend,
+        };
+      });
 
-      (SSMClient as any).mockImplementation(function() { return {
-        send: mockSsmSend,
-      }; });
+      (SSMClient as any).mockImplementation(function () {
+        return {
+          send: mockSsmSend,
+        };
+      });
 
       ssmMockClient = new SSMClient({});
       orgMockClient = new OrganizationsClient({});

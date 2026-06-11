@@ -1529,8 +1529,17 @@ export abstract class ModuleRunner {
       props.accountsConfig,
     );
 
+    // The central log bucket CMK ARN is stored under different SSM parameter names depending on
+    // whether the central log bucket is imported. The logging stack (createOrGetCentralLogsBucket)
+    // writes the ARN to `importedCentralLogBucketCmkArn` for ANY imported central log bucket and to
+    // `centralLogBucketCmkArn` only for an accelerator-created bucket. The selection therefore must
+    // key off the presence of an imported bucket — NOT `createAcceleratorManagedKey`. Using
+    // `createAcceleratorManagedKey` causes an imported bucket without an accelerator-managed key to
+    // read the (never-created) `centralLogBucketCmkArn` parameter, yielding ParameterNotFound and an
+    // undefined logging bucket. This matches getCentralLogBucketKmsKeyArn in app-utils.ts and
+    // getCentralLogsBucketKey in accelerator-stack.ts.
     let ssmParamName = props.acceleratorResourceNames.parameters.centralLogBucketCmkArn;
-    if (props.globalConfig.logging.centralLogBucket?.importedBucket?.createAcceleratorManagedKey) {
+    if (props.globalConfig.logging.centralLogBucket?.importedBucket?.name) {
       ssmParamName = props.acceleratorResourceNames.parameters.importedCentralLogBucketCmkArn;
     }
 

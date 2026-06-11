@@ -342,8 +342,14 @@ export async function getCentralLoggingResources(
     accountsConfig,
   );
 
+  // Select the SSM parameter that holds the central log bucket CMK ARN based on whether the
+  // central log bucket is imported. The logging stack stores the ARN under
+  // `importedCentralLogBucketCmkArn` for ANY imported central log bucket (regardless of
+  // `createAcceleratorManagedKey`) and under `centralLogBucketCmkArn` only for an
+  // accelerator-created bucket. Keying off `createAcceleratorManagedKey` is incorrect and causes
+  // ParameterNotFound (undefined logging bucket) for imported buckets without a managed key.
   let ssmParamName = acceleratorResourceNames.parameters.centralLogBucketCmkArn;
-  if (globalConfig.logging.centralLogBucket?.importedBucket?.createAcceleratorManagedKey) {
+  if (globalConfig.logging.centralLogBucket?.importedBucket?.name) {
     ssmParamName = acceleratorResourceNames.parameters.importedCentralLogBucketCmkArn;
   }
 

@@ -1621,6 +1621,57 @@ describe('ModuleRunner', () => {
       ).rejects.toThrow('Parameter /accelerator/logging/central-bucket/kms/arn exists but contains no value');
     });
 
+    it('should read importedCentralLogBucketCmkArn for an imported central log bucket without an accelerator-managed key', async () => {
+      // Regression test for the SSM parameter-name mismatch root cause.
+      // The logging stack writes the central log bucket CMK ARN to `importedCentralLogBucketCmkArn`
+      // for ANY imported central log bucket. mockGlobalConfigWithImportedBucket has an imported
+      // bucket with NO createAcceleratorManagedKey, so the runner must read that parameter — not
+      // `centralLogBucketCmkArn`. Reading the wrong name caused ParameterNotFound -> undefined
+      // logging bucket -> downstream security modules (e.g. Macie) failing with
+      // "Logging bucket name and key arn must be provided."
+      const { ModuleRunner } = await import('../../lib/runner.js');
+      const ssmClient = await import('@aws-sdk/client-ssm');
+
+      // Clear prior GetParameterCommand calls so the assertions only see this test's calls.
+      vi.mocked(ssmClient.GetParameterCommand).mockClear();
+
+      const importedKeyArn = 'arn:aws:kms:us-east-1:222222222222:key/imported-key-id';
+      const mockSend = vi.fn().mockResolvedValue({ Parameter: { Name: 'imported', Value: importedKeyArn } });
+      vi.mocked(ssmClient.SSMClient).mockImplementation(function () {
+        return {
+          send: mockSend,
+        } as any;
+      });
+
+      const mockStage = {
+        name: MODULE_SUPPORTED_STAGES.SECURITY, // runOrder 8 > logging runOrder
+        runOrder: 8,
+        module: {
+          name: 'test-module',
+          executionPhase: ModuleExecutionPhase.DEPLOY,
+        },
+      };
+
+      const result = await ModuleRunner['getCentralLoggingResources']({
+        partition: 'aws',
+        solutionId: 'test-solution',
+        centralizedLoggingRegion: 'us-east-1',
+        acceleratorResourceNames: mockAcceleratorResourceNames,
+        globalConfig: mockGlobalConfigWithImportedBucket,
+        accountsConfig: createMockAccountsConfig() as any,
+        stage: mockStage,
+      });
+
+      // Must query the imported-bucket parameter name, not the accelerator-created one.
+      expect(ssmClient.GetParameterCommand).toHaveBeenCalledWith({
+        Name: mockAcceleratorResourceNames.parameters.importedCentralLogBucketCmkArn,
+      });
+      expect(ssmClient.GetParameterCommand).not.toHaveBeenCalledWith({
+        Name: mockAcceleratorResourceNames.parameters.centralLogBucketCmkArn,
+      });
+      expect(result?.keyArn).toBe(importedKeyArn);
+    });
+
     it('should handle ParameterNotFound exception in SSM', async () => {
       // Dynamic import to avoid hoisting issues
       const { ModuleRunner } = await import('../../lib/runner.js');
