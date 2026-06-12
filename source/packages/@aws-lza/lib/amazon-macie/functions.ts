@@ -29,6 +29,7 @@
 import {
   AccessDeniedException,
   AdminAccount,
+  ConflictException,
   DisableMacieCommand,
   EnableMacieCommand,
   GetMacieSessionCommand,
@@ -61,7 +62,25 @@ export async function enableMacie(client: Macie2Client, dryRun: boolean, logPref
     return;
   }
 
-  await executeApi(commandName, parameters, () => client.send(new EnableMacieCommand(parameters)), logger, logPrefix);
+  try {
+    await executeApi(
+      commandName,
+      parameters,
+      () => client.send(new EnableMacieCommand(parameters)),
+      logger,
+      logPrefix,
+      [ConflictException],
+    );
+  } catch (error: unknown) {
+    // Macie is enabled per-region both as a standalone target and via organization auto-enable, so concurrent
+    // environments can race to enable the same account/region. A ConflictException means Macie is already
+    // enabled (the desired state), so treat it as success and skip the post-enable confirmation poll.
+    if (error instanceof ConflictException) {
+      logger.warn(`${error.name}: ${error.message} - Macie is already enabled, treating as success`, logPrefix);
+      return;
+    }
+    throw error;
+  }
 
   logger.info(`Waiting for Macie to be enabled`, logPrefix);
 

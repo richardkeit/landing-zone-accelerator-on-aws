@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import { AccessDeniedException, Macie2Client, MacieStatus } from '@aws-sdk/client-macie2';
+import { AccessDeniedException, ConflictException, Macie2Client, MacieStatus } from '@aws-sdk/client-macie2';
 import { InvalidInputException } from '@aws-sdk/client-organizations';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import {
@@ -31,6 +31,12 @@ vi.mock('@aws-sdk/client-macie2', () => ({
   paginateListOrganizationAdminAccounts: vi.fn(),
   MacieStatus: { ENABLED: 'ENABLED', PAUSED: 'PAUSED' },
   AccessDeniedException: vi.fn(),
+  ConflictException: class ConflictException extends Error {
+    constructor(params: { message: string }) {
+      super(params.message);
+      this.name = 'ConflictException';
+    }
+  },
 }));
 
 vi.mock('@aws-sdk/client-organizations', () => ({
@@ -58,6 +64,7 @@ vi.mock('../../../lib/common/logger', () => ({
   createLogger: vi.fn(function () {
     return {
       info: vi.fn(),
+      warn: vi.fn(),
       dryRun: vi.fn(),
       commandExecution: vi.fn(),
       commandSuccess: vi.fn(),
@@ -94,6 +101,7 @@ describe('amazon-macie functions', () => {
         expect.any(Function),
         expect.anything(),
         logPrefix,
+        [ConflictException],
       );
       expect(mockWaitUntil).toHaveBeenCalled();
     });
@@ -101,6 +109,23 @@ describe('amazon-macie functions', () => {
     test('should handle dry run', async () => {
       await enableMacie(mockClient, true, logPrefix);
       expect(mockExecuteApi).not.toHaveBeenCalled();
+    });
+
+    test('should treat ConflictException as success and skip the confirmation poll', async () => {
+      const error = new ConflictException({ message: 'Macie has already been enabled' });
+      mockExecuteApi.mockRejectedValue(error);
+
+      await expect(enableMacie(mockClient, false, logPrefix)).resolves.toBeUndefined();
+
+      expect(mockWaitUntil).not.toHaveBeenCalled();
+    });
+
+    test('should rethrow non-ConflictException errors', async () => {
+      const error = new Error('Some other error');
+      mockExecuteApi.mockRejectedValue(error);
+
+      await expect(enableMacie(mockClient, false, logPrefix)).rejects.toThrow('Some other error');
+      expect(mockWaitUntil).not.toHaveBeenCalled();
     });
 
     test('should call waitUntil after enabling Macie', async () => {
