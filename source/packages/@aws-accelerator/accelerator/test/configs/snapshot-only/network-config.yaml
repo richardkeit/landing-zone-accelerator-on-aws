@@ -416,6 +416,8 @@ centralNetworkServices:
           shareTargets:
             organizationalUnits:
               - Infrastructure
+            accounts:
+              - Network
           sourceIpamPool: home-region-pool
         - name: west-region-pool
           description: Pool for us-west-2

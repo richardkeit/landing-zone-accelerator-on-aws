@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - fix(networking): allow multiple domain names in dhcp options set
 - fix(config): support port ranges in network firewall rule variable portSets
+- fix(networking): filter owning account from RAM share principals and retry ListResources
 
 ## [1.16.0] - 
 

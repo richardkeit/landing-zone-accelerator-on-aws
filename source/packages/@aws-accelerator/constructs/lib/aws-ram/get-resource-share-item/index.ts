@@ -12,9 +12,11 @@
  */
 
 import { setRetryStrategy } from '@aws-accelerator/utils/lib/common-functions';
-import { throttlingBackOff } from '@aws-accelerator/utils/lib/throttle';
+import { delay, throttlingBackOff } from '@aws-accelerator/utils/lib/throttle';
 import { ListResourcesCommand, RAMClient } from '@aws-sdk/client-ram';
 import { CloudFormationCustomResourceEvent } from '@aws-accelerator/utils/lib/common-types';
+
+const MAX_ATTEMPTS = 6;
 
 /**
  * get-resource-share-item - lambda handler
@@ -48,31 +50,45 @@ export async function handler(event: CloudFormationCustomResourceEvent): Promise
       const resourceShareArn = event.ResourceProperties['resourceShareArn'];
       const resourceType = event.ResourceProperties['resourceType'];
 
-      let nextToken: string | undefined = undefined;
-      do {
-        const page = await throttlingBackOff(() =>
-          ramClient.send(
-            new ListResourcesCommand({ resourceShareArns: [resourceShareArn], resourceType, resourceOwner, nextToken }),
-          ),
-        );
-        // Return the first item found with the specified filters
-        if (page.resources && page.resources.length > 0) {
-          const item = page.resources[0];
-          if (item.arn) {
-            console.log(item.arn);
-            return {
-              PhysicalResourceId: item.arn.split('/')[1],
-              Data: {
-                arn: item.arn,
-              },
-              Status: 'SUCCESS',
-            };
-          }
-        }
-        nextToken = page.nextToken;
-      } while (nextToken);
+      // RAM resource associations are eventually consistent: a CFN-CREATE_COMPLETE
+      // resource share may not yet have its resources visible to ListResources.
+      // Retry with exponential-ish backoff (0, 1, 4, 9, 16, 25 s) before giving up.
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        await delay(attempt ** 2 * 1000);
 
-      throw new Error(`Resource share item not found`);
+        let nextToken: string | undefined = undefined;
+        do {
+          const page = await throttlingBackOff(() =>
+            ramClient.send(
+              new ListResourcesCommand({
+                resourceShareArns: [resourceShareArn],
+                resourceType,
+                resourceOwner,
+                nextToken,
+              }),
+            ),
+          );
+          // Return the first item found with the specified filters
+          if (page.resources && page.resources.length > 0) {
+            const item = page.resources[0];
+            if (item.arn) {
+              console.log(item.arn);
+              return {
+                PhysicalResourceId: item.arn.split('/')[1],
+                Data: {
+                  arn: item.arn,
+                },
+                Status: 'SUCCESS',
+              };
+            }
+          }
+          nextToken = page.nextToken;
+        } while (nextToken);
+
+        console.log(`Resource share item not found on attempt ${attempt + 1}/${MAX_ATTEMPTS}, retrying`);
+      }
+
+      throw new Error(`Resource share item not found after ${MAX_ATTEMPTS} attempts`);
 
     case 'Delete':
       // Do Nothing

@@ -686,6 +686,7 @@ export abstract class NetworkStack extends AcceleratorStack {
   public addResourceShare(item: ResourceShareType, resourceShareName: string, resourceArns: string[]): ResourceShare {
     // Build a list of principals to share to
     const principals: string[] = [];
+    const currentAccountId = cdk.Stack.of(this).account;
 
     // Loop through all the defined OUs
     for (const ouItem of item.shareTargets?.organizationalUnits ?? []) {
@@ -702,6 +703,12 @@ export abstract class NetworkStack extends AcceleratorStack {
     // Loop through all the defined accounts
     for (const account of item.shareTargets?.accounts ?? []) {
       const accountId = this.props.accountsConfig.getAccountId(account);
+      // Skip the owning account — RAM rejects self-sharing asynchronously, which leaves
+      // the resource association in a Failed state while CFN reports CREATE_COMPLETE.
+      if (accountId === currentAccountId) {
+        this.logger.info(`Skipping share ${resourceShareName} with owning account ${account}: ${accountId}`);
+        continue;
+      }
       this.logger.info(`Share ${resourceShareName} with Account ${account}: ${accountId}`);
       principals.push(accountId);
     }
