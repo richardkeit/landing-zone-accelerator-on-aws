@@ -374,6 +374,41 @@ export function getNodeVersion(): number {
 }
 
 /**
+ * Returns a shell command that activates the Node.js runtime already baked into the
+ * CodeBuild managed image by prepending its bin directory to `PATH`.
+ *
+ * @remarks
+ * CodeBuild standard images pre-install several Node.js majors (via `n`) but only
+ * default-activate one of them (for example `aws/codebuild/standard:7.0` defaults to
+ * Node 18, even though 20/22/24 are also on disk). Requesting a different, *non-default*
+ * major through the buildspec `runtime-versions: { nodejs: <major> }` directive makes the
+ * CodeBuild agent re-provision that runtime on every build, adding ~60s of wall-clock time
+ * per run. Because the target binaries are already present under n's version directory,
+ * we skip `runtime-versions` entirely and prepend the matching version to `PATH` instead —
+ * an instant, network-free switch. The exported `PATH` persists to later buildspec phases.
+ *
+ * The command fails loudly (exit 1) if the requested major is not pre-installed, rather
+ * than silently running the image default (which could be below the supported minimum).
+ *
+ * Only `$NAME` / `$(...)` shell syntax is used (no `${...}`) so the returned string is safe
+ * to embed in a buildspec even when `nodeVersionMajor` is a CloudFormation token rendered
+ * through `Fn::Sub`.
+ *
+ * @param nodeVersionMajor Node.js major version to activate. Accepts a number, a string, or
+ * a CloudFormation token. Defaults to {@link getNodeVersion}.
+ * @returns A single shell command string suitable for a CodeBuild `install` phase.
+ */
+export function getNodeRuntimeActivationCommand(nodeVersionMajor: number | string = getNodeVersion()): string {
+  const nodeVersionsDir = '/usr/local/n/versions/node';
+  return (
+    `NODE_BIN="$(ls -d ${nodeVersionsDir}/${nodeVersionMajor}.*/bin 2>/dev/null | sort -V | tail -1)" && ` +
+    `if [ -z "$NODE_BIN" ]; then ` +
+    `echo "ERROR: Node.js ${nodeVersionMajor}.x is not pre-installed in this CodeBuild image" >&2; exit 1; ` +
+    `fi && export PATH="$NODE_BIN:$PATH" && node --version`
+  );
+}
+
+/**
  * Helper function to remove the string that makes a vpc
  * name unique when upgraded from ASEA. Will return the
  * original string if the delimiter characters are not

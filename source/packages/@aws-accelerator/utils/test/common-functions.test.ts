@@ -13,6 +13,7 @@
 import { describe, it, beforeEach, expect, afterAll, beforeAll, test, vi, afterEach } from 'vitest';
 import {
   getNodeVersion,
+  getNodeRuntimeActivationCommand,
   chunkArray,
   getStsEndpoint,
   getVpcEndpointServicePrefix,
@@ -70,6 +71,36 @@ describe('getStsCredentials', () => {
     });
     const response = await getStsCredentials(new STSClient(), 'role');
     expect(response).toBeDefined();
+  });
+});
+
+describe('getNodeRuntimeActivationCommand', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = { ...originalEnv };
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
+  it('activates the configured default major from the pre-baked n version directory', () => {
+    const command = getNodeRuntimeActivationCommand();
+    expect(command).toContain(`/usr/local/n/versions/node/${config.node.version.default}.*/bin`);
+    expect(command).toContain('export PATH="$NODE_BIN:$PATH"');
+    // Must fail loudly rather than silently fall back to the image default version.
+    expect(command).toContain('exit 1');
+  });
+
+  it('honors an explicit major (for example a CloudFormation parameter value)', () => {
+    expect(getNodeRuntimeActivationCommand('20')).toContain('/usr/local/n/versions/node/20.*/bin');
+  });
+
+  it('only uses brace-free shell expansion so it stays safe inside CloudFormation Fn::Sub', () => {
+    // A `${...}` sequence would be interpreted by Fn::Sub when the major is a CFN token.
+    expect(getNodeRuntimeActivationCommand('22')).not.toMatch(/\$\{/);
   });
 });
 

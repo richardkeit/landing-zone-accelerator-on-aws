@@ -21,7 +21,12 @@ import { Construct } from 'constructs';
 
 import { ControlTowerLandingZoneConfig } from '@aws-accelerator/config';
 import { Bucket, BucketEncryptionType, PipelineNotification } from '@aws-accelerator/constructs';
-import { CONTROL_TOWER_LANDING_ZONE_VERSION, getGlobalRegion, getNodeVersion } from '@aws-accelerator/utils';
+import {
+  CONTROL_TOWER_LANDING_ZONE_VERSION,
+  getGlobalRegion,
+  getNodeRuntimeActivationCommand,
+  getNodeVersion,
+} from '@aws-accelerator/utils';
 import { Repository } from '@aws-cdk-extensions/cdk-extensions';
 import { version } from '../../../../package.json';
 import { AcceleratorStage } from './accelerator-stage';
@@ -455,12 +460,15 @@ export class AcceleratorPipeline extends Construct {
         version: 0.2,
         phases: {
           install: {
-            'runtime-versions': {
-              nodejs: getNodeVersion(),
-            },
+            // Activate the Node.js runtime already baked into the CodeBuild image via PATH
+            // instead of CodeBuild's `runtime-versions` selector. Selecting a non-default
+            // major through `runtime-versions` re-provisions the runtime on every build
+            // (~60s); the PATH switch is instant. See getNodeRuntimeActivationCommand.
+            commands: [getNodeRuntimeActivationCommand()],
           },
           pre_build: {
             commands: [
+              'node -v',
               'ulimit -n 65535',
               `export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
                export ARCHIVE_NAME="\${ACCELERATOR_STAGE}.tgz"

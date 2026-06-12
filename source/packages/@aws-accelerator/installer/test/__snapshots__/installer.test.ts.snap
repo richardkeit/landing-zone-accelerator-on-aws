@@ -1821,8 +1821,8 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 1`] = `
                 "version: "0.2"
 phases:
   install:
-    runtime-versions:
-      nodejs: "22"
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
       - ENABLE_EXTERNAL_PIPELINE_ACCOUNT="no"
@@ -5780,8 +5780,8 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 2`] = `
                 "version: "0.2"
 phases:
   install:
-    runtime-versions:
-      nodejs: "22"
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
       - ENABLE_EXTERNAL_PIPELINE_ACCOUNT="no"
@@ -9805,8 +9805,8 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 3`] = `
                 "version: "0.2"
 phases:
   install:
-    runtime-versions:
-      nodejs: "22"
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
       - ENABLE_EXTERNAL_PIPELINE_ACCOUNT="no"
@@ -13803,8 +13803,8 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 4`] = `
                 "version: "0.2"
 phases:
   install:
-    runtime-versions:
-      nodejs: "22"
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
       - ENABLE_EXTERNAL_PIPELINE_ACCOUNT="no"
@@ -17806,8 +17806,8 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 5`] = `
                 "version: "0.2"
 phases:
   install:
-    runtime-versions:
-      nodejs: "22"
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
       - ENABLE_EXTERNAL_PIPELINE_ACCOUNT="no"
@@ -21767,8 +21767,8 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 6`] = `
                 "version: "0.2"
 phases:
   install:
-    runtime-versions:
-      nodejs: "22"
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
       - ENABLE_EXTERNAL_PIPELINE_ACCOUNT="no"
@@ -25783,8 +25783,8 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 7`] = `
                 "version: "0.2"
 phases:
   install:
-    runtime-versions:
-      nodejs: "22"
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
       - ENABLE_EXTERNAL_PIPELINE_ACCOUNT="no"
@@ -30175,8 +30175,8 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 8`] = `
                 "version: "0.2"
 phases:
   install:
-    runtime-versions:
-      nodejs: "22"
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
       - ENABLE_EXTERNAL_PIPELINE_ACCOUNT="no"
@@ -34591,12 +34591,16 @@ exports[`InstallerStack > Stack(installer):  Snapshot Test 9`] = `
                 "version: "0.2"
 phases:
   install:
-    runtime-versions:
-      nodejs: ",
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/",
                 {
                   "Ref": "AcceleratorNodeVersion",
                 },
-                "
+                ".*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js ",
+                {
+                  "Ref": "AcceleratorNodeVersion",
+                },
+                ".x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
       - ENABLE_EXTERNAL_PIPELINE_ACCOUNT="no"

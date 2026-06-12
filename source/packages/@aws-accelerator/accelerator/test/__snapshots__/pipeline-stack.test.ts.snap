@@ -2418,10 +2418,11 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 1`] = `
                 "version: 0.2
 phases:
   install:
-    runtime-versions:
-      nodejs: 22
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
+      - node -v
       - ulimit -n 65535
       - "export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
 
@@ -5430,10 +5431,11 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 2`] = `
                 "version: 0.2
 phases:
   install:
-    runtime-versions:
-      nodejs: 22
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
+      - node -v
       - ulimit -n 65535
       - "export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
 
@@ -7988,10 +7990,11 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 3`] = `
                 "version: 0.2
 phases:
   install:
-    runtime-versions:
-      nodejs: 22
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
+      - node -v
       - ulimit -n 65535
       - "export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
 
@@ -10777,10 +10780,11 @@ exports[`PipelineStack > Construct(PipelineStack):  Snapshot Test 4`] = `
                 "version: 0.2
 phases:
   install:
-    runtime-versions:
-      nodejs: 22
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
+      - node -v
       - ulimit -n 65535
       - "export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
 
@@ -13335,10 +13339,11 @@ exports[`PipelineStack customS3Path > Construct(PipelineStack):  Snapshot Test 1
                 "version: 0.2
 phases:
   install:
-    runtime-versions:
-      nodejs: 22
+    commands:
+      - 'NODE_BIN="$(ls -d /usr/local/n/versions/node/22.*/bin 2>/dev/null | sort -V | tail -1)" && if [ -z "$NODE_BIN" ]; then echo "ERROR: Node.js 22.x is not pre-installed in this CodeBuild image" >&2; exit 1; fi && export PATH="$NODE_BIN:$PATH" && node --version'
   pre_build:
     commands:
+      - node -v
       - ulimit -n 65535
       - "export WORK_DIR=$CODEBUILD_SRC_DIR/source/packages/@aws-accelerator/accelerator
 

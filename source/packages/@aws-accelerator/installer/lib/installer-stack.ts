@@ -21,6 +21,7 @@ import { Bucket, BucketEncryptionType, S3LifeCycleRule } from '@aws-accelerator/
 
 import { addAcceleratorTags } from '@aws-accelerator/cdk-utils';
 import { LzaLambdaRuntime } from '@aws-accelerator/utils/lib/lambda';
+import { getNodeRuntimeActivationCommand } from '@aws-accelerator/utils/lib/common-functions';
 import { config, version } from '../../../../package.json';
 import { ResourceNamePrefixes } from './resource-name-prefixes';
 import { SolutionHelper } from './solutions-helper';
@@ -978,9 +979,11 @@ export class InstallerStack extends cdk.Stack {
         version: '0.2',
         phases: {
           install: {
-            'runtime-versions': {
-              nodejs: nodeVersion,
-            },
+            // Activate the pre-baked Node.js runtime via PATH instead of CodeBuild's
+            // `runtime-versions` selector (~60s per build for a non-default major).
+            // `nodeVersion` may be a CloudFormation token; the command is brace-free so it
+            // stays Fn::Sub-safe. See getNodeRuntimeActivationCommand.
+            commands: [getNodeRuntimeActivationCommand(nodeVersion)],
           },
           pre_build: {
             commands: [

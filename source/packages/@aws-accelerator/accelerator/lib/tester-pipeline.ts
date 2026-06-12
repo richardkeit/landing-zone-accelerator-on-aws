@@ -23,7 +23,7 @@ import fs from 'fs';
 import * as yaml from 'js-yaml';
 import os from 'os';
 import path from 'path';
-import { getNodeVersion } from '@aws-accelerator/utils';
+import { getNodeRuntimeActivationCommand, getNodeVersion } from '@aws-accelerator/utils';
 
 import { Bucket, BucketEncryptionType } from '@aws-accelerator/constructs';
 import * as cdk_extensions from '@aws-cdk-extensions/cdk-extensions';
@@ -213,9 +213,10 @@ export class TesterPipeline extends Construct {
         version: '0.2',
         phases: {
           install: {
-            'runtime-versions': {
-              nodejs: getNodeVersion(),
-            },
+            // Activate the pre-baked Node.js runtime via PATH instead of CodeBuild's
+            // `runtime-versions` selector (~60s per build for a non-default major).
+            // See getNodeRuntimeActivationCommand.
+            commands: [getNodeRuntimeActivationCommand()],
           },
           build: {
             commands: [
