@@ -25,6 +25,12 @@ export interface SecurityHubOrganizationalAdminAccountProps {
    */
   readonly adminAccountId: string;
   /**
+   * Accelerator home region. The global DeregisterDelegatedAdministrator call is only
+   * performed when the stack region matches the home region, so excluding a single
+   * non-home region does not tear down the org-wide SecurityHub delegated administrator.
+   */
+  readonly homeRegion: string;
+  /**
    * Custom resource lambda log group encryption key, when undefined default AWS managed key will be used
    */
   readonly kmsKey?: cdk.aws_kms.IKey;
@@ -110,6 +116,7 @@ export class SecurityHubOrganizationAdminAccount extends Construct {
       serviceToken: provider.serviceToken,
       properties: {
         region: cdk.Stack.of(this).region,
+        homeRegion: props.homeRegion,
         partition: cdk.Aws.PARTITION,
         adminAccountId: props.adminAccountId,
       },

@@ -44,6 +44,7 @@ export async function handler(event: CloudFormationCustomResourceEvent): Promise
   | undefined
 > {
   const region: string = event.ResourceProperties['region'];
+  const homeRegion: string = event.ResourceProperties['homeRegion'];
   const partition: string = event.ResourceProperties['partition'];
   const adminAccountId: string = event.ResourceProperties['adminAccountId'];
   const solutionId = process.env['SOLUTION_ID'];
@@ -120,7 +121,7 @@ export async function handler(event: CloudFormationCustomResourceEvent): Promise
               new ListDelegatedAdministratorsCommand({ ServicePrincipal: 'securityhub.amazonaws.com' }),
             ),
           );
-          if (response.DelegatedAdministrators!.length > 0) {
+          if (region === homeRegion && response.DelegatedAdministrators!.length > 0) {
             console.log(
               `Started deregisterDelegatedAdministrator function in ${event.ResourceProperties['region']} region for account ${adminAccountId}`,
             );

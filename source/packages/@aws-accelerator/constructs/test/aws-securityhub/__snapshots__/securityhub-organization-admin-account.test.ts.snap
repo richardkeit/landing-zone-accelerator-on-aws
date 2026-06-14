@@ -209,6 +209,9 @@ exports[`SecurityHubOrganizationAdminAccount > Construct(SecurityHubOrganization
         "adminAccountId": {
           "Ref": "AWS::AccountId",
         },
+        "homeRegion": {
+          "Ref": "AWS::Region",
+        },
         "partition": {
           "Ref": "AWS::Partition",
         },

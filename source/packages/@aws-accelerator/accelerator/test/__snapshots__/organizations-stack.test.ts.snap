@@ -2856,6 +2856,7 @@ exports[`MultiOuOrganizationsStack > Construct(OrganizationsStack):  Snapshot Te
           ],
         },
         "adminAccountId": "222222222222",
+        "homeRegion": "us-east-1",
         "partition": {
           "Ref": "AWS::Partition",
         },
@@ -6357,6 +6358,7 @@ exports[`OrganizationsStack > Construct(OrganizationsStack):  Snapshot Test 1`] 
           ],
         },
         "adminAccountId": "222222222222",
+        "homeRegion": "us-east-1",
         "partition": {
           "Ref": "AWS::Partition",
         },
@@ -10060,6 +10062,7 @@ exports[`OrganizationsStack with SkipMacie > Construct(OrganizationsStack with S
           ],
         },
         "adminAccountId": "222222222222",
+        "homeRegion": "us-east-1",
         "partition": {
           "Ref": "AWS::Partition",
         },
@@ -13294,6 +13297,7 @@ exports[`delegatedAdminStack > Construct(OrganizationsStack):  Snapshot Test 1`]
           ],
         },
         "adminAccountId": "666666666666",
+        "homeRegion": "us-east-1",
         "partition": {
           "Ref": "AWS::Partition",
         },

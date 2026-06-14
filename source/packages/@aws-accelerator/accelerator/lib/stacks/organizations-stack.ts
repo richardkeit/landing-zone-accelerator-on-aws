@@ -692,6 +692,7 @@ export class OrganizationsStack extends AcceleratorStack {
         this.logger.debug(`SecurityHub Admin Account ID is ${adminAccountId}`);
         new SecurityHubOrganizationAdminAccount(this, 'SecurityHubOrganizationAdminAccount', {
           adminAccountId,
+          homeRegion: this.stackProperties.globalConfig.homeRegion,
           kmsKey: this.cloudwatchKey,
           logRetentionInDays: this.logRetention,
         });
