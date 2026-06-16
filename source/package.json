@@ -90,7 +90,7 @@
     "aws-cdk-lib": "2.246.0",
     "cdk-from-cfn": "0.162.0",
     "constructs": "10.5.0",
-    "esbuild": "0.25.0",
+    "esbuild": "0.28.1",
     "eslint": "9.37.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.4",
@@ -99,10 +99,10 @@
     "lerna": "9.0.7",
     "lint-staged": "16.4.0",
     "prettier": "3.6.2",
-    "vitest": "4.1.8",
     "ts-node": "10.9.1",
     "typedoc": "0.28.13",
     "typescript": "5.8.3",
+    "vitest": "4.1.8",
     "yaml": "1.10.3"
   },
   "config": {
@@ -115,7 +115,8 @@
   },
   "resolutions": {
     "@aws-cdk/asset-awscli-v1": "2.2.274",
-    "axios": "1.16.1"
+    "axios": "1.16.1",
+    "esbuild": "0.28.1"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
