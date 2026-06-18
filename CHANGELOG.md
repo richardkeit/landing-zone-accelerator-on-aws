@@ -5,41 +5,137 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.17.0] - 
-
-### Fixed
-
-- fix(networking): allow multiple domain names in dhcp options set
-- fix(config): support port ranges in network firewall rule variable portSets
-- fix(networking): filter owning account from RAM share principals and retry ListResources
-
 ## [1.16.0] - 
 
 ### Added
-feat(networking): add tcp timeout property to gateway load balancer listener
-feat(networking): add routeTableAssociations and routeTablePropagations to transit gateway connect config
-feat(controltower): support parameters on enabled controls
-
-### Fixed
-- fix(config): add policy replacement support for custom Config rule
-- fix(securityhub): normalize control id prefix matching for controlsToDisable
-- fix(validator): validate account name and email length constraints before DynamoDB state persistence
-- fix(controltower): update logic for kms key on update landing zone operations.
-- fix(networking): adjust logic to support direct connect vif to support private long ASNs
-
-### Changed
-- chore(logging): update elb access logs bucket for service principal
-- chore(logging): add sourceOrgId condition to central s3 bucket policy
-- chore(scp): align default SCP attachment limits with new AWS quota of 10
-
-### Added
+- feat(accelerator): add diff viewer features
+- feat(controltower): support parameters on enabled controls
+- feat(diff): static html diff
+- feat(iam): add maxSessionDuration to roleSets.roles[]
+- feat(iam): add support for IAM role trust policy conditions in iam-config.yaml
+- feat(module): add module diff viewer
+- feat(module): add support for tgw-associations-and-propagations-module
+- feat(modules): use zod to validate cli input
+- feat(networking): add ability to specify hosted zone name
+- feat(networking): add routeTableAssociations and routeTablePropagations to transit gateway connect config
+- feat(networking): add tcp timeout property to gateway load balancer listener
+- feat(networking): add tgw connect route table attachment
 - feat(networking): added support for VPN route propagation on route table
+- feat(security): add session policy framework for module least-privilege enforcement
+- feat(uninstaller): add container build mode and OU-ignore filtering to uninstaller
+- feat(validation): add validation for account references in config files
+- feat: add 'name' tag to VPC endpoints on creation
 
 ### Fixed
 
+- fix(accel): added in memory credential caching
+- fix(accel): optimize node runtime install in codebuild
+- fix(accel): optimize tar command during synth
+- fix(accel): update credential cache entry point
+- fix(accelerator): exclude global services from home-region quota requests
+- fix(accelerator): exclude ignored ou accounts from bootstrap and stack deployment
+- fix(asea): fix cross account propagations regression
+- fix(asea): fix route table propagation lookup
+- fix(asea): fix tgw peering route lookups
+- fix(asea): fixed imported bucket logic for macie module
+- fix(asea): tgw route propagation for new vpcs race condition when sharing multiple subnets from the same vpc
+- fix(asea-resources): guard ASEA templateMap lookups in TGW peering route maps
+- fix(aspects): add delivery stream overrides for iso-f
+- fix(aspects): enabling organization trail in iso overrides
+- fix(aspects): enabling organization trail in isob overrides
+- fix(auditmanager): handle unsupported regions gracefully in enable-organization-admin-account
+- fix(aws-lza): add aws-eusc global region and sts endpoint handling
+- fix(cloudwatch): add DescribeKey permissions to new cloudwatch log event function
+- fix(config): accept network firewall managed stateful refs alongside stateless rule groups
+- fix(config): add policy replacement support for custom Config rule
+- fix(config): add validation for enabled region list duplication
+- fix(config): fix duplicate sns error in budget notification validator
+- fix(config): inject AutomationAssumeRole when remediation parameters are omitted
+- fix(config): support port ranges in nfw rule variable portsets
+- fix(container): add missing identity center stage
+- fix(container): copy source folder instead of tar
+- fix(container): ecsExecutionRole uses amazonECSTaskExecutionRolePolicy
+- fix(container): handle both source/ directory and source.tar.gz in staging copy
+- fix(container): updated default imageUri to contain v
+- fix(control-tower): enroll-accounts module filters ignored OUs from baseline status checks
+- fix(control-tower): modify exclusion logic for CT Security OU #1008
+- fix(controltower): update logic for kms key on update landing zone operations
+- fix(dependencies): update xml parser version
+- fix(deps): bump awscli-v1 asset to resolve cve
+- fix(deps): bump fast-xml-parser and postcss to resolve cves
+- fix(deps): bump fast-xml-parser from 5.3.8 to 5.5.6
+- fix(deps): bump fast-xml-parser to 5.5.6 with SDK entity expansion fix
+- fix(deps): resolve CVE form-data 4.0.6
+- fix(iam): remove principal account from all-enabled for assume role
+- fix(iam): support full ARN format for AWS managed policies
+- fix(idc): poll async assignment status before returning success
+- fix(installer): add codeConnections apis to github pipeline role
+- fix(installer): bump module-infrastructure.yaml version to 1.16.0
+- fix(installer-container): remove VpcCidr
+- fix(kms): optInRegions user-handler lambdas encrypt env vars with lambda cmk
+- fix(kms): skip opt-in region service principals in KMS key policies
+- fix(logging): change throttling errors to warnings
+- fix(macie): add retention module skip check before executing the module
+- fix(macie): session policy missing SLR grant, macie module fails on member accounts
+- fix(macie): skip module in partitions where Macie is unavailable
+- fix(macie): treat ConflictException as success when Macie already enabled during concurrent enable
+- fix(module): incorrect resource prefixes for module infra
+- fix(module): re-added lza prefix param
+- fix(module): use qualifier for external deployment module infra
+- fix(modules): add module execution role to service catalog portfolio access principal
+- fix(modules): pass in credential provider as mgmt credential to avoid session timeout
+- fix(modules): skip non-existing accounts for stack retention module
+- fix(modules): skip not active accounts for modules processing
+- fix(network): add ssm/ssm-messages/ec2-messages interface endpoints to SharedServices-Main
+- fix(network): use partition-aware vpc endpoint service name prefix
+- fix(networking): add availability zone for ip target group registration
+- fix(networking): Add validation for modifying IPAM allocations at VPC level
+- fix(networking): adjust logic to support direct connect vif to support private long ASNs
+- fix(networking): allow multiple domain names in dhcp options set
 - fix(networking): cross account NLB targets
+- fix(networking): filter owning account from RAM share principals
+- fix(networking): fix v2 stack sg to sg references
+- fix(networking): ipam pool lookup when multiple IPAMs defined
+- fix(networking): resolve TGW peering accepter attachment lookup failure
+- fix(nfw): add new stateful action types drop_established_app_layer and alert_established_app_layer
+- fix(organizations): skip Identity Center delegated admin setup when not configured
+- fix(pipeline): run bootstrap before modules in prepare stage
+- fix(resource-retention): derive partition-aware s3 endpoint for cfn retention template url
+- fix(s3): add account-level public access block disable action
+- fix(security): make lookupKey optional for ResourceTypes config rules
+- fix(security-hub): only deregister delegated admin for homeRegion
+- fix(securityhub): normalize control id prefix matching for controlsToDisable
+- fix(ssm): add back overwrite to put ssm param
+- fix(ssm): forward credentials in GetSsmParametersValueModule for cross-account role chaining
+- fix(ssm): use PutParameter with Overwrite for cross-account SSM params
+- fix(triage): #1089 CloudWatch VPC flow logs should be optional
+- fix(validate): revert passing management account credentials for external deployment
+- fix(validation): external pipeline deployment config validation to use passed mgmt creds
+- fix(validation): handle undefined tgw in dx gateway association validator
+- fix(validator): validate account name and email length constraints before DynamoDB state persistence
+- fix(validator): validate lookupKey for valid custom config rule lookup types
+- fix(vpc): reject route entry when gateway endpoint service is not defined on the VPC
+- fix: bump @aws-sdk packages to 3.1041.0 and remove fast-xml-parser resolution
+- fix: eusc ebs encryption slr
 
 ### Changed
+
+- chore(accelerator): bump AWS SDK to 3.1018.0, CDK to 2.246.0, and update tooling
+- chore(dependencies): bump follow-redirects to 1.16.0 to resolve auth header leak
+- chore(kms): add missing kms:DescribeKey permission to identity/resource policies
+- chore(logging): add sourceOrgId condition to central s3 bucket policy
+- chore(logging): update elb access logs bucket for service principal
+- chore(scp): align default SCP attachment limits with new AWS quota of 10
+- chore: remediate CVE-2026-33750 in brace-expansion
+- chore: remediate CVE-2026-41907 in uuid
+- chore: remediate CVE-2026-42264 in axios
+- chore: remediate CVE-2026-42338 in ip-address
+- chore: remediate CVE-2026-44240 in basic-ftp
+- chore: remediate CVE-2026-44665 in fast-xml-builder
+- chore: remediate CVE-2026-44705 in tmp
+- chore: remediate CVE-2026-48988 in markdown-it
+- chore: remediate CVE-2026-6322 in fast-uri
+- chore: remediate GHSA-gv7w-rqvm-qjhr in esbuild
 
 ## [1.15.5] - 2026-06-02
 
