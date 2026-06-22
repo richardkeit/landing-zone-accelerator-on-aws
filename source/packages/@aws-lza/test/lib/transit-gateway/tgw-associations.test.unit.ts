@@ -47,6 +47,7 @@ vi.mock('@aws-sdk/client-ec2', () => ({
   AssociateTransitGatewayRouteTableCommand: vi.fn(),
   DisassociateTransitGatewayRouteTableCommand: vi.fn(),
   GetTransitGatewayRouteTableAssociationsCommand: vi.fn(),
+  DescribeTransitGatewayAttachmentsCommand: vi.fn(),
 }));
 
 import { TgwAssociations } from '../../../lib/transit-gateway/tgw-associations';
@@ -123,6 +124,56 @@ describe('TgwAssociations', () => {
         LOG_PREFIX,
       );
       expect(result[0].operation).toBe('exists');
+    });
+
+    test('should COMPLETE a move when AlreadyAssociated and attachment is on a different route table', async () => {
+      // Associate to this RT first fails with AlreadyAssociated (attachment is on the OLD rt),
+      // then succeeds on retry after disassociation. Describe reports the old rt, then cleared.
+      let associateCalls = 0;
+      let describeCalls = 0;
+      const OLD_RT = 'tgw-rtb-old';
+      mockExecuteApi.mockImplementation(async (name: string, _p: unknown, fn: () => Promise<unknown>) => {
+        if (name === 'AssociateTransitGatewayRouteTableCommand') {
+          associateCalls += 1;
+          if (associateCalls === 1) {
+            const err = new Error('Resource.AlreadyAssociated');
+            err.name = 'Resource.AlreadyAssociated';
+            throw err;
+          }
+          return fn();
+        }
+        if (name === 'DescribeTransitGatewayAttachmentsCommand') {
+          describeCalls += 1;
+          // First describe (detection): associated to the OLD rt. Subsequent (wait): cleared.
+          return describeCalls === 1
+            ? {
+                TransitGatewayAttachments: [
+                  { Association: { State: 'associated', TransitGatewayRouteTableId: OLD_RT } },
+                ],
+              }
+            : { TransitGatewayAttachments: [{ Association: undefined }] };
+        }
+        return fn();
+      });
+
+      const result = await TgwAssociations.process(
+        ec2,
+        RT_ID,
+        RT_NAME,
+        TGW_NAME,
+        REGION,
+        [desiredAttachment()],
+        new Set(['tgw-attach-a']),
+        false,
+        LOG_PREFIX,
+      );
+
+      // The move must complete: disassociate from OLD_RT was issued and associate retried.
+      const calledCommands = mockExecuteApi.mock.calls.map(c => c[0]);
+      expect(calledCommands).toContain('DisassociateTransitGatewayRouteTableCommand');
+      expect(associateCalls).toBe(2);
+      expect(result[0].operation).toBe('created');
+      expect(result[0].routeTableName).toBe(RT_NAME);
     });
 
     test('should rethrow unknown errors on create', async () => {

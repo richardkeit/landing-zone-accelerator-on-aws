@@ -22,8 +22,10 @@ import {
   AssociateTransitGatewayRouteTableCommand,
   DisassociateTransitGatewayRouteTableCommand,
   GetTransitGatewayRouteTableAssociationsCommand,
+  DescribeTransitGatewayAttachmentsCommand,
   EC2Client,
   type TransitGatewayRouteTableAssociation,
+  type TransitGatewayAttachmentAssociation,
 } from '@aws-sdk/client-ec2';
 import path from 'node:path';
 import { createLogger } from '../common/logger';
@@ -165,11 +167,57 @@ export abstract class TgwAssociations {
         results.push(this.buildResponse('created', region, tgwName, routeTableName, item));
       } catch (e: unknown) {
         if (e instanceof Error && e.name === 'Resource.AlreadyAssociated') {
-          logger.info(
-            `Association already exists for ${item.attachmentName} → ${routeTableName}, treating as exists`,
-            logPrefix,
-          );
-          results.push(this.buildResponse('exists', region, tgwName, routeTableName, item));
+          // The attachment is already associated -- but possibly to a DIFFERENT route table
+          // (an association MOVE). An attachment can only be associated to one route table at a
+          // time, so EC2 returns Resource.AlreadyAssociated whether the existing association is on
+          // THIS route table or another one. We must distinguish the two:
+          //   - associated to THIS route table  -> idempotent no-op, treat as exists
+          //   - associated to a DIFFERENT table  -> move: disassociate from the old table, wait for
+          //     it to clear, then associate here. Without this, the old table's pass later
+          //     disassociates the attachment and it is left associated to NO route table while the
+          //     pipeline reports success.
+          const currentAssociation = await this.getAttachmentAssociation(ec2, item.attachmentId, logPrefix);
+          const currentRouteTableId =
+            currentAssociation?.State === 'associated' ? currentAssociation.TransitGatewayRouteTableId : undefined;
+
+          if (currentRouteTableId === undefined || currentRouteTableId === routeTableId) {
+            logger.info(
+              `Association already exists for ${item.attachmentName} → ${routeTableName}, treating as exists`,
+              logPrefix,
+            );
+            results.push(this.buildResponse('exists', region, tgwName, routeTableName, item));
+          } else {
+            logger.info(
+              `${item.attachmentName} is associated to ${currentRouteTableId}; moving to ${routeTableName}`,
+              logPrefix,
+            );
+            const moveParameters = {
+              TransitGatewayRouteTableId: currentRouteTableId,
+              TransitGatewayAttachmentId: item.attachmentId,
+            };
+            await executeApi(
+              'DisassociateTransitGatewayRouteTableCommand',
+              moveParameters,
+              () => ec2.send(new DisassociateTransitGatewayRouteTableCommand(moveParameters)),
+              logger,
+              logPrefix,
+            );
+            // Wait until the attachment is fully clear of the old route table (association gone or
+            // 'disassociated') before re-associating -- an attachment cannot associate while it is
+            // still in 'associated' or 'disassociating' state on another route table.
+            await waitUntil(async () => {
+              const a = await this.getAttachmentAssociation(ec2, item.attachmentId, logPrefix);
+              return a === undefined || a.State === 'disassociated';
+            }, `Attachment ${item.attachmentName} did not disassociate from ${currentRouteTableId} within timeout`);
+            await executeApi(
+              'AssociateTransitGatewayRouteTableCommand',
+              parameters,
+              () => ec2.send(new AssociateTransitGatewayRouteTableCommand(parameters)),
+              logger,
+              logPrefix,
+            );
+            results.push(this.buildResponse('created', region, tgwName, routeTableName, item));
+          }
         } else {
           throw e;
         }
@@ -211,6 +259,31 @@ export abstract class TgwAssociations {
       nextToken = response.NextToken;
     } while (nextToken);
     return results;
+  }
+
+  /**
+   * Returns the attachment's current route table association (or undefined if none), used to
+   * detect and complete association MOVES. EC2 returns Resource.AlreadyAssociated on associate
+   * regardless of which route table the attachment is currently on, so we describe the attachment
+   * to learn the actual association and its state.
+   * @param ec2 - EC2 client instance
+   * @param attachmentId - Transit gateway attachment ID
+   * @param logPrefix - Prefix for logging messages
+   * @returns The attachment's Association, or undefined if it has none
+   */
+  private static async getAttachmentAssociation(
+    ec2: EC2Client,
+    attachmentId: string,
+    logPrefix: string,
+  ): Promise<TransitGatewayAttachmentAssociation | undefined> {
+    const response = await executeApi(
+      'DescribeTransitGatewayAttachmentsCommand',
+      { TransitGatewayAttachmentIds: [attachmentId] },
+      () => ec2.send(new DescribeTransitGatewayAttachmentsCommand({ TransitGatewayAttachmentIds: [attachmentId] })),
+      logger,
+      logPrefix,
+    );
+    return response.TransitGatewayAttachments?.[0]?.Association;
   }
 
   /**

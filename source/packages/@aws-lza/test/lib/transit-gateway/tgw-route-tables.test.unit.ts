@@ -48,6 +48,7 @@ vi.mock('@aws-sdk/client-ec2', () => ({
   DisableTransitGatewayRouteTablePropagationCommand: vi.fn(),
   GetTransitGatewayRouteTableAssociationsCommand: vi.fn(),
   GetTransitGatewayRouteTablePropagationsCommand: vi.fn(),
+  DescribeTransitGatewayAttachmentsCommand: vi.fn(),
 }));
 
 import { configureAssociationsAndPropagations } from '../../../lib/transit-gateway/tgw-route-tables';
