@@ -108,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix(ssm): add back overwrite to put ssm param
 - fix(ssm): forward credentials in GetSsmParametersValueModule for cross-account role chaining
 - fix(ssm): use PutParameter with Overwrite for cross-account SSM params
+- fix(transit-gateway): complete association move on Resource.AlreadyAssociated
 - fix(triage): #1089 CloudWatch VPC flow logs should be optional
 - fix(validate): revert passing management account credentials for external deployment
 - fix(validation): external pipeline deployment config validation to use passed mgmt creds
