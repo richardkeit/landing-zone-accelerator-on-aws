@@ -1937,6 +1937,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 1`] = `
             {
               "Action": [
                 "kms:Encrypt",
+                "kms:GenerateDataKey",
                 "kms:DescribeKey",
               ],
               "Effect": "Allow",
@@ -6592,6 +6593,7 @@ exports[`LoggingStack > Construct(LoggingStack):  Snapshot Test 2`] = `
             {
               "Action": [
                 "kms:Encrypt",
+                "kms:GenerateDataKey",
                 "kms:DescribeKey",
               ],
               "Effect": "Allow",
@@ -14357,6 +14359,7 @@ exports[`LoggingStackDelegatedAdmin > Construct(LoggingStacKDelegatedAdmin):  Sn
             {
               "Action": [
                 "kms:Encrypt",
+                "kms:GenerateDataKey",
                 "kms:DescribeKey",
               ],
               "Effect": "Allow",
@@ -18712,6 +18715,7 @@ exports[`LoggingStackOuTargets > Construct(LoggingStackOuTargets):  Snapshot Tes
             {
               "Action": [
                 "kms:Encrypt",
+                "kms:GenerateDataKey",
                 "kms:DescribeKey",
               ],
               "Effect": "Allow",

@@ -2805,6 +2805,7 @@ exports[`MultiOuOrganizationsStack > Construct(OrganizationsStack):  Snapshot Te
             {
               "Action": [
                 "kms:Encrypt",
+                "kms:GenerateDataKey",
                 "kms:DescribeKey",
               ],
               "Effect": "Allow",
@@ -6303,6 +6304,7 @@ exports[`OrganizationsStack > Construct(OrganizationsStack):  Snapshot Test 1`] 
             {
               "Action": [
                 "kms:Encrypt",
+                "kms:GenerateDataKey",
                 "kms:DescribeKey",
               ],
               "Effect": "Allow",
@@ -10007,6 +10009,7 @@ exports[`OrganizationsStack with SkipMacie > Construct(OrganizationsStack with S
             {
               "Action": [
                 "kms:Encrypt",
+                "kms:GenerateDataKey",
                 "kms:DescribeKey",
               ],
               "Effect": "Allow",
@@ -13246,6 +13249,7 @@ exports[`delegatedAdminStack > Construct(OrganizationsStack):  Snapshot Test 1`]
             {
               "Action": [
                 "kms:Encrypt",
+                "kms:GenerateDataKey",
                 "kms:DescribeKey",
               ],
               "Effect": "Allow",

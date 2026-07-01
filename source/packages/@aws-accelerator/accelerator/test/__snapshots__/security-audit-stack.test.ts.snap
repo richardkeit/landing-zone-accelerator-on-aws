@@ -589,6 +589,7 @@ def script_handler(events, context):
             {
               "Action": [
                 "kms:Encrypt",
+                "kms:GenerateDataKey",
                 "kms:DescribeKey",
               ],
               "Effect": "Allow",
@@ -3241,6 +3242,7 @@ def script_handler(events, context):
             {
               "Action": [
                 "kms:Encrypt",
+                "kms:GenerateDataKey",
                 "kms:DescribeKey",
               ],
               "Effect": "Allow",
@@ -5849,6 +5851,7 @@ def script_handler(events, context):
             {
               "Action": [
                 "kms:Encrypt",
+                "kms:GenerateDataKey",
                 "kms:DescribeKey",
               ],
               "Effect": "Allow",
