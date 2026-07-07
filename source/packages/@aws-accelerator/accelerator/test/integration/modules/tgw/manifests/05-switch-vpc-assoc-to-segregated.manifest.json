@@ -45,7 +45,7 @@
   "expectedAssertions": {
     "moduleResponseStatus": "completed",
     "moduleResponseOperationCounts": {
-      "associations": { "deleted": 1, "exists": 1 },
+      "associations": { "created": 1, "deleted": 1 },
       "propagations": { "exists": 2 },
       "dxAssociations": {}
     },

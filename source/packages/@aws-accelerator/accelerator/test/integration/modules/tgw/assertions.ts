@@ -68,6 +68,7 @@ const ASSERTION_REGISTRY: Record<string, AssertionFn> = {
   tgwRouteTableAssociations: assertTgwRouteTableAssociations,
   tgwRouteTablePropagations: assertTgwRouteTablePropagations,
   dxGatewayAssociationState: assertDxGatewayAssociationState,
+  stateTableLastConfigVpcAttachments: assertStateTableLastConfigVpcAttachments,
   stateTableEntry: assertStateTableEntryPassthrough,
 };
 
@@ -158,6 +159,17 @@ function parseLastResponse(item: { [key: string]: unknown } | undefined): Record
     return JSON.parse(raw) as Record<string, unknown>;
   } catch (error) {
     logger.warn(`Failed to parse lastResponse as JSON: ${error instanceof Error ? error.message : String(error)}`);
+    return undefined;
+  }
+}
+
+function parseLastConfig(item: { [key: string]: unknown } | undefined): Record<string, unknown> | undefined {
+  const raw = item?.['lastConfig'] as string | undefined;
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch (error) {
+    logger.warn(`Failed to parse lastConfig as JSON: ${error instanceof Error ? error.message : String(error)}`);
     return undefined;
   }
 }
@@ -304,6 +316,57 @@ async function assertModuleResponseFailed(
   }
 
   return results;
+}
+
+async function assertStateTableLastConfigVpcAttachments(
+  manifest: TestManifest,
+  environment: ResolvedEnvironment,
+): Promise<AssertionResult[]> {
+  const expected = manifest.expectedAssertions['stateTableLastConfigVpcAttachments'] as Array<Record<string, unknown>>;
+  const item = await fetchStateItem(environment);
+  const lastConfig = parseLastConfig(item);
+  const actual = ((lastConfig?.['vpcAttachments'] as Array<Record<string, unknown>> | undefined) ?? []).map(
+    attachment => ({
+      vpcName: attachment['vpcName'],
+      accountId: attachment['accountId'],
+      region: attachment['region'],
+      transitGatewayName: attachment['transitGatewayName'],
+      routeTableAssociations: attachment['routeTableAssociations'] ?? [],
+      routeTablePropagations: attachment['routeTablePropagations'] ?? [],
+    }),
+  );
+
+  const normalize = (attachments: Array<Record<string, unknown>>) =>
+    attachments
+      .map(attachment => ({
+        vpcName: attachment['vpcName'],
+        accountId: attachment['accountId'],
+        region: attachment['region'],
+        transitGatewayName: attachment['transitGatewayName'],
+        routeTableAssociations: attachment['routeTableAssociations'] ?? [],
+        routeTablePropagations: attachment['routeTablePropagations'] ?? [],
+      }))
+      .sort((a, b) =>
+        `${a.vpcName}:${a.accountId}:${a.region}:${a.transitGatewayName}`.localeCompare(
+          `${b.vpcName}:${b.accountId}:${b.region}:${b.transitGatewayName}`,
+        ),
+      );
+
+  const normalizedActual = normalize(actual);
+  const normalizedExpected = normalize(expected);
+  const passed = JSON.stringify(normalizedActual) === JSON.stringify(normalizedExpected);
+
+  return [
+    {
+      name: 'stateTableLastConfigVpcAttachments',
+      passed,
+      actual: JSON.stringify(normalizedActual),
+      expected: JSON.stringify(normalizedExpected),
+      message: passed
+        ? 'State-table lastConfig vpcAttachments match expected account/region entries'
+        : 'State-table lastConfig vpcAttachments differ from expected account/region entries',
+    },
+  ];
 }
 
 async function assertModuleResponseSkipped(

@@ -1,7 +1,7 @@
 {
-  "name": "xacct-switch-network-assoc",
-  "description": "Move Network VPC association from core-rt to segregated-rt (keep core-rt propagation)",
-  "order": 24,
+  "name": "vpc-template-xacct-idempotent-rerun",
+  "description": "Re-run the same vpcTemplate cross-account collision config; state hash should be unchanged and wrapper should skip",
+  "order": 31,
   "moduleConfig": {
     "homeRegion": "${ENV:TGW_INTEG_HOME_REGION}",
     "enabledRegions": ["${ENV:TGW_INTEG_HOME_REGION}"],
@@ -23,35 +23,19 @@
         "shareTargets": { "organizationalUnits": [], "accounts": ["Shared Services"] }
       }
     ],
-    "vpcs": [
+    "vpcTemplates": [
       {
-        "name": "network-vpc",
-        "account": "Network",
+        "name": "template-vpc",
+        "deploymentTargets": { "accounts": ["Network", "Shared Services"] },
         "region": "${ENV:TGW_INTEG_HOME_REGION}",
-        "cidrs": ["10.100.0.0/16"],
+        "cidrs": ["10.200.0.0/16"],
         "transitGatewayAttachments": [
           {
-            "name": "network-vpc-attach",
+            "name": "template-vpc-attach",
             "transitGateway": { "name": "main-tgw", "account": "Network" },
             "subnets": [],
             "options": { "applianceModeSupport": "disable", "dnsSupport": "enable", "ipv6Support": "disable" },
-            "routeTableAssociations": ["segregated-rt"],
-            "routeTablePropagations": ["core-rt"]
-          }
-        ]
-      },
-      {
-        "name": "shared-vpc",
-        "account": "Shared Services",
-        "region": "${ENV:TGW_INTEG_HOME_REGION}",
-        "cidrs": ["10.101.0.0/16"],
-        "transitGatewayAttachments": [
-          {
-            "name": "shared-vpc-attach",
-            "transitGateway": { "name": "main-tgw", "account": "Network" },
-            "subnets": [],
-            "options": { "applianceModeSupport": "disable", "dnsSupport": "enable", "ipv6Support": "disable" },
-            "routeTableAssociations": ["segregated-rt"],
+            "routeTableAssociations": ["core-rt"],
             "routeTablePropagations": []
           }
         ]
@@ -59,12 +43,8 @@
     ]
   },
   "expectedAssertions": {
-    "moduleResponseStatus": "completed",
-    "moduleResponseOperationCounts": {
-      "associations": { "created": 1, "deleted": 1, "exists": 1 },
-      "propagations": { "exists": 1 },
-      "dxAssociations": {}
-    },
+    "moduleResponseStatus": "skipped",
+    "moduleResponseSkipped": true,
     "stateTableEntry": {}
   },
   "skipCleanup": true
