@@ -1,7 +1,7 @@
 {
-  "name": "xacct-switch-network-assoc",
-  "description": "Move Network VPC association from core-rt to segregated-rt (keep core-rt propagation)",
-  "order": 24,
+  "name": "idempotent-association-matrix",
+  "description": "Re-run the full association matrix and confirm config-hash short-circuiting",
+  "order": 2,
   "moduleConfig": {
     "homeRegion": "${ENV:TGW_INTEG_HOME_REGION}",
     "enabledRegions": ["${ENV:TGW_INTEG_HOME_REGION}"],
@@ -35,7 +35,7 @@
             "transitGateway": { "name": "main-tgw", "account": "Network" },
             "subnets": [],
             "options": { "applianceModeSupport": "disable", "dnsSupport": "enable", "ipv6Support": "disable" },
-            "routeTableAssociations": ["segregated-rt"],
+            "routeTableAssociations": ["core-rt"],
             "routeTablePropagations": ["core-rt"]
           }
         ]
@@ -52,19 +52,51 @@
             "subnets": [],
             "options": { "applianceModeSupport": "disable", "dnsSupport": "enable", "ipv6Support": "disable" },
             "routeTableAssociations": ["segregated-rt"],
+            "routeTablePropagations": ["core-rt"]
+          }
+        ]
+      }
+    ],
+    "vpcTemplates": [
+      {
+        "name": "template-vpc",
+        "deploymentTargets": { "accounts": ["Network", "Shared Services"] },
+        "region": "${ENV:TGW_INTEG_HOME_REGION}",
+        "cidrs": ["10.200.0.0/16"],
+        "transitGatewayAttachments": [
+          {
+            "name": "template-vpc-attach",
+            "transitGateway": { "name": "main-tgw", "account": "Network" },
+            "subnets": [],
+            "options": { "applianceModeSupport": "disable", "dnsSupport": "enable", "ipv6Support": "disable" },
+            "routeTableAssociations": ["core-rt"],
             "routeTablePropagations": []
+          }
+        ]
+      }
+    ],
+    "customerGateways": [
+      {
+        "name": "network-cgw",
+        "account": "Network",
+        "region": "${ENV:TGW_INTEG_HOME_REGION}",
+        "ipAddress": "203.0.113.12",
+        "asn": 65000,
+        "vpnConnections": [
+          {
+            "name": "network-vpn",
+            "transitGateway": "main-tgw",
+            "staticRoutesOnly": true,
+            "routeTableAssociations": ["core-rt"],
+            "routeTablePropagations": ["core-rt"]
           }
         ]
       }
     ]
   },
   "expectedAssertions": {
-    "moduleResponseStatus": "completed",
-    "moduleResponseOperationCounts": {
-      "associations": { "created": 1, "deleted": 1, "exists": 1 },
-      "propagations": { "exists": 1 },
-      "dxAssociations": {}
-    },
+    "moduleResponseStatus": "skipped",
+    "moduleResponseSkipped": true,
     "stateTableEntry": {}
   },
   "skipCleanup": true

@@ -1,7 +1,7 @@
 {
-  "name": "xacct-create-network-prop",
-  "description": "Add network-vpc-attach propagation on core-rt with xacct shared-vpc still attached empty",
-  "order": 21,
+  "name": "dx-gw-delete-associations",
+  "description": "Delete same-account and cross-account DX Gateway TGW associations",
+  "order": 8,
   "moduleConfig": {
     "homeRegion": "${ENV:TGW_INTEG_HOME_REGION}",
     "enabledRegions": ["${ENV:TGW_INTEG_HOME_REGION}"],
@@ -35,35 +35,42 @@
             "transitGateway": { "name": "main-tgw", "account": "Network" },
             "subnets": [],
             "options": { "applianceModeSupport": "disable", "dnsSupport": "enable", "ipv6Support": "disable" },
-            "routeTableAssociations": ["core-rt"],
-            "routeTablePropagations": ["core-rt"]
-          }
-        ]
-      },
-      {
-        "name": "shared-vpc",
-        "account": "Shared Services",
-        "region": "${ENV:TGW_INTEG_HOME_REGION}",
-        "cidrs": ["10.101.0.0/16"],
-        "transitGatewayAttachments": [
-          {
-            "name": "shared-vpc-attach",
-            "transitGateway": { "name": "main-tgw", "account": "Network" },
-            "subnets": [],
-            "options": { "applianceModeSupport": "disable", "dnsSupport": "enable", "ipv6Support": "disable" },
-            "routeTableAssociations": [],
-            "routeTablePropagations": []
+            "routeTableAssociations": ["segregated-rt"],
+            "routeTablePropagations": ["segregated-rt"]
           }
         ]
       }
+    ],
+    "customerGateways": [
+      {
+        "name": "network-cgw",
+        "account": "Network",
+        "region": "${ENV:TGW_INTEG_HOME_REGION}",
+        "ipAddress": "203.0.113.12",
+        "asn": 65000,
+        "vpnConnections": [
+          {
+            "name": "network-vpn",
+            "transitGateway": "main-tgw",
+            "staticRoutesOnly": true,
+            "routeTableAssociations": ["segregated-rt"],
+            "routeTablePropagations": ["core-rt"]
+          }
+        ]
+      }
+    ],
+    "directConnectGateways": [
+      { "name": "network-dxgw", "account": "Network", "asn": 64512, "transitGatewayAssociations": [] },
+      { "name": "shared-dxgw", "account": "Shared Services", "asn": 64512, "transitGatewayAssociations": [] }
     ]
   },
   "expectedAssertions": {
     "moduleResponseStatus": "completed",
-    "moduleResponseOperationCounts": {
-      "associations": {},
-      "propagations": { "created": 1 },
-      "dxAssociations": {}
+    "dxGatewayAssociationState": {
+      "name": "network-dxgw",
+      "account": "Network",
+      "associationType": "direct",
+      "state": "disassociated"
     },
     "stateTableEntry": {}
   },

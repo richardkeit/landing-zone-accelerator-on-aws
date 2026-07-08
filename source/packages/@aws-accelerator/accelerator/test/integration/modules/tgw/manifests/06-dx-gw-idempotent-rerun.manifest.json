@@ -1,7 +1,7 @@
 {
   "name": "dx-gw-idempotent-rerun",
-  "description": "Re-run DX Gateway association config unchanged; should short-circuit to skipped",
-  "order": 12,
+  "description": "Re-run direct and proposal DX Gateway config and confirm config-hash short-circuiting",
+  "order": 6,
   "moduleConfig": {
     "homeRegion": "${ENV:TGW_INTEG_HOME_REGION}",
     "enabledRegions": ["${ENV:TGW_INTEG_HOME_REGION}"],
@@ -35,7 +35,7 @@
             "transitGateway": { "name": "main-tgw", "account": "Network" },
             "subnets": [],
             "options": { "applianceModeSupport": "disable", "dnsSupport": "enable", "ipv6Support": "disable" },
-            "routeTableAssociations": [],
+            "routeTableAssociations": ["segregated-rt"],
             "routeTablePropagations": ["segregated-rt"]
           }
         ]
@@ -53,7 +53,7 @@
             "name": "network-vpn",
             "transitGateway": "main-tgw",
             "staticRoutesOnly": true,
-            "routeTableAssociations": [],
+            "routeTableAssociations": ["segregated-rt"],
             "routeTablePropagations": ["core-rt"]
           }
         ]
@@ -63,6 +63,20 @@
       {
         "name": "network-dxgw",
         "account": "Network",
+        "asn": 64512,
+        "transitGatewayAssociations": [
+          {
+            "name": "main-tgw",
+            "account": "Network",
+            "allowedPrefixes": ["10.0.0.0/8"],
+            "routeTableAssociations": ["core-rt"],
+            "routeTablePropagations": ["core-rt"]
+          }
+        ]
+      },
+      {
+        "name": "shared-dxgw",
+        "account": "Shared Services",
         "asn": 64512,
         "transitGatewayAssociations": [
           {
