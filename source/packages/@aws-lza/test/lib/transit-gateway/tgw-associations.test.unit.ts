@@ -50,6 +50,7 @@ vi.mock('@aws-sdk/client-ec2', () => ({
 }));
 
 import { EC2Client } from '@aws-sdk/client-ec2';
+import { waitUntil } from '../../../common/functions';
 import { TgwAssociations } from '../../../lib/transit-gateway/tgw-associations';
 import { IDesiredAttachment } from '../../../lib/transit-gateway/interfaces';
 
@@ -157,6 +158,17 @@ describe('TgwAssociations', () => {
     const result = await process(desiredByRouteTable([]));
 
     expect(result).toHaveLength(0);
+  });
+
+  test('should not wait for unmanaged associations in transitional state', async () => {
+    mockSend.mockResolvedValue({
+      TransitGatewayAttachments: [currentAttachment('tgw-attach-external', CORE_RT.routeTableId, 'disassociating')],
+    });
+
+    const result = await process(desiredByRouteTable([]));
+
+    expect(result).toHaveLength(0);
+    expect(waitUntil).not.toHaveBeenCalled();
   });
 
   test('should release all changed associations before acquiring any new associations', async () => {

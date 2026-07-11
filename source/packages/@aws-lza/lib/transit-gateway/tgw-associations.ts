@@ -89,11 +89,14 @@ export abstract class TgwAssociations {
     const allDesired = [...desiredByAttachmentId.values()].map(d => d.attachment);
     let currentByAttachmentId = await this.getCurrentForTransitGateway(ec2, transitGatewayId, logPrefix);
 
-    if ([...currentByAttachmentId.values()].some(a => this.isTransitional(a.state))) {
-      logger.info(`TGW ${tgwName} has associations in transitional state, waiting for stable state...`, logPrefix);
+    if (this.hasManagedTransitionalAssociation(currentByAttachmentId, knownAttachmentIds)) {
+      logger.info(
+        `TGW ${tgwName} has managed associations in transitional state, waiting for stable state...`,
+        logPrefix,
+      );
       await waitUntil(async () => {
         const latest = await this.getCurrentForTransitGateway(ec2, transitGatewayId, logPrefix);
-        return ![...latest.values()].some(a => this.isTransitional(a.state));
+        return !this.hasManagedTransitionalAssociation(latest, knownAttachmentIds);
       }, `Associations on TGW ${tgwName} did not reach stable state within timeout`);
       currentByAttachmentId = await this.getCurrentForTransitGateway(ec2, transitGatewayId, logPrefix);
     }
@@ -438,6 +441,21 @@ export abstract class TgwAssociations {
    */
   private static isTransitional(state: string | undefined): boolean {
     return state === 'associating' || state === 'disassociating';
+  }
+
+  /**
+   * Determines whether any managed attachment association is in a transitional state.
+   * @param associationsByAttachmentId - Current associations keyed by attachment ID
+   * @param knownAttachmentIds - Set of managed attachment IDs
+   * @returns True when a managed association is associating or disassociating
+   */
+  private static hasManagedTransitionalAssociation(
+    associationsByAttachmentId: Map<string, ICurrentAssociation>,
+    knownAttachmentIds: Set<string>,
+  ): boolean {
+    return [...associationsByAttachmentId.values()].some(
+      association => knownAttachmentIds.has(association.attachmentId) && this.isTransitional(association.state),
+    );
   }
 
   /**
