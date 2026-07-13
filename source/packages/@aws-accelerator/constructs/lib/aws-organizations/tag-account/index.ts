@@ -18,82 +18,58 @@
  * @returns
  */
 
+import { setOrganizationsClient } from '@aws-accelerator/utils/lib/set-organizations-client';
+import { throttlingBackOff } from '@aws-accelerator/utils/lib/throttle';
+import { CloudFormationCustomResourceEvent } from '@aws-accelerator/utils/lib/common-types';
 import {
   DescribeAccountCommand,
   ListTagsForResourceCommand,
   OrganizationsClient,
+  Tag,
   TagResourceCommand,
   UntagResourceCommand,
 } from '@aws-sdk/client-organizations';
 
-interface CloudFormationCustomResourceEvent {
-  RequestType: 'Create' | 'Update' | 'Delete';
-  ResponseURL: string;
-  StackId: string;
-  RequestId: string;
-  ResourceType: string;
-  LogicalResourceId: string;
-  ResourceProperties: {
-    accountId: string;
-    tags: { [key: string]: string };
-    partition?: string;
-  };
-  OldResourceProperties?: {
-    tags?: { [key: string]: string };
-  };
-}
-
-const solutionId = process.env['SOLUTION_ID'] ?? '';
-
-let organizationsClient: OrganizationsClient;
-
 export async function handler(event: CloudFormationCustomResourceEvent): Promise<
   | {
+      PhysicalResourceId: string | undefined;
       Status: string;
-      StatusReason?: string;
     }
   | undefined
 > {
   console.log(JSON.stringify(event, null, 2));
 
-  const partition = event.ResourceProperties.partition ?? 'aws';
-  const globalRegion = partition === 'aws' ? 'us-east-1' : 'us-gov-east-1';
+  const accountId: string = event.ResourceProperties['accountId'];
+  const partition: string = event.ResourceProperties['partition'];
+  const solutionId = process.env['SOLUTION_ID'];
 
-  organizationsClient = new OrganizationsClient({
-    region: globalRegion,
-    customUserAgent: solutionId,
-  });
+  // Organizations is a global service. The client is configured for the correct global region based on partition.
+  const organizationsClient = setOrganizationsClient(partition, solutionId);
 
-  const accountId = event.ResourceProperties.accountId;
-  const newTags: { [key: string]: string } = event.ResourceProperties.tags || {};
+  switch (event.RequestType) {
+    case 'Create':
+    case 'Update':
+      const newTags: { [key: string]: string } = event.ResourceProperties['tags'] ?? {};
+      const oldTags: { [key: string]: string } =
+        event.RequestType === 'Update' ? event.OldResourceProperties['tags'] ?? {} : {};
+      await manageAccountTags(organizationsClient, accountId, newTags, oldTags);
+      return {
+        PhysicalResourceId: `account-tag-${accountId}`,
+        Status: 'SUCCESS',
+      };
 
-  try {
-    switch (event.RequestType) {
-      case 'Create':
-      case 'Update':
-        const oldTags =
-          event.RequestType === 'Update' && event.OldResourceProperties ? event.OldResourceProperties.tags || {} : {};
-        await handleCreateOrUpdate(accountId, newTags, oldTags);
-        break;
-
-      case 'Delete':
-        await handleDelete(accountId);
-        break;
-    }
-
-    return {
-      Status: 'SUCCESS',
-    };
-  } catch (error) {
-    console.error('Error managing account tags:', error);
-    return {
-      Status: 'FAILED',
-      StatusReason: `Failed to manage account tags: ${error}`,
-    };
+    case 'Delete':
+      // We don't remove tags on delete as the account may continue to exist outside of the LZA
+      console.log(`Delete event - leaving account tags unchanged for account ${accountId}`);
+      return {
+        PhysicalResourceId: event.PhysicalResourceId,
+        Status: 'SUCCESS',
+      };
   }
 }
 
-async function handleCreateOrUpdate(
+async function manageAccountTags(
+  organizationsClient: OrganizationsClient,
   accountId: string,
   newTags: { [key: string]: string },
   oldTags: { [key: string]: string },
@@ -102,18 +78,18 @@ async function handleCreateOrUpdate(
   console.log(`New tags:`, newTags);
   console.log(`Old tags:`, oldTags);
 
-  // Verify account exists
+  // Verify account exists and is accessible
   try {
-    await organizationsClient.send(new DescribeAccountCommand({ AccountId: accountId }));
+    await throttlingBackOff(() => organizationsClient.send(new DescribeAccountCommand({ AccountId: accountId })));
   } catch (error) {
     throw new Error(`Account ${accountId} not found or not accessible: ${error}`);
   }
 
   // Get current tags from Organizations
-  const currentTags = await getCurrentAccountTags(accountId);
+  const currentTags = await getCurrentAccountTags(organizationsClient, accountId);
   console.log(`Current tags from Organizations:`, currentTags);
 
-  // Determine tags to add/update
+  // Determine tags to add/update (only where the value differs from what already exists)
   const tagsToApply: { [key: string]: string } = {};
   for (const [key, value] of Object.entries(newTags)) {
     if (currentTags[key] !== value) {
@@ -121,7 +97,7 @@ async function handleCreateOrUpdate(
     }
   }
 
-  // Determine tags to remove (tags that were in old config but not in new config)
+  // Determine tags to remove (previously configured tags that are no longer in the config)
   const tagsToRemove: string[] = [];
   for (const key of Object.keys(oldTags)) {
     if (!(key in newTags) && key in currentTags) {
@@ -132,13 +108,15 @@ async function handleCreateOrUpdate(
   // Apply new/updated tags
   if (Object.keys(tagsToApply).length > 0) {
     console.log(`Applying tags:`, tagsToApply);
-    const tags = Object.entries(tagsToApply).map(([key, value]) => ({ Key: key, Value: value }));
+    const tags: Tag[] = Object.entries(tagsToApply).map(([key, value]) => ({ Key: key, Value: value }));
 
-    await organizationsClient.send(
-      new TagResourceCommand({
-        ResourceId: accountId,
-        Tags: tags,
-      }),
+    await throttlingBackOff(() =>
+      organizationsClient.send(
+        new TagResourceCommand({
+          ResourceId: accountId,
+          Tags: tags,
+        }),
+      ),
     );
     console.log(`Successfully applied ${tags.length} tags to account ${accountId}`);
   }
@@ -146,11 +124,13 @@ async function handleCreateOrUpdate(
   // Remove tags that are no longer needed
   if (tagsToRemove.length > 0) {
     console.log(`Removing tags:`, tagsToRemove);
-    await organizationsClient.send(
-      new UntagResourceCommand({
-        ResourceId: accountId,
-        TagKeys: tagsToRemove,
-      }),
+    await throttlingBackOff(() =>
+      organizationsClient.send(
+        new UntagResourceCommand({
+          ResourceId: accountId,
+          TagKeys: tagsToRemove,
+        }),
+      ),
     );
     console.log(`Successfully removed ${tagsToRemove.length} tags from account ${accountId}`);
   }
@@ -160,29 +140,27 @@ async function handleCreateOrUpdate(
   }
 }
 
-async function handleDelete(accountId: string) {
-  console.log(`Delete event - leaving account tags unchanged for account ${accountId}`);
-  // We don't remove tags on delete as they may be managed by other resources
-  // or the account may continue to exist outside of the LZA
-}
-
-async function getCurrentAccountTags(accountId: string): Promise<{ [key: string]: string }> {
-  try {
-    const response = await organizationsClient.send(
-      new ListTagsForResourceCommand({
-        ResourceId: accountId,
-      }),
+async function getCurrentAccountTags(
+  organizationsClient: OrganizationsClient,
+  accountId: string,
+): Promise<{ [key: string]: string }> {
+  const tags: { [key: string]: string } = {};
+  let nextToken: string | undefined = undefined;
+  do {
+    const response = await throttlingBackOff(() =>
+      organizationsClient.send(
+        new ListTagsForResourceCommand({
+          ResourceId: accountId,
+          NextToken: nextToken,
+        }),
+      ),
     );
-
-    const tags: { [key: string]: string } = {};
-    for (const tag of response.Tags || []) {
+    for (const tag of response.Tags ?? []) {
       if (tag.Key && tag.Value !== undefined) {
         tags[tag.Key] = tag.Value;
       }
     }
-    return tags;
-  } catch (error) {
-    console.warn(`Could not retrieve tags for account ${accountId}:`, error);
-    return {};
-  }
+    nextToken = response.NextToken;
+  } while (nextToken);
+  return tags;
 }
