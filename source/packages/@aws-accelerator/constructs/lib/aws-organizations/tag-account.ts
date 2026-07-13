@@ -64,7 +64,7 @@ export class AccountTag extends cdk.Resource {
       ],
     });
 
-    new cdk.CustomResource(this, 'Resource', {
+    const resource = new cdk.CustomResource(this, 'Resource', {
       resourceType: ACCOUNT_TAG_TYPE,
       serviceToken: provider.serviceToken,
       properties: {
@@ -79,14 +79,14 @@ export class AccountTag extends cdk.Resource {
      * in the stack
      */
     const stack = cdk.Stack.of(scope);
-    const logGroup = stack.node.tryFindChild(`${provider.node.id}LogGroup`) as cdk.aws_logs.LogGroup;
-    if (!logGroup) {
+    const logGroup =
+      (stack.node.tryFindChild(`${provider.node.id}LogGroup`) as cdk.aws_logs.LogGroup) ??
       new cdk.aws_logs.LogGroup(stack, `${provider.node.id}LogGroup`, {
-        logGroupName: `/aws/lambda/${(provider.node.findChild('Handler') as cdk.aws_lambda.Function).functionName}`,
+        logGroupName: `/aws/lambda/${(provider.node.findChild('Handler') as cdk.aws_lambda.CfnFunction).ref}`,
         retention: props.logRetentionInDays,
         encryptionKey: props.kmsKey,
         removalPolicy: cdk.RemovalPolicy.DESTROY,
       });
-    }
+    resource.node.addDependency(logGroup);
   }
 }
