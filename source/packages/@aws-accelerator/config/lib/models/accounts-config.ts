@@ -478,6 +478,45 @@ export interface IAccountConfig extends IBaseAccountConfig {
    * @default false
    */
   warm?: boolean;
+
+  /**
+   * **Account Tags** *(Optional)*
+   *
+   * Array of AWS resource tags to apply to the account. These tags will be applied
+   * using the AWS Organizations TagResource API when the account is created or updated.
+   *
+   * ### Tag Management
+   *
+   * - Tags are applied during account creation and updates
+   * - Changes to tags in the configuration will update the account tags
+   * - Removing tags from configuration will remove them from the account
+   * - Tags follow AWS Organizations tagging limits and restrictions
+   *
+   * ### Best Practices
+   *
+   * ```yaml
+   * tags:
+   *   - key: Environment
+   *     value: Production
+   *   - key: CostCenter
+   *     value: Engineering
+   *   - key: Owner
+   *     value: platform-team@company.com
+   *   - key: Project
+   *     value: CustomerPortal
+   * ```
+   *
+   * ### AWS Organizations Tag Limits
+   *
+   * - Maximum 50 tags per account
+   * - Tag keys can be up to 128 characters
+   * - Tag values can be up to 256 characters
+   * - Tag keys and values are case sensitive
+   * - Cannot start with "aws:" (reserved prefix)
+   *
+   * @see {@link https://docs.aws.amazon.com/organizations/latest/userguide/orgs_tagging.html | AWS Organizations Tagging}
+   */
+  tags?: t.ITag[];
 }
 
 /**
@@ -589,6 +628,37 @@ export interface IGovCloudAccountConfig extends IBaseAccountConfig {
    * @default false
    */
   warm?: boolean;
+
+  /**
+   * **Account Tags** *(Optional)*
+   *
+   * Array of AWS resource tags to apply to the GovCloud account. These tags will be applied
+   * using the AWS Organizations TagResource API when the account is created or updated.
+   *
+   * ### GovCloud Tag Considerations
+   *
+   * - Tags are applied to both GovCloud and commercial partition accounts when enableGovCloud is true
+   * - GovCloud accounts may have additional compliance requirements for tag values
+   * - Consider data classification requirements in tag values
+   * - Follow agency-specific tagging standards for compliance
+   *
+   * ### Best Practices for GovCloud
+   *
+   * ```yaml
+   * tags:
+   *   - key: Environment
+   *     value: Production-GovCloud
+   *   - key: Classification
+   *     value: CUI
+   *   - key: ComplianceFramework
+   *     value: FedRAMP-High
+   *   - key: Agency
+   *     value: DepartmentOfDefense
+   * ```
+   *
+   * @see {@link https://docs.aws.amazon.com/organizations/latest/userguide/orgs_tagging.html | AWS Organizations Tagging}
+   */
+  tags?: t.ITag[];
 }
 
 /**

@@ -1,0 +1,10 @@
+{
+  "name": "@aws-accelerator/constructs-aws-organizations-tag-account",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "@aws-accelerator/utils": "*",
+    "@aws-sdk/client-organizations": "^3.0.0"
+  }
+}

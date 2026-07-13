@@ -19,6 +19,7 @@ import {
   IdentityCenterPermissionSetConfig,
 } from '@aws-accelerator/config';
 import {
+  AccountTag,
   AuditManagerOrganizationAdminAccount,
   Bucket,
   BucketEncryptionType,
@@ -192,6 +193,11 @@ export class OrganizationsStack extends AcceleratorStack {
     // Tagging Policies Config
     //
     this.addTaggingPolicies();
+
+    //
+    // Account Tags Config
+    //
+    this.addAccountTags();
 
     //
     // Create NagSuppressions
@@ -932,5 +938,38 @@ export class OrganizationsStack extends AcceleratorStack {
     }
 
     organizationsTrail.node.addDependency(enableCloudtrailServiceAccess);
+  }
+
+  /**
+   * Function to add account tags to all accounts that have tags configured
+   */
+  private addAccountTags() {
+    this.logger.info('Processing account tags configuration');
+
+    const allAccounts = this.stackProperties.accountsConfig.getAccounts();
+
+    for (const account of allAccounts) {
+      // Check if account has tags defined
+      if (account.tags && account.tags.length > 0) {
+        this.logger.info(`Adding tags to account: ${account.name}`);
+
+        // Get account ID
+        const accountId = this.stackProperties.accountsConfig.getAccountId(account.name);
+
+        // Convert tags to key-value object
+        const tags: { [key: string]: string } = {};
+        for (const tag of account.tags) {
+          tags[tag.key] = tag.value;
+        }
+
+        // Create AccountTag resource
+        new AccountTag(this, `AccountTag${account.name}`, {
+          accountId,
+          tags,
+          kmsKey: this.cloudwatchKey,
+          logRetentionInDays: this.logRetention,
+        });
+      }
+    }
   }
 }

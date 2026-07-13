@@ -28,6 +28,7 @@ import {
 } from '@aws-accelerator/utils';
 import { createSchema, DeploymentTargets, parseAccountsConfig } from './common';
 import * as i from './models/accounts-config';
+import * as t from './common/types';
 import { OrganizationalUnitConfig } from './organization-config';
 import { Account } from '@aws-sdk/client-organizations';
 import { removeDuplicates, safeParseJsonProperty } from './common/config-helper';
@@ -48,6 +49,7 @@ export class AccountConfig implements i.IAccountConfig {
   readonly organizationalUnit: string = '';
   readonly warm: boolean | undefined = undefined;
   readonly accountAlias?: string | undefined = undefined;
+  readonly tags?: t.ITag[] | undefined = undefined;
 }
 
 export class GovCloudAccountConfig implements i.IGovCloudAccountConfig {
@@ -59,6 +61,7 @@ export class GovCloudAccountConfig implements i.IGovCloudAccountConfig {
   readonly warm: boolean | undefined = undefined;
   readonly enableGovCloud: boolean | undefined = undefined;
   readonly accountAlias?: string | undefined = undefined;
+  readonly tags?: t.ITag[] | undefined = undefined;
 }
 
 export class AccountsConfig implements i.IAccountsConfig {

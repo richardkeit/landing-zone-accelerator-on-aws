@@ -43,6 +43,13 @@
           "default": false,
           "description": "**Account Warming** *(Optional)*\n\nPre-provision the account by creating a temporary EC2 instance that runs for 15 minutes. This prepares the account's EC2 service for immediate production workload deployment.\n\n### When to Enable\n\n- **Enable** for accounts that will immediately deploy EC2-based workloads\n- **Enable** for production accounts requiring rapid deployment capabilities\n- **Disable** for accounts primarily using serverless or managed services\n- **Disable** for cost-sensitive development/testing environments\n\n### Process Details\n\n- Warming occurs during the operations stack deployment phase\n- Creates a minimal EC2 instance in the default VPC\n- Instance automatically terminates after 15 minutes\n- No additional charges beyond the brief EC2 usage\n- Can be safely removed from configuration after initial deployment\n\n### Best Practices\n\n```yaml # Production accounts - enable warming warm: true\n\n# Development/testing - typically disable warm: false\n\n# Serverless-only accounts - disable warm: false ```",
           "type": "boolean"
+        },
+        "tags": {
+          "description": "**Account Tags** *(Optional)*\n\nArray of AWS resource tags to apply to the account. These tags will be applied using the AWS Organizations TagResource API when the account is created or updated.\n\n### Tag Management\n\n- Tags are applied during account creation and updates\n- Changes to tags in the configuration will update the account tags\n- Removing tags from configuration will remove them from the account\n- Tags follow AWS Organizations tagging limits and restrictions\n\n### Best Practices\n\n```yaml tags:\n  - key: Environment\n    value: Production\n  - key: CostCenter\n    value: Engineering\n  - key: Owner\n    value: platform-team@company.com\n  - key: Project\n    value: CustomerPortal ```\n\n### AWS Organizations Tag Limits\n\n- Maximum 50 tags per account\n- Tag keys can be up to 128 characters\n- Tag values can be up to 256 characters\n- Tag keys and values are case sensitive\n- Cannot start with \"aws:\" (reserved prefix)",
+          "items": {
+            "$ref": "#/definitions/ITag"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -160,6 +167,13 @@
           "default": false,
           "description": "**Account Warming** *(Optional)*\n\nPre-provision the account by creating a temporary EC2 instance that runs for 15 minutes. This prepares the account's EC2 service for immediate production workload deployment in the GovCloud partition.\n\n### GovCloud Warming Considerations\n\n- Warming occurs in the GovCloud partition specifically\n- May take longer due to additional GovCloud provisioning requirements\n- Helps establish baseline EC2 service readiness for compliance workloads\n- Particularly beneficial for time-sensitive government deployments\n\n### Best Practices\n\n```yaml # Critical government workloads - enable warming warm: true\n\n# Development/testing in GovCloud - typically disable warm: false\n\n# Serverless-only GovCloud accounts - disable warm: false ```",
           "type": "boolean"
+        },
+        "tags": {
+          "description": "**Account Tags** *(Optional)*\n\nArray of AWS resource tags to apply to the GovCloud account. These tags will be applied using the AWS Organizations TagResource API when the account is created or updated.\n\n### GovCloud Tag Considerations\n\n- Tags are applied to both GovCloud and commercial partition accounts when enableGovCloud is true\n- GovCloud accounts may have additional compliance requirements for tag values\n- Consider data classification requirements in tag values\n- Follow agency-specific tagging standards for compliance\n\n### Best Practices for GovCloud\n\n```yaml tags:\n  - key: Environment\n    value: Production-GovCloud\n  - key: Classification\n    value: CUI\n  - key: ComplianceFramework\n    value: FedRAMP-High\n  - key: Agency\n    value: DepartmentOfDefense ```",
+          "items": {
+            "$ref": "#/definitions/ITag"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -173,6 +187,25 @@
       "minLength": 1,
       "pattern": "^[^\\s]*$",
       "type": "string"
+    },
+    "ITag": {
+      "additionalProperties": false,
+      "description": "## AWS Resource Tag Configuration\n\nDefines key-value pairs used for tagging AWS resources. Tags provide metadata for resource organization, cost allocation, access control, and automation.\n\n### Key Features\n\n- **Resource Organization**: Group and categorize resources logically\n- **Cost Allocation**: Track costs by project, department, or environment\n- **Access Control**: Use tags in IAM policies for conditional access\n- **Automation**: Trigger automated actions based on tag values\n- **Compliance**: Meet organizational and regulatory tagging requirements\n\n### Example\n\n```yaml\ntags:\n  - key: Environment\n    value: Production\n  - key: Project\n    value: WebApplication\n  - key: Owner\n    value: Platform-Team\n  - key: CostCenter\n    value: Engineering\n  - key: Backup\n    value: Daily\n```",
+      "properties": {
+        "key": {
+          "description": "**Tag Key** *(Required)*\n\nThe tag key name that identifies the type of metadata being stored. Tag keys should follow consistent naming conventions across your organization.",
+          "type": "string"
+        },
+        "value": {
+          "description": "**Tag Value** *(Required)*\n\nThe tag value that provides the actual metadata content for the tag key. Values should be meaningful and follow organizational standards.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "value"
+      ],
+      "type": "object"
     },
     "NonEmptyString": {
       "description": "## Non-Empty String Type\n\nRepresents a string that must contain at least one character. Used for required text fields throughout the Landing Zone Accelerator configuration where empty values are not permitted.\n\n```",
