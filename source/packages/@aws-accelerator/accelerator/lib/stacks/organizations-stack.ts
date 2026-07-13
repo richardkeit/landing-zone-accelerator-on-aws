@@ -172,6 +172,11 @@ export class OrganizationsStack extends AcceleratorStack {
 
       // Enable GuardDuty Service Access
       this.enableGuardDutyServiceAccess();
+
+      //
+      // Account Tags Config
+      //
+      this.addAccountTags();
     }
 
     // Macie Configuration
@@ -193,11 +198,6 @@ export class OrganizationsStack extends AcceleratorStack {
     // Tagging Policies Config
     //
     this.addTaggingPolicies();
-
-    //
-    // Account Tags Config
-    //
-    this.addAccountTags();
 
     //
     // Create NagSuppressions
