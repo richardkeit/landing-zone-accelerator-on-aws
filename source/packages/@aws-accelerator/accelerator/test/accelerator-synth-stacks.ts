@@ -604,7 +604,6 @@ export class AcceleratorSynthStacks {
     }
 
     this.saveStackTemplate(`${AcceleratorStackNames[AcceleratorStage.NETWORK_VPC]}`);
-    this.copySynthesizedTemplates();
 
     // Create separate CDK app for V2 synthesis
     const v2App = new cdk.App({
@@ -1100,29 +1099,24 @@ export class AcceleratorSynthStacks {
     }
   }
 
-  private async copySynthesizedTemplates() {
-    const sourcePath = path.join(__dirname, `configs/${this.configFolderName}/synthesized-cfn-templates`);
-    const destinationPath = path.join(__dirname, '../cfn-templates');
-    console.log(`Copying synthesized templates from ${sourcePath} into ${destinationPath} path.`);
-    const sourcePathExists = fs.existsSync(sourcePath);
-    if (sourcePathExists) {
-      fs.cpSync(sourcePath, destinationPath, { recursive: true });
-      fs.rmSync(sourcePath, { recursive: true, force: true });
-    }
-  }
-
   /**
    * Function to save the templates for V2 stack snapshot test
    *
    * @description
    * Use this function during development to generate template to be used for future V2 stack snapshot test
+   *
+   * Templates are written directly to the shared `cfn-templates` destination (outside any config
+   * directory). Writing into the config directory previously caused a cross-worker race: `PrepareStack`
+   * fingerprints the entire config directory for its `ConfigDirectoryAsset`, and a parallel test worker
+   * removing the transient `synthesized-cfn-templates` subtree would make CDK's recursive `scandir` fail
+   * with ENOENT.
    * @param stackPrefix string
    */
   public async saveStackTemplate(stackPrefix: string) {
     for (const [key, stack] of this.stacks) {
       if (stack.stackName.startsWith(stackPrefix)) {
         console.log(`Saving stack ${stack.stackName} template. Stack key is ${key}`);
-        const outputDir = `${this.configDirPath}/synthesized-cfn-templates/${stack.account}/${stack.region}`;
+        const outputDir = path.join(__dirname, '../cfn-templates', stack.account, stack.region);
         console.log(`Getting template for stack ${stack.stackName}`);
         const template = this.app.synth().getStackByName(stack.stackName).template;
         if (!fs.existsSync(outputDir)) {
