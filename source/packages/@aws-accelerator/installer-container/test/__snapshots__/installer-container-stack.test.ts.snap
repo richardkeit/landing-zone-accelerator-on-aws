@@ -1303,6 +1303,109 @@ def handler(event, context):
       },
       "Type": "AWS::Logs::LogGroup",
     },
+    "ModuleStateTable930C8620": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Module-State-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "ModuleVerboseLogsGroup1FFBAC09": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Module-Verbose-Logs",
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
     "NatEip0": {
       "Condition": "CreateVpcCondition",
       "Properties": {
@@ -1978,6 +2081,72 @@ def handler(event, context):
         ],
       },
       "Type": "AWS::IAM::Policy",
+    },
+    "ResourceRetentionTableD1686E62": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Resource-Retention-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
     },
     "SecurityGroup": {
       "Condition": "CreateVpcCondition",
@@ -4082,6 +4251,97 @@ def handler(event, context):
       },
       "Type": "AWS::Logs::LogGroup",
     },
+    "ModuleStateTable930C8620": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AcceleratorQualifier",
+              },
+              "-Module-State-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Ref": "AcceleratorQualifier",
+            },
+          },
+        ],
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "ModuleVerboseLogsGroup1FFBAC09": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AcceleratorQualifier",
+              },
+              "-Module-Verbose-Logs",
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Ref": "AcceleratorQualifier",
+            },
+          },
+        ],
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
     "NatEip0": {
       "Condition": "CreateVpcCondition",
       "Properties": {
@@ -4780,6 +5040,66 @@ def handler(event, context):
         ],
       },
       "Type": "AWS::IAM::Policy",
+    },
+    "ResourceRetentionTableD1686E62": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AcceleratorQualifier",
+              },
+              "-Resource-Retention-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Ref": "AcceleratorQualifier",
+            },
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
     },
     "SecurityGroup": {
       "Condition": "CreateVpcCondition",
@@ -6920,6 +7240,109 @@ def handler(event, context):
       },
       "Type": "AWS::Logs::LogGroup",
     },
+    "ModuleStateTable930C8620": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Module-State-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "ModuleVerboseLogsGroup1FFBAC09": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Module-Verbose-Logs",
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
     "NatEip0": {
       "Condition": "CreateVpcCondition",
       "Properties": {
@@ -7595,6 +8018,72 @@ def handler(event, context):
         ],
       },
       "Type": "AWS::IAM::Policy",
+    },
+    "ResourceRetentionTableD1686E62": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Resource-Retention-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
     },
     "SecurityGroup": {
       "Condition": "CreateVpcCondition",
@@ -9692,6 +10181,97 @@ def handler(event, context):
       },
       "Type": "AWS::Logs::LogGroup",
     },
+    "ModuleStateTable930C8620": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AcceleratorQualifier",
+              },
+              "-Module-State-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Ref": "AcceleratorQualifier",
+            },
+          },
+        ],
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "ModuleVerboseLogsGroup1FFBAC09": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AcceleratorQualifier",
+              },
+              "-Module-Verbose-Logs",
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Ref": "AcceleratorQualifier",
+            },
+          },
+        ],
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
     "NatEip0": {
       "Condition": "CreateVpcCondition",
       "Properties": {
@@ -10390,6 +10970,66 @@ def handler(event, context):
         ],
       },
       "Type": "AWS::IAM::Policy",
+    },
+    "ResourceRetentionTableD1686E62": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AcceleratorQualifier",
+              },
+              "-Resource-Retention-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Ref": "AcceleratorQualifier",
+            },
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
     },
     "SecurityGroup": {
       "Condition": "CreateVpcCondition",
@@ -12539,6 +13179,109 @@ def handler(event, context):
       },
       "Type": "AWS::Logs::LogGroup",
     },
+    "ModuleStateTable930C8620": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Module-State-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "ModuleVerboseLogsGroup1FFBAC09": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Module-Verbose-Logs",
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
     "NatEip0": {
       "Condition": "CreateVpcCondition",
       "Properties": {
@@ -13214,6 +13957,72 @@ def handler(event, context):
         ],
       },
       "Type": "AWS::IAM::Policy",
+    },
+    "ResourceRetentionTableD1686E62": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Resource-Retention-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
     },
     "SecurityGroup": {
       "Condition": "CreateVpcCondition",
@@ -15291,6 +16100,109 @@ def handler(event, context):
       },
       "Type": "AWS::Logs::LogGroup",
     },
+    "ModuleStateTable930C8620": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Module-State-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "ModuleVerboseLogsGroup1FFBAC09": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Module-Verbose-Logs",
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
     "NatEip0": {
       "Condition": "CreateVpcCondition",
       "Properties": {
@@ -15966,6 +16878,72 @@ def handler(event, context):
         ],
       },
       "Type": "AWS::IAM::Policy",
+    },
+    "ResourceRetentionTableD1686E62": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "SSESpecification": {
+          "SSEEnabled": true,
+        },
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Fn::GetAtt": [
+                  "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                  "acceleratorPrefix",
+                ],
+              },
+              "-Resource-Retention-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "Accelerator",
+            "Value": {
+              "Fn::GetAtt": [
+                "ResourceNamePrefixesGetPrefixResource96A10E6E",
+                "acceleratorPrefix",
+              ],
+            },
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
     },
     "SecurityGroup": {
       "Condition": "CreateVpcCondition",

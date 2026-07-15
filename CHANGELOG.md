@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.16.0] - 
 
 ### Added
+- enhance(macie): migrate Amazon Macie to SDK module with organization-wide orchestration
 - feat(accelerator): add diff viewer features
 - feat(controltower): support parameters on enabled controls
 - feat(diff): static html diff
