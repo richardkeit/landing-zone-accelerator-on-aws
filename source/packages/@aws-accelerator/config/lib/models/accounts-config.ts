@@ -180,6 +180,28 @@ export interface IAccountsConfig {
    * @see {@link IAccountIdConfig} for account ID mapping configuration
    */
   accountIds?: IAccountIdConfig[];
+
+  /**
+   * **Account Tag Removal Policy** *(Optional)*
+   *
+   * Controls how the accelerator decides which existing account tags to remove when
+   * reconciling the per-account {@link IAccountConfig.tags | tags}. This is a single
+   * organisation wide setting; it only affects removal, as tags in the configuration are
+   * always applied regardless of this value.
+   *
+   * - `managed` *(default)* - Only remove tags the accelerator previously applied and that
+   *   are no longer in the configuration. Tags applied by other tools or teams are left
+   *   untouched. The set of accelerator managed keys is tracked in an
+   *   `accelerator:managed-tags` marker tag on each account.
+   * - `authoritative` - Treat the configuration as the full source of truth for every account.
+   *   Any tag present on an account but absent from its configuration is removed, including
+   *   tags applied outside the accelerator. Use with caution.
+   * - `additive` - Never remove tags. Tags are only added or updated. Removing a tag from the
+   *   configuration leaves it in place on the account.
+   *
+   * @default managed
+   */
+  accountTagRemovalPolicy?: 'managed' | 'authoritative' | 'additive';
 }
 
 /**
@@ -478,6 +500,45 @@ export interface IAccountConfig extends IBaseAccountConfig {
    * @default false
    */
   warm?: boolean;
+
+  /**
+   * **Account Tags** *(Optional)*
+   *
+   * Array of AWS resource tags to apply to the account. These tags will be applied
+   * using the AWS Organizations TagResource API when the account is created or updated.
+   *
+   * ### Tag Management
+   *
+   * - Tags are applied during account creation and updates
+   * - Changes to tags in the configuration will update the account tags
+   * - Removing tags from configuration will remove them from the account
+   * - Tags follow AWS Organizations tagging limits and restrictions
+   *
+   * ### Best Practices
+   *
+   * ```yaml
+   * tags:
+   *   - key: Environment
+   *     value: Production
+   *   - key: CostCenter
+   *     value: Engineering
+   *   - key: Owner
+   *     value: platform-team@company.com
+   *   - key: Project
+   *     value: CustomerPortal
+   * ```
+   *
+   * ### AWS Organizations Tag Limits
+   *
+   * - Maximum 50 tags per account
+   * - Tag keys can be up to 128 characters
+   * - Tag values can be up to 256 characters
+   * - Tag keys and values are case sensitive
+   * - Cannot start with "aws:" (reserved prefix)
+   *
+   * @see {@link https://docs.aws.amazon.com/organizations/latest/userguide/orgs_tagging.html | AWS Organizations Tagging}
+   */
+  tags?: t.ITag[];
 }
 
 /**
@@ -589,6 +650,37 @@ export interface IGovCloudAccountConfig extends IBaseAccountConfig {
    * @default false
    */
   warm?: boolean;
+
+  /**
+   * **Account Tags** *(Optional)*
+   *
+   * Array of AWS resource tags to apply to the GovCloud account. These tags are reconciled
+   * on the account through the AWS Organizations TagResource API on each pipeline run.
+   *
+   * ### GovCloud Tag Considerations
+   *
+   * - Tags are applied within the partition the accelerator is deployed to
+   * - GovCloud accounts may have additional compliance requirements for tag values
+   * - Consider data classification requirements in tag values
+   * - Follow agency-specific tagging standards for compliance
+   *
+   * ### Best Practices for GovCloud
+   *
+   * ```yaml
+   * tags:
+   *   - key: Environment
+   *     value: Production-GovCloud
+   *   - key: Classification
+   *     value: CUI
+   *   - key: ComplianceFramework
+   *     value: FedRAMP-High
+   *   - key: Agency
+   *     value: DepartmentOfDefense
+   * ```
+   *
+   * @see {@link https://docs.aws.amazon.com/organizations/latest/userguide/orgs_tagging.html | AWS Organizations Tagging}
+   */
+  tags?: t.ITag[];
 }
 
 /**

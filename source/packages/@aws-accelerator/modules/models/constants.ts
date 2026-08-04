@@ -23,6 +23,7 @@ import { SsmBlockPublicDocumentSharingModule } from '../lib/actions/aws-ssm/ssm-
 import { AcceleratorModules, AcceleratorModuleStages, ModuleExecutionPhase } from './enums';
 import { AcceleratorModuleStageDetailsType, AcceleratorModuleStageOrdersType, ModuleParams } from './types';
 import { ManageAccountsAliasModule } from '../lib/actions/aws-organizations/manage-accounts-alias';
+import { ManageAccountsTagsModule } from '../lib/actions/aws-organizations/manage-accounts-tags';
 import { AcceleratorPrerequisites } from '../lib/actions/prerequisites/accelerator-prerequisites';
 import { PipelinePrerequisites } from '../lib/actions/prerequisites/pipeline-prerequisites';
 import { ManageAutomationRulesModule } from '../lib/actions/aws-security-hub/manage-automation-rules';
@@ -176,6 +177,15 @@ export const AcceleratorModuleStageDetails: AcceleratorModuleStageDetailsType[] 
         runOrder: 2,
         handler: async (params: ModuleParams) => {
           return await ManageAccountsAliasModule.execute(params);
+        },
+        executionPhase: ModuleExecutionPhase.DEPLOY,
+      },
+      {
+        name: AcceleratorModules.MANAGE_ACCOUNTS_TAGS,
+        description: 'Manage the AWS Organizations tags of accounts',
+        runOrder: 3,
+        handler: async (params: ModuleParams) => {
+          return await ManageAccountsTagsModule.execute(params);
         },
         executionPhase: ModuleExecutionPhase.DEPLOY,
       },

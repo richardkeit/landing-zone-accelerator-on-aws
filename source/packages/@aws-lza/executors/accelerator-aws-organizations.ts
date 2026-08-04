@@ -35,6 +35,8 @@ import {
 import { GetOrganizationalUnitsDetailModule } from '../lib/aws-organizations/get-organizational-units-detail';
 import { ManageAccountAlias } from '../lib/aws-organizations/manage-account-alias';
 import { IManageAccountAliasHandlerParameter } from '../interfaces/aws-organizations/manage-account-alias';
+import { ManageAccountTags } from '../lib/aws-organizations/manage-account-tags';
+import { IManageAccountTagsHandlerParameter } from '../interfaces/aws-organizations/manage-account-tags';
 import { ModuleHandlerReturnType } from '../common/types';
 import { ManagePolicy } from '../lib/aws-organizations/manage-policy';
 import { IManagePolicyHandlerParameter } from '../interfaces/aws-organizations/manage-policy';
@@ -346,6 +348,38 @@ export async function getOrganizationalUnitsDetail(
 export async function manageAccountAlias(input: IManageAccountAliasHandlerParameter): Promise<string> {
   try {
     return await new ManageAccountAlias().handler(input);
+  } catch (e: unknown) {
+    logger.error(e);
+    throw e;
+  }
+}
+
+/**
+ * Function to manage AWS Organizations account tags
+ * @param input {@link IManageAccountTagsHandlerParameter}
+ * @returns status string indicating the result(s) of the operation
+ *
+ * @description
+ * Use this function to reconcile the tags applied to an account through the AWS
+ * Organizations `TagResource` API. The function must be invoked with credentials for
+ * the AWS Organizations management account and targets the global Organizations endpoint.
+ *
+ * @example
+ * const input: IManageAccountTagsHandlerParameter = {
+ *   operation: 'manage-account-tags',
+ *   partition: 'aws',
+ *   region: 'us-east-1',
+ *   configuration: {
+ *     accountId: '111111111111',
+ *     tags: [
+ *       { key: 'Environment', value: 'Production' },
+ *     ],
+ *   },
+ * };
+ */
+export async function manageAccountTags(input: IManageAccountTagsHandlerParameter): Promise<string> {
+  try {
+    return await new ManageAccountTags().handler(input);
   } catch (e: unknown) {
     logger.error(e);
     throw e;

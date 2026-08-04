@@ -102,6 +102,13 @@ export { getOrganizationId } from './common/functions';
 export { manageAccountAlias } from './executors/accelerator-aws-organizations';
 export { IManageAccountAliasHandlerParameter } from './interfaces/aws-organizations/manage-account-alias';
 
+export {
+  IAccountTag,
+  IManageAccountTagsConfiguration,
+  IManageAccountTagsHandlerParameter,
+} from './interfaces/aws-organizations/manage-account-tags';
+export { manageAccountTags } from './executors/accelerator-aws-organizations';
+
 export { managePolicy } from './executors/accelerator-aws-organizations';
 export { IManagePolicyHandlerParameter } from './interfaces/aws-organizations/manage-policy';
 
