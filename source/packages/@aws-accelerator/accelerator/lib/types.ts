@@ -166,6 +166,11 @@ export enum AcceleratorModules {
   MANAGE_ACCOUNTS_ALIAS = 'manage-accounts-alias',
 
   /**
+   * Manages AWS Organizations tags on accounts.
+   */
+  MANAGE_ACCOUNTS_TAGS = 'manage-accounts-tags',
+
+  /**
    * Accelerator prerequisites module.
    */
   ACCELERATOR_PREREQUISITES = 'accelerator-prerequisites',

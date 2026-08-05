@@ -111,6 +111,7 @@ import { CreateOrganizationalUnitModule } from '../../modules/lib/actions/aws-or
 import { InviteAccountsToOrganizationsModule } from '../../modules/lib/actions/aws-organizations/invite-accounts-to-organizations';
 import { MoveAccountModule } from '../../modules/lib/actions/aws-organizations/move-accounts';
 import { ManageAccountsAliasModule } from '../../modules/lib/actions/aws-organizations/manage-accounts-alias';
+import { ManageAccountsTagsModule } from '../../modules/lib/actions/aws-organizations/manage-accounts-tags';
 import { RegisterOrganizationalUnitModule } from '../../modules/lib/actions/control-tower/register-organizational-unit';
 import { SetupControlTowerLandingZoneModule } from '../../modules/lib/actions/control-tower/setup-control-tower-landing-zone';
 import { EnrollAccountsModule } from '../../modules/lib/actions/control-tower/enroll-accounts';
@@ -490,6 +491,13 @@ export const AcceleratorModuleStageDetails: AcceleratorModuleStageDetailsType[] 
         description: 'Manage the alias of accounts',
         runOrder: 2,
         handler: legacyHandler(ManageAccountsAliasModule.execute),
+        executionPhase: ModuleExecutionPhase.DEPLOY,
+      },
+      {
+        name: AcceleratorModules.MANAGE_ACCOUNTS_TAGS,
+        description: 'Manage the AWS Organizations tags of accounts',
+        runOrder: 3,
+        handler: legacyHandler(ManageAccountsTagsModule.execute),
         executionPhase: ModuleExecutionPhase.DEPLOY,
       },
     ],

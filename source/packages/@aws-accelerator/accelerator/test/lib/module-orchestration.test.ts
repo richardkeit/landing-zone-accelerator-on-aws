@@ -27,6 +27,7 @@ const mockExecuteFns = vi.hoisted(() => ({
   CreateStackPolicyModule: vi.fn().mockResolvedValue('ok'),
   EnrollAccountsModule: vi.fn().mockResolvedValue('ok'),
   ManageAccountsAliasModule: vi.fn().mockResolvedValue('ok'),
+  ManageAccountsTagsModule: vi.fn().mockResolvedValue('ok'),
   AcceleratorPrerequisites: vi.fn().mockResolvedValue('ok'),
   SsmBlockPublicDocumentSharingModule: vi.fn().mockResolvedValue('ok'),
   ManageAutomationRulesModule: vi.fn().mockResolvedValue('ok'),
@@ -62,6 +63,9 @@ vi.mock('../../../modules/lib/actions/control-tower/enroll-accounts', () => ({
 }));
 vi.mock('../../../modules/lib/actions/aws-organizations/manage-accounts-alias', () => ({
   ManageAccountsAliasModule: { execute: mockExecuteFns.ManageAccountsAliasModule },
+}));
+vi.mock('../../../modules/lib/actions/aws-organizations/manage-accounts-tags', () => ({
+  ManageAccountsTagsModule: { execute: mockExecuteFns.ManageAccountsTagsModule },
 }));
 vi.mock('../../../modules/lib/actions/prerequisites/accelerator-prerequisites', () => ({
   AcceleratorPrerequisites: { execute: mockExecuteFns.AcceleratorPrerequisites },
@@ -252,6 +256,16 @@ describe('module-orchestration', () => {
     it('should have modules registered in ACCOUNTS stage', () => {
       const accounts = AcceleratorModuleStageDetails.find(d => d.stage.name === MODULE_SUPPORTED_STAGES.ACCOUNTS);
       expect(accounts?.modules.length).toBeGreaterThan(0);
+    });
+
+    it('should register the manage-accounts-tags module in the ACCOUNTS stage', () => {
+      const accounts = AcceleratorModuleStageDetails.find(d => d.stage.name === MODULE_SUPPORTED_STAGES.ACCOUNTS);
+      const tagsModule = accounts?.modules.find(m => m.name === AcceleratorModules.MANAGE_ACCOUNTS_TAGS);
+
+      // Registering only in the legacy @aws-accelerator/modules registry is not sufficient;
+      // the runner resolves modules from AcceleratorModuleStageDetails in this file.
+      expect(tagsModule).toBeDefined();
+      expect(tagsModule?.executionPhase).toBe(ModuleExecutionPhase.DEPLOY);
     });
 
     it('should have modules registered in LOGGING stage', () => {
